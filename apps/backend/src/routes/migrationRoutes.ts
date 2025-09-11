@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { getRepository } from 'typeorm';
 import { User } from '../entity/User';
+import { FacturacionEvento } from '../entity/FacturacionEvento';
 import bcrypt from 'bcryptjs';
 import { AppDataSource } from '../data-source';
 
@@ -184,6 +185,158 @@ router.post('/migrate-user', async (req: Request, res: Response) => {
     res.status(500).json({ 
       success: false, 
       error: error instanceof Error ? error.message : 'Error desconocido' 
+    });
+  }
+});
+
+// Endpoint para detectar facturas duplicadas
+router.get('/detect-duplicates', async (req: Request, res: Response) => {
+  try {
+    const connection = await AppDataSource.initialize();
+    
+    // Detectar duplicados por número de factura
+    const duplicatesByNumber = await connection.query(`
+      SELECT 
+        "numeroFactura",
+        COUNT(*) as cantidad,
+        STRING_AGG(id::text, ', ') as ids,
+        STRING_AGG(fecha::text, ', ') as fechas,
+        STRING_AGG(valor::text, ', ') as valores
+      FROM facturacion_evento 
+      GROUP BY "numeroFactura" 
+      HAVING COUNT(*) > 1
+      ORDER BY cantidad DESC, "numeroFactura";
+    `);
+    
+    // Detectar duplicados por combinación de campos clave
+    const duplicatesByKey = await connection.query(`
+      SELECT 
+        "numeroFactura",
+        fecha,
+        valor,
+        aseguradora,
+        COUNT(*) as cantidad,
+        STRING_AGG(id::text, ', ') as ids
+      FROM facturacion_evento 
+      GROUP BY "numeroFactura", fecha, valor, aseguradora
+      HAVING COUNT(*) > 1
+      ORDER BY cantidad DESC;
+    `);
+    
+    // Duplicados del último mes
+    const recentDuplicates = await connection.query(`
+      SELECT 
+        "numeroFactura",
+        COUNT(*) as cantidad,
+        STRING_AGG(id::text, ', ') as ids,
+        STRING_AGG(fecha::text, ', ') as fechas
+      FROM facturacion_evento 
+      WHERE fecha >= CURRENT_DATE - INTERVAL '30 days'
+      GROUP BY "numeroFactura" 
+      HAVING COUNT(*) > 1
+      ORDER BY cantidad DESC;
+    `);
+    
+    res.json({
+      success: true,
+      statistics: {
+        duplicatesByNumber: duplicatesByNumber.length,
+        duplicatesByKey: duplicatesByKey.length,
+        recentDuplicates: recentDuplicates.length
+      },
+      duplicates: {
+        byNumber: duplicatesByNumber,
+        byKey: duplicatesByKey,
+        recent: recentDuplicates
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error detecting duplicates:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al detectar duplicados',
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
+// Endpoint para eliminar duplicados específicos (solo conserva el más reciente)
+router.post('/remove-duplicates', async (req: Request, res: Response) => {
+  try {
+    const { numeroFactura, keepNewest = true } = req.body;
+    const connection = await AppDataSource.initialize();
+    
+    if (numeroFactura) {
+      // Eliminar duplicados de una factura específica
+      const orderBy = keepNewest ? 'DESC' : 'ASC';
+      const result = await connection.query(`
+        DELETE FROM facturacion_evento 
+        WHERE id NOT IN (
+          SELECT id FROM (
+            SELECT id, ROW_NUMBER() OVER (
+              PARTITION BY "numeroFactura" 
+              ORDER BY id ${orderBy}
+            ) as rn
+            FROM facturacion_evento 
+            WHERE "numeroFactura" = $1
+          ) t WHERE rn = 1
+        ) AND "numeroFactura" = $1;
+      `, [numeroFactura]);
+      
+      res.json({
+        success: true,
+        message: `Duplicados eliminados para factura ${numeroFactura}`,
+        deletedCount: result.rowCount || 0
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: 'Se requiere el numeroFactura'
+      });
+    }
+    
+  } catch (error) {
+    console.error('Error removing duplicates:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al eliminar duplicados',
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
+// Endpoint para eliminar TODOS los duplicados automáticamente (conserva el más reciente)
+router.post('/remove-all-duplicates', async (req: Request, res: Response) => {
+  try {
+    const connection = await AppDataSource.initialize();
+    
+    // Eliminar duplicados conservando el registro con ID más alto (más reciente)
+    const result = await connection.query(`
+      DELETE FROM facturacion_evento 
+      WHERE id NOT IN (
+        SELECT id FROM (
+          SELECT id, ROW_NUMBER() OVER (
+            PARTITION BY "numeroFactura" 
+            ORDER BY id DESC
+          ) as rn
+          FROM facturacion_evento
+        ) t WHERE rn = 1
+      );
+    `);
+    
+    res.json({
+      success: true,
+      message: 'Todos los duplicados han sido eliminados (conservando el más reciente)',
+      deletedCount: result.rowCount || 0
+    });
+    
+  } catch (error) {
+    console.error('Error removing all duplicates:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al eliminar todos los duplicados',
+      error: error instanceof Error ? error.message : String(error)
     });
   }
 });
