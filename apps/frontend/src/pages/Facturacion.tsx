@@ -347,6 +347,8 @@ export default function Facturacion() {
     return localStorage.getItem('ultimaActualizacionFacturacion') || "";
   });
   const [eventos, setEventos] = useState<FacturacionEvento[]>([]);
+  // Variable separada para TODOS los eventos del rango de fechas (para tarjetas)
+  const [todosEventosFecha, setTodosEventosFecha] = useState<FacturacionEvento[]>([]);
   
   // Estados para paginación optimizada
   const [loading, setLoading] = useState(false);
@@ -394,6 +396,31 @@ export default function Facturacion() {
     };
   }
   const [{ inicial: fechaFiltroInicial, final: fechaFiltroFinal }, setFechasFiltro] = useState(getDefaultFechas());
+
+  // Función para cargar TODOS los eventos del rango de fechas (para tarjetas)
+  const cargarTodosEventosFecha = useCallback(async () => {
+    if (!fechaFiltroInicial || !fechaFiltroFinal) return;
+    
+    try {
+      const params = new URLSearchParams({
+        fechaInicial: fechaFiltroInicial,
+        fechaFinal: fechaFiltroFinal,
+        limit: '10000' // Límite alto para obtener todos los datos del período
+      });
+
+      const res = await fetch(`${API_CONFIG.BASE_URL}/facturacion/eventos?${params}`);
+      const data = await res.json();
+      
+      if (data.ok) {
+        setTodosEventosFecha(data.eventos || []);
+      } else {
+        setTodosEventosFecha([]);
+      }
+    } catch (error) {
+      console.error('Error cargando todos los eventos:', error);
+      setTodosEventosFecha([]);
+    }
+  }, [fechaFiltroInicial, fechaFiltroFinal]);
 
   
   // Función optimizada para cargar eventos con paginación
@@ -474,13 +501,10 @@ export default function Facturacion() {
     return agruparFacturacion(eventosFiltrados);
   }, [eventos, filtroBusqueda, fechaFiltroInicial, fechaFiltroFinal, sedeFiltro, aseguradoraFiltro, periodoFiltro]);
 
-  // Datos para tarjetas - SOLO filtro de fechas (no filtros de tabla)
+  // Datos para tarjetas - TODOS los eventos del rango de fechas
   const eventosPorFecha = useMemo(() => {
-    return eventos.filter(ev => {
-      const fechaEv = ev.fecha || '';
-      return (!fechaFiltroInicial || fechaEv >= fechaFiltroInicial) && (!fechaFiltroFinal || fechaEv <= fechaFiltroFinal);
-    });
-  }, [eventos, fechaFiltroInicial, fechaFiltroFinal]);
+    return todosEventosFecha; // Ya vienen filtrados por fecha desde el backend
+  }, [todosEventosFecha]);
   // Actualizar fechas por defecto al cambiar de mes
   useEffect(() => {
     const hoy = new Date();
@@ -495,14 +519,16 @@ export default function Facturacion() {
   // Cargar datos iniciales usando la nueva API paginada
   useEffect(() => {
     cargarEventos(1, '', false);
-  }, [cargarEventos]);
+    cargarTodosEventosFecha(); // Cargar también datos para tarjetas
+  }, [cargarEventos, cargarTodosEventosFecha]);
   
   // Efecto para recargar cuando cambian filtros importantes
   useEffect(() => {
     if (fechaFiltroInicial && fechaFiltroFinal) {
       cargarEventos(1, '', true);
+      cargarTodosEventosFecha(); // Recargar datos para tarjetas
     }
-  }, [fechaFiltroInicial, fechaFiltroFinal, sedeFiltro, aseguradoraFiltro, cargarEventos]);
+  }, [fechaFiltroInicial, fechaFiltroFinal, sedeFiltro, aseguradoraFiltro, cargarEventos, cargarTodosEventosFecha]);
   // Conexión a Socket.IO para refrescar en tiempo real
   useEffect(() => {
     const socket = getSocket();
