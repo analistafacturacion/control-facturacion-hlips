@@ -932,27 +932,15 @@ router.get('/eventos/totales', async (req: RequestWithIO, res: Response) => {
     
     console.log(`[TOTALES] Calculando totales entre ${fechaInicial} y ${fechaFinal}`);
     
-    // Consulta SQL optimizada que calcula TODOS los totales de una vez
+    // Consulta SQL simple para totales de FACTURACIÓN
     const resultado = await facturacionRepo
       .createQueryBuilder('evento')
       .select([
         'COUNT(*) as total_facturas',
-        `SUM(CASE 
-          WHEN UPPER(TRIM(COALESCE(evento.periodo, ''))) != 'ANULADA' 
-          THEN CASE 
-            WHEN "evento"."tipoRegistro" = 'Nota Crédito' 
-            THEN -COALESCE(evento.valor, 0) 
-            ELSE COALESCE(evento.valor, 0) 
-          END 
-          ELSE 0 
-        END) as total_facturado`,
+        'SUM(COALESCE(evento.valor, 0)) as total_facturado',
         `SUM(CASE 
           WHEN UPPER(TRIM(COALESCE(evento.periodo, ''))) = 'CORRIENTE' 
-          THEN CASE 
-            WHEN "evento"."tipoRegistro" = 'Nota Crédito' 
-            THEN -COALESCE(evento.valor, 0) 
-            ELSE COALESCE(evento.valor, 0) 
-          END 
+          THEN COALESCE(evento.valor, 0) 
           ELSE 0 
         END) as facturado_corriente`,
         `SUM(CASE 

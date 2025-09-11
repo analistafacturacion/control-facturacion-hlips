@@ -497,25 +497,12 @@ export default function Facturacion() {
       
       // CALCULAR TOTALES PARA COMPATIBILIDAD
       const totalFacturas = todosLosEventos.length;
-      const totalFacturado = todosLosEventos.filter(ev => {
-        const periodoEv = (ev.periodo || '').trim().toUpperCase();
-        return periodoEv !== 'ANULADA';
-      }).reduce((acc, ev) => {
-        if (ev.tipoRegistro === 'Nota Crédito') {
-          return acc - (Number(ev.valor) || 0);
-        }
-        return acc + (Number(ev.valor) || 0);
-      }, 0);
+      const totalFacturado = todosLosEventos.reduce((acc, ev) => acc + (Number(ev.valor) || 0), 0);
       
       const facturadoCorriente = todosLosEventos.filter(ev => {
         const periodoEv = (ev.periodo || '').trim().toUpperCase();
         return periodoEv === 'CORRIENTE';
-      }).reduce((acc, ev) => {
-        if (ev.tipoRegistro === 'Nota Crédito') {
-          return acc - (Number(ev.valor) || 0);
-        }
-        return acc + (Number(ev.valor) || 0);
-      }, 0);
+      }).reduce((acc, ev) => acc + (Number(ev.valor) || 0), 0);
       
       const facturadoRemanente = todosLosEventos.filter(ev => {
         const periodoEv = (ev.periodo || '').trim().toUpperCase();
