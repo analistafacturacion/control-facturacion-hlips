@@ -1369,7 +1369,7 @@ const handleArchivoPlano = async (file: File) => {
 						       `}</style>
 						       {menuReportesOpen && (
 							       <div className="absolute z-50 top-8 -left-24 bg-white border border-gray-200 rounded shadow-md min-w-[180px] text-xs animate-fade-in">
-									<a className="w-full text-left px-4 py-2 hover:bg-green-100 block" href="/Archivo_plano_anulaciones.xlsx" download>Descargar archivo Plano</a>
+									<a className="w-full text-left px-4 py-2 hover:bg-green-100 block" href="./Archivo_plano_anulaciones.xlsx" download>Descargar archivo Plano</a>
 									<div role="button" tabIndex={0} className="w-full text-left px-4 py-2 hover:bg-green-100 cursor-pointer" onClick={e => {e.preventDefault(); descargarReporte('rips');}} onKeyDown={e => {if(e.key==='Enter'){descargarReporte('rips');}}}>Cargar archivo Plano</div>
 									<div role="button" tabIndex={0} className="w-full text-left px-4 py-2 hover:bg-green-100 cursor-pointer" onClick={e => {e.preventDefault(); descargarReporte('general');}} onKeyDown={e => {if(e.key==='Enter'){descargarReporte('general');}}}>Descargar reporte Anulaciones</div>
 									<div role="button" tabIndex={0} className="w-full text-left px-4 py-2 hover:bg-green-100 cursor-pointer" onClick={e => {e.preventDefault(); descargarReporte('sin_estado');}} onKeyDown={e => {if(e.key==='Enter'){descargarReporte('sin_estado');}}}>Descargar reporte Pendientes</div>
