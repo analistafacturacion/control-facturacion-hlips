@@ -1,6 +1,14 @@
 import * as XLSX from 'xlsx';
 import { exportAnulacionesExcel, exportAnulacionesSinEstado } from '../utils/exportAnulacionesExcel';
 import API_CONFIG from '../config/api';
+
+// Función para obtener la URL correcta de archivos estáticos
+const getStaticFileUrl = (filename: string) => {
+	const baseUrl = window.location.origin;
+	const basePath = window.location.pathname.includes('/control-facturacion-hlips/') ? '/control-facturacion-hlips/' : '/';
+	return `${baseUrl}${basePath}${filename}`;
+};
+
 // Formateador contable para valores
 const formatearValor = (valor?: number) => {
 	if (valor === undefined || valor === null) return '';
@@ -1369,7 +1377,7 @@ const handleArchivoPlano = async (file: File) => {
 						       `}</style>
 						       {menuReportesOpen && (
 							       <div className="absolute z-50 top-8 -left-24 bg-white border border-gray-200 rounded shadow-md min-w-[180px] text-xs animate-fade-in">
-									<a className="w-full text-left px-4 py-2 hover:bg-green-100 block" href="./Archivo_plano_anulaciones.xlsx" download>Descargar archivo Plano</a>
+									<a className="w-full text-left px-4 py-2 hover:bg-green-100 block" href={getStaticFileUrl('Archivo_plano_anulaciones.xlsx')} download>Descargar archivo Plano</a>
 									<div role="button" tabIndex={0} className="w-full text-left px-4 py-2 hover:bg-green-100 cursor-pointer" onClick={e => {e.preventDefault(); descargarReporte('rips');}} onKeyDown={e => {if(e.key==='Enter'){descargarReporte('rips');}}}>Cargar archivo Plano</div>
 									<div role="button" tabIndex={0} className="w-full text-left px-4 py-2 hover:bg-green-100 cursor-pointer" onClick={e => {e.preventDefault(); descargarReporte('general');}} onKeyDown={e => {if(e.key==='Enter'){descargarReporte('general');}}}>Descargar reporte Anulaciones</div>
 									<div role="button" tabIndex={0} className="w-full text-left px-4 py-2 hover:bg-green-100 cursor-pointer" onClick={e => {e.preventDefault(); descargarReporte('sin_estado');}} onKeyDown={e => {if(e.key==='Enter'){descargarReporte('sin_estado');}}}>Descargar reporte Pendientes</div>
