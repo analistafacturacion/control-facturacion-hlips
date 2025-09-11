@@ -417,9 +417,8 @@ export default function Facturacion() {
         setEventos(data.eventos || []);
         setTotalRegistros(data.pagination?.totalRecords || 0);
         setTotalPaginas(data.pagination?.totalPages || 0);
-        if (resetPagina) {
-          setPaginaActual(1);
-        }
+        // Actualizar página actual siempre, no solo cuando resetPagina
+        setPaginaActual(resetPagina ? 1 : pagina);
       } else {
         setEventos([]);
         setTotalRegistros(0);
@@ -474,6 +473,14 @@ export default function Facturacion() {
     });
     return agruparFacturacion(eventosFiltrados);
   }, [eventos, filtroBusqueda, fechaFiltroInicial, fechaFiltroFinal, sedeFiltro, aseguradoraFiltro, periodoFiltro]);
+
+  // Datos para tarjetas - SOLO filtro de fechas (no filtros de tabla)
+  const eventosPorFecha = useMemo(() => {
+    return eventos.filter(ev => {
+      const fechaEv = ev.fecha || '';
+      return (!fechaFiltroInicial || fechaEv >= fechaFiltroInicial) && (!fechaFiltroFinal || fechaEv <= fechaFiltroFinal);
+    });
+  }, [eventos, fechaFiltroInicial, fechaFiltroFinal]);
   // Actualizar fechas por defecto al cambiar de mes
   useEffect(() => {
     const hoy = new Date();
@@ -974,93 +981,49 @@ export default function Facturacion() {
   <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-6">
     {/* Tarjeta: Total facturas */}
   <div className="relative bg-white rounded-2xl shadow-md px-7 py-6 flex flex-col items-center justify-center min-w-[180px] min-h-[110px]">
-  <span className="text-2xl font-bold mb-2 mt-2" style={{fontFamily: 'Segoe UI, Arial, sans-serif', color: '#1f1200'}}> {
-        eventos.filter(ev => {
-          const filtro = filtroBusqueda.trim().toLowerCase();
-          const coincideTexto = !filtro || 
-            (ev.numeroFactura && ev.numeroFactura.toLowerCase().includes(filtro)) || 
-            (ev.documento && ev.documento.toLowerCase().includes(filtro)) || 
-            (ev.paciente && ev.paciente.toLowerCase().includes(filtro));
-          const fechaEv = ev.fecha || '';
-          const enRango = (!fechaFiltroInicial || fechaEv >= fechaFiltroInicial) && (!fechaFiltroFinal || fechaEv <= fechaFiltroFinal);
-          const coincideSede = !sedeFiltro || (ev.sede && ev.sede.nombre === sedeFiltro);
-          const coincideAseg = !aseguradoraFiltro || (ev.aseguradora === aseguradoraFiltro);
-          const periodoEv = (ev.periodo || '').trim().toUpperCase();
-          const periodoFiltroNorm = (periodoFiltro || '').trim().toUpperCase();
-          const coincidePeriodo = !periodoFiltroNorm || periodoEv === periodoFiltroNorm;
-          return coincideTexto && enRango && coincideSede && coincideAseg && coincidePeriodo;
-        }).length
-      }</span>
+  <span className="text-2xl font-bold mb-2 mt-2" style={{fontFamily: 'Segoe UI, Arial, sans-serif', color: '#1f1200'}}> 
+    {eventosPorFecha.length}
+  </span>
       <span className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Total facturas</span>
     </div>
     {/* Tarjeta: Total Facturado */}
   <div className="relative bg-white rounded-2xl shadow-md px-7 py-6 flex flex-col items-center justify-center min-w-[180px] min-h-[110px]">
-  <span className="text-2xl font-bold mb-2 mt-2" style={{fontFamily: 'Segoe UI, Arial, sans-serif', color: '#103800'}}> {
-        eventos.filter(ev => {
-          const filtro = filtroBusqueda.trim().toLowerCase();
-          const coincideTexto = !filtro ||
-            (ev.numeroFactura && ev.numeroFactura.toLowerCase().includes(filtro)) ||
-            (ev.documento && ev.documento.toLowerCase().includes(filtro)) ||
-            (ev.paciente && ev.paciente.toLowerCase().includes(filtro));
-          const fechaEv = ev.fecha || '';
-          const enRango = (!fechaFiltroInicial || fechaEv >= fechaFiltroInicial) && (!fechaFiltroFinal || fechaEv <= fechaFiltroFinal);
-          const coincideSede = !sedeFiltro || (ev.sede && ev.sede.nombre === sedeFiltro);
-          const coincideAseg = !aseguradoraFiltro || (ev.aseguradora === aseguradoraFiltro);
-          const periodoEv = (ev.periodo || '').trim().toUpperCase();
-          // NO aplicar filtro de periodo para Total Facturado - excluir solo ANULADAS
-          return coincideTexto && enRango && coincideSede && coincideAseg && periodoEv !== 'ANULADA';
-        }).reduce((acc, ev) => {
-          if (ev.tipoRegistro === 'Nota Crédito') {
-            return acc - (Number(ev.valor) || 0);
-          }
-          return acc + (Number(ev.valor) || 0);
-        }, 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 })
-      }</span>
+  <span className="text-2xl font-bold mb-2 mt-2" style={{fontFamily: 'Segoe UI, Arial, sans-serif', color: '#103800'}}> 
+    {eventosPorFecha.filter(ev => {
+      const periodoEv = (ev.periodo || '').trim().toUpperCase();
+      return periodoEv !== 'ANULADA'; // Excluir solo ANULADAS
+    }).reduce((acc, ev) => {
+      if (ev.tipoRegistro === 'Nota Crédito') {
+        return acc - (Number(ev.valor) || 0);
+      }
+      return acc + (Number(ev.valor) || 0);
+    }, 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+  </span>
       <span className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Total Facturado</span>
     </div>
     {/* Tarjeta: Facturado Corriente */}
   <div className="relative bg-white rounded-2xl shadow-md px-7 py-6 flex flex-col items-center justify-center min-w-[180px] min-h-[110px]">
-  <span className="text-2xl font-bold mb-2 mt-2" style={{fontFamily: 'Segoe UI, Arial, sans-serif', color: '#103800'}}> {
-        eventos.filter(ev => {
-          const filtro = filtroBusqueda.trim().toLowerCase();
-          const coincideTexto = !filtro ||
-            (ev.numeroFactura && ev.numeroFactura.toLowerCase().includes(filtro)) ||
-            (ev.documento && ev.documento.toLowerCase().includes(filtro)) ||
-            (ev.paciente && ev.paciente.toLowerCase().includes(filtro));
-          const fechaEv = ev.fecha || '';
-          const enRango = (!fechaFiltroInicial || fechaEv >= fechaFiltroInicial) && (!fechaFiltroFinal || fechaEv <= fechaFiltroFinal);
-          const coincideSede = !sedeFiltro || (ev.sede && ev.sede.nombre === sedeFiltro);
-          const coincideAseg = !aseguradoraFiltro || (ev.aseguradora === aseguradoraFiltro);
-          const periodoEv = (ev.periodo || '').trim().toUpperCase();
-          // Para Corriente: aplicar todos los filtros EXCEPTO el filtro de periodo, pero solo mostrar CORRIENTE
-          return coincideTexto && enRango && coincideSede && coincideAseg && periodoEv !== 'ANULADA' && periodoEv === 'CORRIENTE';
-        }).reduce((acc, ev) => {
-          if (ev.tipoRegistro === 'Nota Crédito') {
-            return acc - (Number(ev.valor) || 0);
-          }
-          return acc + (Number(ev.valor) || 0);
-        }, 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 })
-      }</span>
+  <span className="text-2xl font-bold mb-2 mt-2" style={{fontFamily: 'Segoe UI, Arial, sans-serif', color: '#103800'}}> 
+    {eventosPorFecha.filter(ev => {
+      const periodoEv = (ev.periodo || '').trim().toUpperCase();
+      return periodoEv === 'CORRIENTE';
+    }).reduce((acc, ev) => {
+      if (ev.tipoRegistro === 'Nota Crédito') {
+        return acc - (Number(ev.valor) || 0);
+      }
+      return acc + (Number(ev.valor) || 0);
+    }, 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+  </span>
       <span className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Facturado Corriente</span>
     </div>
     {/* Tarjeta: Facturado Remanente */}
   <div className="relative bg-white rounded-2xl shadow-md px-7 py-6 flex flex-col items-center justify-center min-w-[180px] min-h-[110px]">
-  <span className="text-2xl font-bold mb-2 mt-2" style={{fontFamily: 'Segoe UI, Arial, sans-serif', color: '#103800'}}> {
-        eventos.filter(ev => {
-          const filtro = filtroBusqueda.trim().toLowerCase();
-          const coincideTexto = !filtro ||
-            (ev.numeroFactura && ev.numeroFactura.toLowerCase().includes(filtro)) ||
-            (ev.documento && ev.documento.toLowerCase().includes(filtro)) ||
-            (ev.paciente && ev.paciente.toLowerCase().includes(filtro));
-          const fechaEv = ev.fecha || '';
-          const enRango = (!fechaFiltroInicial || fechaEv >= fechaFiltroInicial) && (!fechaFiltroFinal || fechaEv <= fechaFiltroFinal);
-          const coincideSede = !sedeFiltro || (ev.sede && ev.sede.nombre === sedeFiltro);
-          const coincideAseg = !aseguradoraFiltro || (ev.aseguradora === aseguradoraFiltro);
-          const periodoEv = (ev.periodo || '').trim().toUpperCase();
-          // Para Remanente: aplicar todos los filtros EXCEPTO el filtro de periodo, pero solo mostrar REMANENTE
-          return coincideTexto && enRango && coincideSede && coincideAseg && periodoEv !== 'ANULADA' && periodoEv === 'REMANENTE';
-        }).reduce((acc, ev) => acc + (Number(ev.valor) || 0), 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 })
-      }</span>
+  <span className="text-2xl font-bold mb-2 mt-2" style={{fontFamily: 'Segoe UI, Arial, sans-serif', color: '#103800'}}> 
+    {eventosPorFecha.filter(ev => {
+      const periodoEv = (ev.periodo || '').trim().toUpperCase();
+      return periodoEv === 'REMANENTE';
+    }).reduce((acc, ev) => acc + (Number(ev.valor) || 0), 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+  </span>
       <span className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Facturado Remanente</span>
     </div>
     {/* Tarjeta: Última actualización */}
