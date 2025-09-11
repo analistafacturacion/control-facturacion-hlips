@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Aseguradora } from '../types/aseguradora'
 import ConfigurarSede from './ConfigurarSede'
+import API_CONFIG from '../config/api'
 
 export default function Configuracion() {
   // Estado para aseguradoras
@@ -15,7 +16,7 @@ export default function Configuracion() {
 
   // Cargar aseguradoras al montar
   useEffect(() => {
-    fetch('/api/aseguradoras')
+    fetch(`${API_CONFIG.BASE_URL}/aseguradoras`)
       .then(r => r.json())
       .then(data => {
         setAseguradoras(data.map((a: any) => ({ nombrePergamo: '', ...a })))
@@ -38,7 +39,7 @@ export default function Configuracion() {
     try {
       if (editId !== null) {
         // Editar aseguradora existente
-        const res = await fetch(`/api/aseguradoras/${editId}`, {
+        const res = await fetch(`${API_CONFIG.BASE_URL}/aseguradoras/${editId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ nombrePergamo, nombre, iniciales })
@@ -48,7 +49,7 @@ export default function Configuracion() {
         setAseguradoras(a => a.map(x => x.id === editId ? { ...x, ...actualizada } : x))
       } else {
         // Crear nueva aseguradora
-        const res = await fetch('/api/aseguradoras', {
+        const res = await fetch(`${API_CONFIG.BASE_URL}/aseguradoras`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ nombrePergamo, nombre, iniciales })
@@ -217,7 +218,7 @@ export default function Configuracion() {
                                 title="Eliminar"
                                 onClick={async () => {
                                   if (window.confirm('¿Seguro que deseas eliminar esta aseguradora?')) {
-                                    await fetch(`/api/aseguradoras/${a.id}`, { method: 'DELETE' })
+                                    await fetch(`${API_CONFIG.BASE_URL}/aseguradoras/${a.id}`, { method: 'DELETE' })
                                     setAseguradoras(aseguradoras.filter(x => x.id !== a.id))
                                   }
                                 }}

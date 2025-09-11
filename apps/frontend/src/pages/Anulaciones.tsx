@@ -592,7 +592,7 @@ const handleArchivoPlano = async (file: File) => {
 					 });
 
 					 // Enviar datos enriquecidos al backend
-					 const res = await fetch('/api/anulaciones/cargar-plano', {
+					 const res = await fetch(`${API_CONFIG.BASE_URL}/anulaciones/cargar-plano`, {
 						 method: 'POST',
 						 headers: { 'Content-Type': 'application/json' },
 						 body: JSON.stringify({ datos: datosEnriquecidos })
@@ -615,7 +615,7 @@ const handleArchivoPlano = async (file: File) => {
 						 setTimeout(() => setShowOpuSuccess(false), 2000);
 						 handleCancelarArchivoPlano(); // Usar la función de cancelar para limpiar todo
 						 // Recargar anulaciones
-						 fetch('/api/anulaciones')
+						 fetch(`${API_CONFIG.BASE_URL}/anulaciones`)
 							 .then(res => res.json())
 							 .then(data => setAnulaciones(Array.isArray(data.anulaciones) ? data.anulaciones : []));
 					 } else {
