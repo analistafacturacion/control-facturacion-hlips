@@ -401,7 +401,8 @@ export default function Facturacion() {
   const cargarTodosEventosFecha = useCallback(async () => {
     if (!fechaFiltroInicial || !fechaFiltroFinal) return;
     
-    console.log('[DEBUG TARJETAS] cargarTodosEventosFecha iniciado con fechas:', fechaFiltroInicial, 'hasta', fechaFiltroFinal);
+    const callId = Date.now(); // ID único para esta llamada
+    console.log(`[DEBUG TARJETAS ${callId}] cargarTodosEventosFecha iniciado con fechas:`, fechaFiltroInicial, 'hasta', fechaFiltroFinal);
     
     try {
       // SOLUCIÓN TEMPORAL: Intentar primero el nuevo endpoint
@@ -415,12 +416,12 @@ export default function Facturacion() {
       
       // Si el nuevo endpoint funciona, usarlo
       if (res.ok && data.ok) {
-        console.log('[DEBUG TARJETAS] Usando endpoint /resumen - Eventos:', data.eventos?.length || 0);
+        console.log(`[DEBUG TARJETAS ${callId}] Usando endpoint /resumen - Eventos:`, data.eventos?.length || 0);
         setTodosEventosFecha(data.eventos || []);
         return;
       }
       
-      console.log('[DEBUG TARJETAS] Endpoint /resumen no disponible, usando múltiples llamadas...');
+      console.log(`[DEBUG TARJETAS ${callId}] Endpoint /resumen no disponible, usando múltiples llamadas...`);
       
       // FALLBACK: Hacer múltiples llamadas para obtener todos los datos
       let todosLosEventos: any[] = [];
@@ -441,20 +442,20 @@ export default function Facturacion() {
         if (data.ok && data.eventos) {
           todosLosEventos = [...todosLosEventos, ...data.eventos];
           totalPaginas = data.pagination?.totalPages || 1;
-          console.log(`[DEBUG TARJETAS] Página ${pagina}/${totalPaginas} - Eventos acumulados: ${todosLosEventos.length}`);
+          console.log(`[DEBUG TARJETAS ${callId}] Página ${pagina}/${totalPaginas} - Eventos acumulados: ${todosLosEventos.length}`);
         } else {
-          console.log('[DEBUG TARJETAS] Error en página', pagina, ':', data.error);
+          console.log(`[DEBUG TARJETAS ${callId}] Error en página`, pagina, ':', data.error);
           break;
         }
         
         pagina++;
       } while (pagina <= totalPaginas && pagina <= 20); // Límite de seguridad
       
-      console.log('[DEBUG TARJETAS] Total final de eventos cargados:', todosLosEventos.length);
+      console.log(`[DEBUG TARJETAS ${callId}] Total final de eventos cargados:`, todosLosEventos.length);
       setTodosEventosFecha(todosLosEventos);
       
     } catch (error) {
-      console.error('[DEBUG TARJETAS] Error cargando todos los eventos:', error);
+      console.error(`[DEBUG TARJETAS ${callId}] Error cargando todos los eventos:`, error);
       setTodosEventosFecha([]);
     }
   }, [fechaFiltroInicial, fechaFiltroFinal]);
@@ -563,11 +564,12 @@ export default function Facturacion() {
   
   // Efecto SEPARADO para cargar todos los eventos para tarjetas cuando cambien las fechas
   useEffect(() => {
-    console.log('[DEBUG TARJETAS] useEffect disparado. Fechas:', fechaFiltroInicial, fechaFiltroFinal);
+    const effectId = Date.now();
+    console.log(`[DEBUG USEEFFECT ${effectId}] Disparado con fechas:`, fechaFiltroInicial, fechaFiltroFinal);
     if (fechaFiltroInicial && fechaFiltroFinal) {
       cargarTodosEventosFecha();
     }
-  }, [fechaFiltroInicial, fechaFiltroFinal, cargarTodosEventosFecha]);
+  }, [fechaFiltroInicial, fechaFiltroFinal]); // ⚠️ Removida cargarTodosEventosFecha de dependencias
   
   // Efecto para recargar tabla cuando cambian filtros importantes
   useEffect(() => {
