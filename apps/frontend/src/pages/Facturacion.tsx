@@ -424,19 +424,7 @@ export default function Facturacion() {
       if (data.ok && data.totales) {
         console.log(`[TOTALES RÁPIDOS ${callId}] ✅ Totales recibidos:`, data.totales);
         setTotalesTarjetas(data.totales);
-        
-        // Actualizar y guardar fecha de última actualización
-        const ahora = new Date().toLocaleString('es-CO', { 
-          hour12: false,
-          year: 'numeric',
-          month: '2-digit', 
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit'
-        });
-        setUltimaActualizacion(ahora);
-        localStorage.setItem('ultimaActualizacionFacturacion', ahora);
-        
+        // NO actualizar fecha aquí - solo cuando se usen botones de actualizar
         return;
       }
       
@@ -529,17 +517,7 @@ export default function Facturacion() {
         facturadoRemanente
       });
       
-      // Actualizar y guardar fecha de última actualización
-      const ahora = new Date().toLocaleString('es-CO', { 
-        hour12: false,
-        year: 'numeric',
-        month: '2-digit', 
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-      setUltimaActualizacion(ahora);
-      localStorage.setItem('ultimaActualizacionFacturacion', ahora);
+      // NO actualizar fecha aquí - solo cuando se usen botones de actualizar
       
       console.log(`[DEBUG TARJETAS ${callId}] Totales calculados localmente:`, {
         totalFacturas, totalFacturado, facturadoCorriente, facturadoRemanente
@@ -651,20 +629,8 @@ export default function Facturacion() {
   // Cargar datos iniciales usando la nueva API paginada
   useEffect(() => {
     cargarEventos(1, '', false);
-    // Actualizar fecha inicial si no existe
-    if (!ultimaActualizacion) {
-      const ahora = new Date().toLocaleString('es-CO', { 
-        hour12: false,
-        year: 'numeric',
-        month: '2-digit', 
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-      setUltimaActualizacion(ahora);
-      localStorage.setItem('ultimaActualizacionFacturacion', ahora);
-    }
-  }, [cargarEventos, ultimaActualizacion]);
+    // NO inicializar fecha automáticamente - solo con botones de actualizar
+  }, [cargarEventos]);
   
   // Efecto SEPARADO para cargar totales ULTRA-RÁPIDOS cuando cambien las fechas
   useEffect(() => {
