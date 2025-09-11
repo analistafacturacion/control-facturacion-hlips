@@ -811,14 +811,27 @@ export default function Facturacion() {
   useEffect(() => {
     const socket = getSocket();
     socket.on('facturacion_actualizada', (data) => {
-  setShowOpuSuccess(true);
-  setTimeout(() => setShowOpuSuccess(false), 3000);
-  <h2 className="text-base font-semibold text-center text-purple-900 mb-2" style={{letterSpacing: '.01em'}}>Análisis Facturación</h2>
+      console.log('[SOCKET] Evento facturacion_actualizada recibido:', data);
+      setShowOpuSuccess(true);
+      setTimeout(() => setShowOpuSuccess(false), 3000);
+      
+      // Solo recargar si tenemos fechas configuradas y no estamos en modo de solo lectura
+      if (fechaFiltroInicial && fechaFiltroFinal && !loading) {
+        console.log('[SOCKET] Recargando datos debido a actualización...');
+        try {
+          cargarEventos(1, '', true);
+          cargarTotalesTarjetas();
+          cargarTodosEventosFecha();
+          cargarEventosAñoCompleto();
+        } catch (error) {
+          console.error('[SOCKET] Error recargando datos:', error);
+        }
+      }
     });
     return () => {
       socket.off('facturacion_actualizada');
     };
-  }, []);
+  }, [fechaFiltroInicial, fechaFiltroFinal, loading, cargarEventos, cargarTotalesTarjetas, cargarTodosEventosFecha, cargarEventosAñoCompleto]);
 
   // Cargar por fechas
   const handleCargar = async () => {
