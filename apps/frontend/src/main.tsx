@@ -14,7 +14,7 @@ import { AuthProvider } from './auth'
 import Anulaciones from './pages/Anulaciones';
 
 // Configuración de basename para GitHub Pages
-const basename = process.env.NODE_ENV === 'production' ? '/1.-Control-Facturacion' : '';
+const basename = process.env.NODE_ENV === 'production' ? '/control-facturacion-hlips' : '';
 
 const router = createBrowserRouter([
   {
