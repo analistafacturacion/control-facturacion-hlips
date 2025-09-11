@@ -18,7 +18,11 @@ AppDataSource.initialize().then(() => {
   
   // Configurar CORS para producción
   const corsOptions = {
-    origin: process.env.FRONTEND_URL || process.env.NODE_ENV === 'development' ? '*' : false,
+    origin: [
+      'https://analistafacturacion.github.io',
+      'http://localhost:5173',
+      'http://localhost:3000'
+    ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
@@ -41,7 +45,11 @@ AppDataSource.initialize().then(() => {
   const httpServer = http.createServer(app);
   const io = new Server(httpServer, {
     cors: {
-      origin: process.env.FRONTEND_URL || (process.env.NODE_ENV === 'development' ? '*' : false),
+      origin: [
+        'https://analistafacturacion.github.io',
+        'http://localhost:5173',
+        'http://localhost:3000'
+      ],
       methods: ['GET', 'POST'],
       credentials: true
     }
