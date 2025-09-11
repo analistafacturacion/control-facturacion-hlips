@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { createConnection, Connection } from "typeorm";
+import { createConnection } from "typeorm";
 import { User } from "./entity/User";
 import { FacturacionEvento } from "./entity/FacturacionEvento";
 import { Anulacion } from "./entity/Anulacion";
@@ -8,10 +8,10 @@ import { Sede } from "./entity/Sede";
 import { ReporteRips } from "./entity/ReporteRips";
 import { RipsFactura } from "./entity/RipsFactura";
 
-let connection: Connection;
+let connection: any;
 
 export const AppDataSource = {
-    initialize: async (): Promise<Connection> => {
+    initialize: async (): Promise<any> => {
         if (connection) {
             return connection;
         }
