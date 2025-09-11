@@ -160,13 +160,13 @@ const [eventosFull, setEventosFull] = useState<any[]>([]);
 
 	 // Cargar aseguradoras y facturas de eventos al montar
 	 useEffect(() => {
-		 fetch(`${API_CONFIG.BASE_URL}/api/aseguradoras`)
+		 fetch(`${API_CONFIG.BASE_URL}/aseguradoras`)
 			 .then(res => res.json())
 			 .then(data => {
 				 setAseguradoras(Array.isArray(data) ? data : []);
 			 });
 		 // Obtener facturas de eventos para validación segunda columna
-		 fetch(`${API_CONFIG.BASE_URL}/api/facturacion/eventos`)
+		 fetch(`${API_CONFIG.BASE_URL}/facturacion/eventos`)
 			 .then(res => res.json())
 			 .then(data => {
 				 console.log('[DEBUG][FacturasEvento] Respuesta del backend:', data);
@@ -189,7 +189,7 @@ const [eventosFull, setEventosFull] = useState<any[]>([]);
 		setMotivos(['Error administrativo','Duplicado','Solicitud paciente']);
 		setUsuarios(['admin','usuario1','usuario2']);
 		// Cargar anulaciones desde API
-		fetch(`${API_CONFIG.BASE_URL}/api/anulaciones`)
+		fetch(`${API_CONFIG.BASE_URL}/anulaciones`)
 			.then(res => res.json())
 			.then(data => {
 				const anulacionesCargadas = Array.isArray(data.anulaciones) ? data.anulaciones : [];
@@ -350,7 +350,7 @@ const [eventosFull, setEventosFull] = useState<any[]>([]);
 			try {
 				const payload = { fechaInicial: fechaCargaInicial, fechaFinal: fechaCargaFinal, token: pergamoToken, userId };
 		       console.log('[ANULACIONES] Enviando payload:', payload);
-		       const res = await fetch(`${API_CONFIG.BASE_URL}/api/anulaciones/cargar`, {
+		       const res = await fetch(`${API_CONFIG.BASE_URL}/anulaciones/cargar`, {
 				   method: 'POST',
 				   headers: { 'Content-Type': 'application/json' },
 				   body: JSON.stringify(payload),
@@ -364,7 +364,7 @@ const [eventosFull, setEventosFull] = useState<any[]>([]);
 			       setTimeout(() => setShowOpuSuccess(false), 2000);
 			       setMensaje(`Carga exitosa: ${data.insertados} nuevas anulaciones, ${data.yaExistentes} ya existentes, ${data.ignoradosSede} ignoradas por sede.`);
 				   // Recargar anulaciones y guardar fecha/hora de actualización
-				   fetch(`${API_CONFIG.BASE_URL}/api/anulaciones`)
+				   fetch(`${API_CONFIG.BASE_URL}/anulaciones`)
 					   .then(res => res.json())
 					   .then(data => {
 						   console.log('[ANULACIONES] Recarga anulaciones:', data);
@@ -429,7 +429,7 @@ const [eventosFull, setEventosFull] = useState<any[]>([]);
 	   }
 	   try {
 		   const payload = { fechaInicial, fechaFinal, token: pergamoToken, userId };
-		   const res = await fetch(`${API_CONFIG.BASE_URL}/api/anulaciones/cargar`, {
+		   const res = await fetch(`${API_CONFIG.BASE_URL}/anulaciones/cargar`, {
 			   method: 'POST',
 			   headers: { 'Content-Type': 'application/json' },
 			   body: JSON.stringify(payload),
@@ -440,7 +440,7 @@ const [eventosFull, setEventosFull] = useState<any[]>([]);
 			   setShowOpuSuccess(true);
 			   setMensaje(`Carga exitosa: ${data.insertados} nuevas anulaciones, ${data.yaExistentes} ya existentes, ${data.ignoradosSede} ignoradas por sede.`);
 			   // Recargar anulaciones y guardar fecha/hora de actualización
-			   fetch(`${API_CONFIG.BASE_URL}/api/anulaciones`)
+			   fetch(`${API_CONFIG.BASE_URL}/anulaciones`)
 				   .then(res => res.json())
 				   .then(data => {
 					   setAnulaciones(Array.isArray(data.anulaciones) ? data.anulaciones : []);
