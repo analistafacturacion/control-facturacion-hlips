@@ -350,6 +350,14 @@ export default function Facturacion() {
   // Variable separada para TODOS los eventos del rango de fechas (para tarjetas)
   const [todosEventosFecha, setTodosEventosFecha] = useState<FacturacionEvento[]>([]);
   
+  // Estado para totales precalculados (ultra-rápido)
+  const [totalesTarjetas, setTotalesTarjetas] = useState({
+    totalFacturas: 0,
+    totalFacturado: 0,
+    facturadoCorriente: 0,
+    facturadoRemanente: 0
+  });
+  
   // Estados para paginación optimizada
   const [loading, setLoading] = useState(false);
   const [totalRegistros, setTotalRegistros] = useState(0);
@@ -396,6 +404,39 @@ export default function Facturacion() {
     };
   }
   const [{ inicial: fechaFiltroInicial, final: fechaFiltroFinal }, setFechasFiltro] = useState(getDefaultFechas());
+
+  // Función ULTRA-RÁPIDA para cargar solo totales (no todos los datos)
+  const cargarTotalesTarjetas = useCallback(async () => {
+    if (!fechaFiltroInicial || !fechaFiltroFinal) return;
+    
+    const callId = Date.now();
+    console.log(`[TOTALES RÁPIDOS ${callId}] Iniciando cálculo para fechas:`, fechaFiltroInicial, 'hasta', fechaFiltroFinal);
+    
+    try {
+      const params = new URLSearchParams({
+        fechaInicial: fechaFiltroInicial,
+        fechaFinal: fechaFiltroFinal
+      });
+
+      const res = await fetch(`${API_CONFIG.BASE_URL}/facturacion/eventos/totales?${params}`);
+      const data = await res.json();
+      
+      if (data.ok && data.totales) {
+        console.log(`[TOTALES RÁPIDOS ${callId}] ✅ Totales recibidos:`, data.totales);
+        setTotalesTarjetas(data.totales);
+        return;
+      }
+      
+      console.log(`[TOTALES RÁPIDOS ${callId}] ❌ Endpoint /totales no disponible, usando fallback...`);
+      // Fallback: usar el método anterior
+      await cargarTodosEventosFecha();
+      
+    } catch (error) {
+      console.error(`[TOTALES RÁPIDOS ${callId}] Error:`, error);
+      // Fallback: usar el método anterior
+      await cargarTodosEventosFecha();
+    }
+  }, [fechaFiltroInicial, fechaFiltroFinal]);
 
   // Función para cargar TODOS los eventos del rango de fechas (para tarjetas)
   const cargarTodosEventosFecha = useCallback(async () => {
@@ -453,6 +494,44 @@ export default function Facturacion() {
       
       console.log(`[DEBUG TARJETAS ${callId}] Total final de eventos cargados:`, todosLosEventos.length);
       setTodosEventosFecha(todosLosEventos);
+      
+      // CALCULAR TOTALES PARA COMPATIBILIDAD
+      const totalFacturas = todosLosEventos.length;
+      const totalFacturado = todosLosEventos.filter(ev => {
+        const periodoEv = (ev.periodo || '').trim().toUpperCase();
+        return periodoEv !== 'ANULADA';
+      }).reduce((acc, ev) => {
+        if (ev.tipoRegistro === 'Nota Crédito') {
+          return acc - (Number(ev.valor) || 0);
+        }
+        return acc + (Number(ev.valor) || 0);
+      }, 0);
+      
+      const facturadoCorriente = todosLosEventos.filter(ev => {
+        const periodoEv = (ev.periodo || '').trim().toUpperCase();
+        return periodoEv === 'CORRIENTE';
+      }).reduce((acc, ev) => {
+        if (ev.tipoRegistro === 'Nota Crédito') {
+          return acc - (Number(ev.valor) || 0);
+        }
+        return acc + (Number(ev.valor) || 0);
+      }, 0);
+      
+      const facturadoRemanente = todosLosEventos.filter(ev => {
+        const periodoEv = (ev.periodo || '').trim().toUpperCase();
+        return periodoEv === 'REMANENTE';
+      }).reduce((acc, ev) => acc + (Number(ev.valor) || 0), 0);
+      
+      setTotalesTarjetas({
+        totalFacturas,
+        totalFacturado,
+        facturadoCorriente,
+        facturadoRemanente
+      });
+      
+      console.log(`[DEBUG TARJETAS ${callId}] Totales calculados localmente:`, {
+        totalFacturas, totalFacturado, facturadoCorriente, facturadoRemanente
+      });
       
     } catch (error) {
       console.error(`[DEBUG TARJETAS ${callId}] Error cargando todos los eventos:`, error);
@@ -562,14 +641,14 @@ export default function Facturacion() {
     cargarEventos(1, '', false);
   }, [cargarEventos]);
   
-  // Efecto SEPARADO para cargar todos los eventos para tarjetas cuando cambien las fechas
+  // Efecto SEPARADO para cargar totales ULTRA-RÁPIDOS cuando cambien las fechas
   useEffect(() => {
     const effectId = Date.now();
     console.log(`[DEBUG USEEFFECT ${effectId}] Disparado con fechas:`, fechaFiltroInicial, fechaFiltroFinal);
     if (fechaFiltroInicial && fechaFiltroFinal) {
-      cargarTodosEventosFecha();
+      cargarTotalesTarjetas(); // Usar función ultra-rápida
     }
-  }, [fechaFiltroInicial, fechaFiltroFinal]); // ⚠️ Removida cargarTodosEventosFecha de dependencias
+  }, [fechaFiltroInicial, fechaFiltroFinal, cargarTotalesTarjetas]);
   
   // Efecto para recargar tabla cuando cambian filtros importantes
   useEffect(() => {
@@ -1056,50 +1135,28 @@ export default function Facturacion() {
     {/* Tarjeta: Total facturas */}
   <div className="relative bg-white rounded-2xl shadow-md px-7 py-6 flex flex-col items-center justify-center min-w-[180px] min-h-[110px]">
   <span className="text-2xl font-bold mb-2 mt-2" style={{fontFamily: 'Segoe UI, Arial, sans-serif', color: '#1f1200'}}> 
-    {(() => {
-      console.log('[DEBUG TARJETA-TOTAL] Mostrando total:', eventosPorFecha.length);
-      return eventosPorFecha.length;
-    })()}
+    {totalesTarjetas.totalFacturas.toLocaleString()}
   </span>
       <span className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Total facturas</span>
     </div>
     {/* Tarjeta: Total Facturado */}
   <div className="relative bg-white rounded-2xl shadow-md px-7 py-6 flex flex-col items-center justify-center min-w-[180px] min-h-[110px]">
   <span className="text-2xl font-bold mb-2 mt-2" style={{fontFamily: 'Segoe UI, Arial, sans-serif', color: '#103800'}}> 
-    {eventosPorFecha.filter(ev => {
-      const periodoEv = (ev.periodo || '').trim().toUpperCase();
-      return periodoEv !== 'ANULADA'; // Excluir solo ANULADAS
-    }).reduce((acc, ev) => {
-      if (ev.tipoRegistro === 'Nota Crédito') {
-        return acc - (Number(ev.valor) || 0);
-      }
-      return acc + (Number(ev.valor) || 0);
-    }, 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+    {totalesTarjetas.totalFacturado.toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 })}
   </span>
       <span className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Total Facturado</span>
     </div>
     {/* Tarjeta: Facturado Corriente */}
   <div className="relative bg-white rounded-2xl shadow-md px-7 py-6 flex flex-col items-center justify-center min-w-[180px] min-h-[110px]">
   <span className="text-2xl font-bold mb-2 mt-2" style={{fontFamily: 'Segoe UI, Arial, sans-serif', color: '#103800'}}> 
-    {eventosPorFecha.filter(ev => {
-      const periodoEv = (ev.periodo || '').trim().toUpperCase();
-      return periodoEv === 'CORRIENTE';
-    }).reduce((acc, ev) => {
-      if (ev.tipoRegistro === 'Nota Crédito') {
-        return acc - (Number(ev.valor) || 0);
-      }
-      return acc + (Number(ev.valor) || 0);
-    }, 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+    {totalesTarjetas.facturadoCorriente.toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 })}
   </span>
       <span className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Facturado Corriente</span>
     </div>
     {/* Tarjeta: Facturado Remanente */}
   <div className="relative bg-white rounded-2xl shadow-md px-7 py-6 flex flex-col items-center justify-center min-w-[180px] min-h-[110px]">
   <span className="text-2xl font-bold mb-2 mt-2" style={{fontFamily: 'Segoe UI, Arial, sans-serif', color: '#103800'}}> 
-    {eventosPorFecha.filter(ev => {
-      const periodoEv = (ev.periodo || '').trim().toUpperCase();
-      return periodoEv === 'REMANENTE';
-    }).reduce((acc, ev) => acc + (Number(ev.valor) || 0), 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+    {totalesTarjetas.facturadoRemanente.toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 })}
   </span>
       <span className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Facturado Remanente</span>
     </div>

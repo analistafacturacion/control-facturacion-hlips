@@ -918,3 +918,67 @@ router.get('/eventos/resumen', async (req: RequestWithIO, res: Response) => {
     res.status(500).json({ error: 'Error al obtener resumen de eventos', details: err });
   }
 });
+
+// Endpoint ULTRA-RÁPIDO para totales de tarjetas (solo cálculos SQL)
+router.get('/eventos/totales', async (req: RequestWithIO, res: Response) => {
+  try {
+    const facturacionRepo = getRepository(FacturacionEvento);
+    
+    const { fechaInicial, fechaFinal } = req.query;
+    
+    if (!fechaInicial || !fechaFinal) {
+      return res.status(400).json({ error: 'fechaInicial y fechaFinal son requeridos' });
+    }
+    
+    console.log(`[TOTALES] Calculando totales entre ${fechaInicial} y ${fechaFinal}`);
+    
+    // Consulta SQL optimizada que calcula TODOS los totales de una vez
+    const resultado = await facturacionRepo
+      .createQueryBuilder('evento')
+      .select([
+        'COUNT(*) as total_facturas',
+        `SUM(CASE 
+          WHEN UPPER(TRIM(COALESCE(evento.periodo, ''))) != 'ANULADA' 
+          THEN CASE 
+            WHEN evento.tipoRegistro = 'Nota Crédito' 
+            THEN -COALESCE(evento.valor, 0) 
+            ELSE COALESCE(evento.valor, 0) 
+          END 
+          ELSE 0 
+        END) as total_facturado`,
+        `SUM(CASE 
+          WHEN UPPER(TRIM(COALESCE(evento.periodo, ''))) = 'CORRIENTE' 
+          THEN CASE 
+            WHEN evento.tipoRegistro = 'Nota Crédito' 
+            THEN -COALESCE(evento.valor, 0) 
+            ELSE COALESCE(evento.valor, 0) 
+          END 
+          ELSE 0 
+        END) as facturado_corriente`,
+        `SUM(CASE 
+          WHEN UPPER(TRIM(COALESCE(evento.periodo, ''))) = 'REMANENTE' 
+          THEN COALESCE(evento.valor, 0) 
+          ELSE 0 
+        END) as facturado_remanente`
+      ])
+      .where('evento.fecha BETWEEN :fechaInicial AND :fechaFinal', { fechaInicial, fechaFinal })
+      .getRawOne();
+    
+    const totales = {
+      totalFacturas: parseInt(resultado.total_facturas) || 0,
+      totalFacturado: parseFloat(resultado.total_facturado) || 0,
+      facturadoCorriente: parseFloat(resultado.facturado_corriente) || 0,
+      facturadoRemanente: parseFloat(resultado.facturado_remanente) || 0
+    };
+    
+    console.log(`[TOTALES] Calculados:`, totales);
+    
+    res.json({ 
+      ok: true, 
+      totales
+    });
+  } catch (err) {
+    console.error('[TOTALES] Error:', err);
+    res.status(500).json({ error: 'Error al calcular totales', details: err });
+  }
+});
