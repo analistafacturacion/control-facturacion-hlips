@@ -424,6 +424,19 @@ export default function Facturacion() {
       if (data.ok && data.totales) {
         console.log(`[TOTALES RÁPIDOS ${callId}] ✅ Totales recibidos:`, data.totales);
         setTotalesTarjetas(data.totales);
+        
+        // Actualizar y guardar fecha de última actualización
+        const ahora = new Date().toLocaleString('es-CO', { 
+          hour12: false,
+          year: 'numeric',
+          month: '2-digit', 
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+        setUltimaActualizacion(ahora);
+        localStorage.setItem('ultimaActualizacionFacturacion', ahora);
+        
         return;
       }
       
@@ -515,6 +528,18 @@ export default function Facturacion() {
         facturadoCorriente,
         facturadoRemanente
       });
+      
+      // Actualizar y guardar fecha de última actualización
+      const ahora = new Date().toLocaleString('es-CO', { 
+        hour12: false,
+        year: 'numeric',
+        month: '2-digit', 
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      setUltimaActualizacion(ahora);
+      localStorage.setItem('ultimaActualizacionFacturacion', ahora);
       
       console.log(`[DEBUG TARJETAS ${callId}] Totales calculados localmente:`, {
         totalFacturas, totalFacturado, facturadoCorriente, facturadoRemanente
@@ -626,7 +651,20 @@ export default function Facturacion() {
   // Cargar datos iniciales usando la nueva API paginada
   useEffect(() => {
     cargarEventos(1, '', false);
-  }, [cargarEventos]);
+    // Actualizar fecha inicial si no existe
+    if (!ultimaActualizacion) {
+      const ahora = new Date().toLocaleString('es-CO', { 
+        hour12: false,
+        year: 'numeric',
+        month: '2-digit', 
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      setUltimaActualizacion(ahora);
+      localStorage.setItem('ultimaActualizacionFacturacion', ahora);
+    }
+  }, [cargarEventos, ultimaActualizacion]);
   
   // Efecto SEPARADO para cargar totales ULTRA-RÁPIDOS cuando cambien las fechas
   useEffect(() => {
@@ -1149,7 +1187,9 @@ export default function Facturacion() {
     </div>
     {/* Tarjeta: Última actualización */}
   <div className="relative bg-white rounded-2xl shadow-md px-7 py-6 flex flex-col items-center justify-center min-w-[180px] min-h-[110px]">
-  <span className="text-lg font-bold mb-2 mt-2" style={{fontFamily: 'Segoe UI, Arial, sans-serif', color: '#1f1200'}}>{ultimaActualizacion}</span>
+  <span className="text-sm font-bold mb-2 mt-2 text-center leading-tight" style={{fontFamily: 'Segoe UI, Arial, sans-serif', color: '#1f1200'}}>
+    {ultimaActualizacion || 'Sin datos'}
+  </span>
       <span className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Última actualización</span>
     </div>
   </div>
