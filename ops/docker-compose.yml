@@ -1,0 +1,50 @@
+version: '3.9'
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: control-facturacion-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-cf_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cf_password}
+      POSTGRES_DB: ${POSTGRES_DB:-control_facturacion}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ../
+      dockerfile: ops/backend.Dockerfile
+    container_name: control-facturacion-backend
+    env_file:
+      - ../apps/backend/.env.example
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-cf_user}:${POSTGRES_PASSWORD:-cf_password}@db:5432/${POSTGRES_DB:-control_facturacion}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "3001:3001"
+
+  frontend:
+    build:
+      context: ../
+      dockerfile: ops/frontend.Dockerfile
+    container_name: control-facturacion-frontend
+    env_file:
+      - ../apps/frontend/.env.example
+    environment:
+      VITE_API_BASE_URL: http://localhost:3001
+    depends_on:
+      - backend
+    ports:
+      - "5173:5173"
+
+volumes:
+  db_data:

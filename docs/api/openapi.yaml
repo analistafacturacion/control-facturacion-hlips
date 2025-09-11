@@ -1,0 +1,111 @@
+openapi: 3.0.3
+info:
+  title: Control Facturación API
+  version: 0.1.0
+  description: API para gestionar facturación, anulaciones, radicación, medicamentos, ventas, configuración y control JSON.
+servers:
+  - url: http://localhost:3001/api
+paths:
+  /auth/login:
+    post:
+      summary: Iniciar sesión
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: JWT emitido
+  /users:
+    get:
+      summary: Listar usuarios (admin)
+      responses:
+        '200': { description: OK }
+    post:
+      summary: Crear usuario (admin)
+      responses:
+        '201': { description: Creado }
+  /roles:
+    get:
+      summary: Listar roles
+      responses:
+        '200': { description: OK }
+  /facturas:
+    get:
+      summary: Listar facturas
+      responses:
+        '200': { description: OK }
+    post:
+      summary: Crear factura
+      responses:
+        '201': { description: Creado }
+  /anulaciones:
+    get:
+      summary: Listar anulaciones
+      responses:
+        '200': { description: OK }
+    post:
+      summary: Crear anulación
+      responses:
+        '201': { description: Creado }
+  /radicaciones:
+    get:
+      summary: Listar radicaciones
+      responses:
+        '200': { description: OK }
+    post:
+      summary: Crear radicación
+      responses:
+        '201': { description: Creado }
+  /medicamentos:
+    get:
+      summary: Listar medicamentos
+      responses:
+        '200': { description: OK }
+    post:
+      summary: Crear medicamento
+      responses:
+        '201': { description: Creado }
+  /ventas:
+    get:
+      summary: Listar ventas
+      responses:
+        '200': { description: OK }
+    post:
+      summary: Crear venta
+      responses:
+        '201': { description: Creado }
+  /configuracion:
+    get:
+      summary: Obtener configuración
+      responses:
+        '200': { description: OK }
+    put:
+      summary: Actualizar configuración
+      responses:
+        '200': { description: OK }
+  /control-json/import:
+    post:
+      summary: Importar datos desde servicio JSON externo
+      responses:
+        '202': { description: Aceptado }
+  /control-json/export:
+    post:
+      summary: Exportar datos a servicio JSON externo
+      responses:
+        '202': { description: Aceptado }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+security:
+  - bearerAuth: []

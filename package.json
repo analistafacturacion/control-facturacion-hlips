@@ -1,0 +1,28 @@
+{
+  "name": "control-facturacion-monorepo",
+  "private": true,
+  "workspaces": [
+    "apps/frontend",
+    "apps/backend"
+  ],
+  "scripts": {
+    "dev:frontend": "npm --workspace apps/frontend run dev",
+    "dev:backend": "npm --workspace apps/backend run dev",
+    "build": "npm --workspaces run build",
+    "build:backend": "npm --workspace apps/backend run build",
+    "build:frontend": "npm --workspace apps/frontend run build",
+    "start": "npm --workspace apps/backend run start",
+    "start:backend": "npm --workspace apps/backend run start",
+    "lint": "npm --workspaces run lint",
+    "railway:build": "npm run build:backend",
+    "railway:start": "npm run start:backend"
+  },
+  "dependencies": {
+    "node-fetch": "^2.7.0",
+    "tailwindcss": "^4.1.11",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/node-fetch": "^2.6.13"
+  }
+}

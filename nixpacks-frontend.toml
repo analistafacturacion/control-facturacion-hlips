@@ -1,0 +1,20 @@
+[phases.setup]
+nixPkgs = ['nodejs', 'npm']
+
+[phases.install]
+cmds = [
+  'npm ci --include=dev',
+  'npm --workspace apps/frontend ci --include=dev'
+]
+
+[phases.build]
+cmds = [
+  'npm --workspace apps/frontend run build'
+]
+
+[start]
+cmd = 'npx serve -s apps/frontend/dist -l 5173'
+
+[variables]
+NODE_ENV = 'production'
+NPM_CONFIG_PRODUCTION = 'false'

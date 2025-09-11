@@ -1,0 +1,17 @@
+{
+  "type": "postgres",
+  "host": "localhost",
+  "port": 5432,
+  "username": "postgres",
+  "password": "Sistemas1234*",
+  "database": "control_usuarios",
+  "synchronize": true,
+  "logging": false,
+  "ssl": false,
+  "entities": [
+    "src/entity/**/*.ts",
+    "src/entity/Sede.ts",
+    "src/entity/FacturacionEvento.ts",
+    "src/entity/RipsFactura.ts"
+  ]
+}

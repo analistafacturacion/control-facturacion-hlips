@@ -1,0 +1,20 @@
+[phases.setup]
+nixPkgs = ['nodejs', 'npm']
+
+[phases.install]
+cmds = [
+  'npm ci --include=dev',
+  'npm --workspace apps/backend ci --include=dev'
+]
+
+[phases.build]
+cmds = [
+  'npm --workspace apps/backend run build'
+]
+
+[start]
+cmd = 'npm --workspace apps/backend run start'
+
+[variables]
+NODE_ENV = 'production'
+NPM_CONFIG_PRODUCTION = 'false'

@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: light dark; }
+body {
+	background-color: #fff;
+	color: #1a202c;
+	overflow-y: scroll;
+}
+
+@media (prefers-color-scheme: dark) {
+	body {
+		background-color: #18181b;
+		color: #f3f4f6;
+	}
+}
