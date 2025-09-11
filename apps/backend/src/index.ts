@@ -28,6 +28,16 @@ createConnection().then(() => {
   app.use(cors(corsOptions));
   app.use(express.json());
 
+  // Health check endpoint para Render
+  app.get('/api/health', (req: any, res: any) => {
+    res.status(200).json({ 
+      status: 'OK', 
+      message: 'Control Facturación API está funcionando',
+      timestamp: new Date().toISOString(),
+      version: '1.0.0'
+    });
+  });
+
   // Crear servidor HTTP y Socket.IO
   const httpServer = http.createServer(app);
   const io = new Server(httpServer, {
