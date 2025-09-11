@@ -98,6 +98,10 @@ AppDataSource.initialize().then(() => {
   const sedeRoutes = require('./routes/sedeRoutes').default;
   app.use('/api/sedes', sedeRoutes);
 
+  // Rutas de migración
+  const migrationRoutes = require('./routes/migrationRoutes').default;
+  app.use('/api/migration', migrationRoutes);
+
     // Rutas de validación avanzada
     const validacionRoutes = require('./routes/validacionRoutes').default;
     app.use('/api/validacion', validacionRoutes);

@@ -2,8 +2,53 @@ import { Router, Request, Response } from 'express';
 import { getRepository } from 'typeorm';
 import { User } from '../entity/User';
 import bcrypt from 'bcryptjs';
+import { AppDataSource } from '../data-source';
 
 const router = Router();
+
+// Endpoint para arreglar la secuencia del ID de la tabla user
+router.post('/fix-user-sequence', async (req: Request, res: Response) => {
+  try {
+    const connection = await AppDataSource.initialize();
+    
+    // 1. Crear la secuencia si no existe
+    await connection.query(`CREATE SEQUENCE IF NOT EXISTS user_id_seq;`);
+    
+    // 2. Establecer el valor actual de la secuencia basado en el máximo ID existente
+    await connection.query(`SELECT setval('user_id_seq', COALESCE((SELECT MAX(id) FROM "user"), 0) + 1, false);`);
+    
+    // 3. Alterar la tabla para usar la secuencia como default
+    await connection.query(`ALTER TABLE "user" ALTER COLUMN id SET DEFAULT nextval('user_id_seq');`);
+    
+    // 4. Establecer la secuencia como propiedad de la columna
+    await connection.query(`ALTER SEQUENCE user_id_seq OWNED BY "user".id;`);
+    
+    // Verificar la configuración
+    const result = await connection.query(`
+      SELECT 
+        column_name, 
+        column_default, 
+        is_nullable, 
+        data_type 
+      FROM information_schema.columns 
+      WHERE table_name = 'user' AND column_name = 'id';
+    `);
+    
+    res.json({
+      success: true,
+      message: 'Secuencia de ID arreglada exitosamente',
+      configuration: result[0]
+    });
+    
+  } catch (error) {
+    console.error('Error arreglando secuencia:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al arreglar la secuencia de ID',
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
 
 // Endpoint para insertar el usuario real JUAN BENAVIDES
 router.post('/migrate-user', async (req: Request, res: Response) => {
