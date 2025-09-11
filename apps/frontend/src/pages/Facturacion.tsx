@@ -311,9 +311,9 @@ export default function Facturacion() {
       alert('Debes seleccionar un rango de fechas válido.');
       return;
     }
-    let url = `/api/facturacion/reporte?tipo=${tipo}&fechaInicial=${fechaFiltroInicial}&fechaFinal=${fechaFiltroFinal}`;
+    let url = `${API_CONFIG.BASE_URL}/facturacion/reporte?tipo=${tipo}&fechaInicial=${fechaFiltroInicial}&fechaFinal=${fechaFiltroFinal}`;
     if (tipo === 'general') {
-      url = `/api/facturacion/reporte?tipo=general&fechaInicial=${fechaFiltroInicial}&fechaFinal=${fechaFiltroFinal}`;
+      url = `${API_CONFIG.BASE_URL}/facturacion/reporte?tipo=general&fechaInicial=${fechaFiltroInicial}&fechaFinal=${fechaFiltroFinal}`;
     }
     window.open(url, '_blank');
     setMenuReportesOpen(false);
