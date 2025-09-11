@@ -1262,7 +1262,7 @@ export default function Facturacion() {
                 </div>
               )}
               {analisisTipo === 'comparativa' && (
-                <ComparativaTabla eventos={todosEventosFecha} />
+                <ComparativaTabla eventos={eventosAñoCompleto} />
               )}
               {analisisTipo === 'sede' && (
                 <div className="w-full h-full flex flex-col items-center justify-center">
