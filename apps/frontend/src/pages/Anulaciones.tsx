@@ -2,56 +2,22 @@ import * as XLSX from 'xlsx';
 import { exportAnulacionesExcel, exportAnulacionesSinEstado } from '../utils/exportAnulacionesExcel';
 import API_CONFIG from '../config/api';
 
-// Función para obtener la URL correcta de archivos estáticos
-const getStaticFileUrl = (filename: string) => {
-	const baseUrl = window.location.origin;
-	const basePath = window.location.pathname.includes('/control-facturacion-hlips/') ? '/control-facturacion-hlips/' : '/';
-	return `${baseUrl}${basePath}${filename}`;
-};
-
 // Función para descargar archivo estático
-const descargarArchivoEstatico = async (filename: string, displayName: string) => {
-	try {
-		// Para el archivo plano de anulaciones, usar la URL directa con el path correcto
-		if (filename === 'Archivo_plano_anulaciones.xlsx') {
-			const isGitHubPages = window.location.hostname.includes('github.io');
-			const url = isGitHubPages 
-				? `${window.location.origin}/control-facturacion-hlips/${filename}`
-				: `${window.location.origin}/${filename}`;
-			
-			const link = document.createElement('a');
-			link.href = url;
-			link.download = displayName;
-			link.target = '_blank';
-			document.body.appendChild(link);
-			link.click();
-			document.body.removeChild(link);
-			return;
-		}
-		
-		const url = getStaticFileUrl(filename);
-		const response = await fetch(url);
-		
-		if (!response.ok) {
-			throw new Error(`HTTP error! status: ${response.status}`);
-		}
-		
-		const blob = await response.blob();
-		const downloadUrl = window.URL.createObjectURL(blob);
-		
-		const link = document.createElement('a');
-		link.href = downloadUrl;
-		link.download = displayName;
-		document.body.appendChild(link);
-		link.click();
-		
-		// Limpiar
-		document.body.removeChild(link);
-		window.URL.revokeObjectURL(downloadUrl);
-	} catch (error) {
-		console.error('Error al descargar archivo:', error);
-		alert('Error al descargar el archivo. Verifique que esté disponible.');
-	}
+const descargarArchivoEstatico = (filename: string, displayName: string) => {
+	// Construir la URL directa al archivo estático
+	const isGitHubPages = window.location.hostname.includes('github.io');
+	const url = isGitHubPages 
+		? `${window.location.origin}/control-facturacion-hlips/${filename}`
+		: `${window.location.origin}/${filename}`;
+	
+	// Crear enlace de descarga directo
+	const link = document.createElement('a');
+	link.href = url;
+	link.download = displayName;
+	link.target = '_blank';
+	document.body.appendChild(link);
+	link.click();
+	document.body.removeChild(link);
 };
 
 // Formateador contable para valores
