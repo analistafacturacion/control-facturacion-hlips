@@ -1,7 +1,6 @@
 
-
-
-import { createConnection } from 'typeorm';
+import "reflect-metadata";
+import { AppDataSource } from './data-source';
 const express = require('express');
 const cors = require('cors');
 const swaggerUi = require('swagger-ui-express');
@@ -9,12 +8,12 @@ const fs = require('fs');
 const path = require('path');
 const http = require('http');
 const { Server } = require('socket.io');
-require('reflect-metadata');
 
 // Cargar variables de entorno
 require('dotenv').config();
 
-createConnection().then(() => {
+AppDataSource.initialize().then(() => {
+  console.log("✅ Conexión a base de datos establecida");
   const app = express();
   
   // Configurar CORS para producción
@@ -91,6 +90,8 @@ createConnection().then(() => {
     console.log(`Backend escuchando en http://localhost:${PORT}`);
     console.log('Socket.IO listo');
   });
-}).catch((error) => {
+}).catch((error: any) => {
   console.error('Error al conectar con la base de datos:', error);
+  console.error('DATABASE_URL configurada:', process.env.DATABASE_URL ? 'SÍ' : 'NO');
+  console.error('NODE_ENV:', process.env.NODE_ENV);
 });
