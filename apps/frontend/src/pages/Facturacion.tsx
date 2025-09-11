@@ -344,7 +344,10 @@ export default function Facturacion() {
   const [mensaje, setMensaje] = useState<string|null>(null);
   const [actualizar, setActualizar] = useState(0); // Para forzar refresco
   const [ultimaActualizacion, setUltimaActualizacion] = useState<string>(() => {
-    return localStorage.getItem('ultimaActualizacionFacturacion') || "";
+    // Cargar desde localStorage como fallback, pero se actualizará desde el servidor
+    const fecha = localStorage.getItem('ultimaActualizacionFacturacion') || "";
+    console.log('[DEBUG] Estado inicial ultimaActualizacion desde localStorage:', fecha);
+    return fecha;
   });
   const [eventos, setEventos] = useState<FacturacionEvento[]>([]);
   // Variable separada para TODOS los eventos del rango de fechas (para tarjetas)
@@ -382,8 +385,10 @@ export default function Facturacion() {
   // Agrupación de facturación para el análisis (debe ir después de todos los useState)
   // Agrupación de facturación para el análisis (debe ir después de todos los useState)
   // Filtros de fecha inicial y final
-  // Cargar sedes y aseguradoras
+  // Cargar sedes y aseguradoras y fecha de última actualización
   useEffect(() => {
+    console.log('[DEBUG] useEffect inicial ejecutándose...');
+    
     fetch(`${API_CONFIG.BASE_URL}/sedes`)
       .then(res => res.json())
       .then(data => setSedes(data))
@@ -392,6 +397,10 @@ export default function Facturacion() {
       .then(res => res.json())
       .then(data => setAseguradoras(data))
       .catch(() => setAseguradoras([]));
+    
+    // Cargar fecha de última actualización desde el servidor
+    console.log('[DEBUG] Llamando cargarUltimaActualizacion...');
+    cargarUltimaActualizacion();
   }, []);
   function getDefaultFechas() {
     const hoy = new Date();
@@ -404,6 +413,90 @@ export default function Facturacion() {
     };
   }
   const [{ inicial: fechaFiltroInicial, final: fechaFiltroFinal }, setFechasFiltro] = useState(getDefaultFechas());
+
+  // Función para cargar última actualización desde el servidor
+  const cargarUltimaActualizacion = useCallback(async () => {
+    console.log('[DEBUG] Iniciando carga de última actualización desde servidor...');
+    console.log('[DEBUG] URL del API:', `${API_CONFIG.BASE_URL}/facturacion/ultima-actualizacion`);
+    
+    try {
+      const res = await fetch(`${API_CONFIG.BASE_URL}/facturacion/ultima-actualizacion`);
+      console.log('[DEBUG] Respuesta del servidor:', res.status, res.statusText);
+      
+      if (!res.ok) {
+        console.log('[DEBUG] ⚠️ Endpoint no disponible, usando solo localStorage');
+        // Fallback inmediato a localStorage
+        const localFecha = localStorage.getItem('ultimaActualizacionFacturacion');
+        if (localFecha) {
+          console.log('[DEBUG] Cargando desde localStorage:', localFecha);
+          setUltimaActualizacion(localFecha);
+        }
+        return;
+      }
+      
+      const data = await res.json();
+      console.log('[DEBUG] Datos recibidos del servidor:', data);
+      
+      if (data.ok && data.ultimaActualizacion) {
+        console.log('[DEBUG] ✅ Actualizando fecha desde servidor:', data.ultimaActualizacion);
+        setUltimaActualizacion(data.ultimaActualizacion);
+        // También guardar en localStorage como cache
+        localStorage.setItem('ultimaActualizacionFacturacion', data.ultimaActualizacion);
+      } else {
+        console.log('[DEBUG] ⚠️ No hay fecha en servidor o datos inválidos, manteniendo localStorage');
+        // Si no hay fecha en servidor, mantener la que tenemos en localStorage
+        const localFecha = localStorage.getItem('ultimaActualizacionFacturacion');
+        if (localFecha) {
+          console.log('[DEBUG] Manteniendo fecha de localStorage:', localFecha);
+          setUltimaActualizacion(localFecha);
+        }
+      }
+    } catch (error) {
+      console.log('[DEBUG] ⚠️ Error de conexión, usando localStorage únicamente:', error.message);
+      // En caso de error, mantener localStorage
+      const localFecha = localStorage.getItem('ultimaActualizacionFacturacion');
+      if (localFecha) {
+        console.log('[DEBUG] Fallback: usando fecha de localStorage:', localFecha);
+        setUltimaActualizacion(localFecha);
+      }
+    }
+  }, []);
+
+  // Función para guardar última actualización en el servidor
+  const guardarUltimaActualizacion = useCallback(async (fecha: string) => {
+    console.log('[DEBUG] Guardando fecha en servidor:', fecha);
+    try {
+      const res = await fetch(`${API_CONFIG.BASE_URL}/facturacion/ultima-actualizacion`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fecha })
+      });
+      
+      console.log('[DEBUG] Respuesta al guardar:', res.status);
+      
+      if (res.ok) {
+        console.log('[DEBUG] Fecha guardada exitosamente en servidor');
+        setUltimaActualizacion(fecha);
+        localStorage.setItem('ultimaActualizacionFacturacion', fecha);
+      } else {
+        console.error('[DEBUG] Error al guardar en servidor, usando fallback');
+        // Fallback: guardar solo en localStorage
+        setUltimaActualizacion(fecha);
+        localStorage.setItem('ultimaActualizacionFacturacion', fecha);
+      }
+    } catch (error) {
+      console.error('[DEBUG] Error de red al guardar, usando fallback:', error);
+      // Fallback: guardar solo en localStorage
+      setUltimaActualizacion(fecha);
+      localStorage.setItem('ultimaActualizacionFacturacion', fecha);
+    }
+  }, []);
+
+  // useEffect adicional para cargar fecha inicial (después de que las funciones estén definidas)
+  useEffect(() => {
+    console.log('[DEBUG] useEffect adicional - cargando fecha inicial...');
+    cargarUltimaActualizacion();
+  }, [cargarUltimaActualizacion]);
 
   // Función ULTRA-RÁPIDA para cargar solo totales (no todos los datos)
   const cargarTotalesTarjetas = useCallback(async () => {
@@ -691,11 +784,19 @@ export default function Facturacion() {
       if (res.ok) {
         setShowOpuSuccess(true);
         setTimeout(() => setShowOpuSuccess(false), 3000);
-        // Actualizar y guardar fecha de última actualización
+        // Actualizar y guardar fecha de última actualización en el servidor
         const ahora = new Date().toLocaleString('es-CO', { hour12: false });
-        setUltimaActualizacion(ahora);
-        localStorage.setItem('ultimaActualizacionFacturacion', ahora);
+        await guardarUltimaActualizacion(ahora);
         setActualizar(a => a + 1); // Refrescar tabla automáticamente
+        
+        // Forzar actualización del filtro de fechas para refrescar la tabla también
+        setFechasFiltro({ inicial: fechaInicial, final: fechaFinal });
+        
+        // Esperar un momento y luego recargar tarjetas para asegurar datos actualizados
+        setTimeout(() => {
+          console.log('[DEBUG] Recargando tarjetas después de actualización completa...');
+          cargarTotalesTarjetas();
+        }, 1000);
       } else {
         setMensaje(data.error || 'Error al cargar datos');
       }
@@ -740,11 +841,19 @@ export default function Facturacion() {
       if (res.ok) {
         setShowOpuSuccess(true);
         setTimeout(() => setShowOpuSuccess(false), 3000);
-        // Actualizar y guardar fecha de última actualización
+        // Actualizar y guardar fecha de última actualización en el servidor
         const ahora = new Date().toLocaleString('es-CO', { hour12: false });
-        setUltimaActualizacion(ahora);
-        localStorage.setItem('ultimaActualizacionFacturacion', ahora);
+        await guardarUltimaActualizacion(ahora);
         setActualizar(a => a + 1); // Refrescar tabla automáticamente
+        
+        // Forzar actualización del filtro de fechas para refrescar la tabla también
+        setFechasFiltro({ inicial: fechaInicial, final: fechaFinal });
+        
+        // Esperar un momento y luego recargar tarjetas para asegurar datos actualizados
+        setTimeout(() => {
+          console.log('[DEBUG] Recargando tarjetas después de actualización rápida completa...');
+          cargarTotalesTarjetas();
+        }, 1000);
       } else {
         setMensaje(data.error || 'Error al cargar datos');
       }

@@ -970,3 +970,56 @@ router.get('/eventos/totales', async (req: RequestWithIO, res: Response) => {
     res.status(500).json({ error: 'Error al calcular totales', details: err });
   }
 });
+
+// Endpoint para guardar/obtener última actualización global
+router.get('/ultima-actualizacion', async (req: RequestWithIO, res: Response) => {
+  try {
+    // Buscar en una tabla de configuración o usar un archivo/variable
+    // Por simplicidad, usaremos un archivo temporal en el servidor
+    const fs = require('fs');
+    const path = require('path');
+    const configFile = path.join(process.cwd(), 'ultima-actualizacion.json');
+    
+    let ultimaActualizacion = '';
+    if (fs.existsSync(configFile)) {
+      const data = JSON.parse(fs.readFileSync(configFile, 'utf8'));
+      ultimaActualizacion = data.fecha || '';
+    }
+    
+    res.json({ 
+      ok: true, 
+      ultimaActualizacion 
+    });
+  } catch (err) {
+    console.error('[ULTIMA-ACTUALIZACION] Error obteniendo fecha:', err);
+    res.json({ ok: true, ultimaActualizacion: '' });
+  }
+});
+
+router.post('/ultima-actualizacion', async (req: RequestWithIO, res: Response) => {
+  try {
+    const { fecha } = req.body;
+    
+    if (!fecha) {
+      return res.status(400).json({ error: 'fecha es requerida' });
+    }
+    
+    // Guardar en archivo temporal (en producción sería mejor usar base de datos)
+    const fs = require('fs');
+    const path = require('path');
+    const configFile = path.join(process.cwd(), 'ultima-actualizacion.json');
+    
+    const data = { fecha, timestamp: new Date().toISOString() };
+    fs.writeFileSync(configFile, JSON.stringify(data, null, 2));
+    
+    console.log(`[ULTIMA-ACTUALIZACION] Guardada: ${fecha}`);
+    
+    res.json({ 
+      ok: true, 
+      mensaje: 'Fecha actualizada correctamente' 
+    });
+  } catch (err) {
+    console.error('[ULTIMA-ACTUALIZACION] Error guardando fecha:', err);
+    res.status(500).json({ error: 'Error al guardar fecha', details: err });
+  }
+});
