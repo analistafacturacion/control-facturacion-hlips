@@ -811,8 +811,15 @@ export default router;
 router.get('/eventos', async (req: RequestWithIO, res: Response) => {
   try {
     const facturacionRepo = getRepository(FacturacionEvento);
+    
     // Permitir filtros opcionales por fecha, sede, aseguradora, etc.
-    const { fechaInicial, fechaFinal, sede, aseguradora } = req.query;
+    const { fechaInicial, fechaFinal, sede, aseguradora, page, limit, search } = req.query;
+    
+    // Parámetros de paginación
+    const pageNumber = parseInt(String(page)) || 1;
+    const limitNumber = Math.min(parseInt(String(limit)) || 100, 500); // Máximo 500 por página
+    const offset = (pageNumber - 1) * limitNumber;
+    
     const where: any = {};
     if (fechaInicial && fechaFinal) {
       where.fecha = Between(fechaInicial, fechaFinal);
@@ -823,8 +830,56 @@ router.get('/eventos', async (req: RequestWithIO, res: Response) => {
     if (aseguradora) {
       where.aseguradora = aseguradora;
     }
-    const eventos = await facturacionRepo.find({ where, order: { fecha: 'DESC' }, relations: ['sede'] });
-    res.json({ ok: true, eventos });
+    
+    // Consulta con paginación y conteo total
+    const queryBuilder = facturacionRepo.createQueryBuilder('evento')
+      .leftJoinAndSelect('evento.sede', 'sede')
+      .orderBy('evento.fecha', 'DESC')
+      .addOrderBy('evento.id', 'DESC');
+    
+    // Aplicar filtros WHERE
+    if (fechaInicial && fechaFinal) {
+      queryBuilder.andWhere('evento.fecha BETWEEN :fechaInicial AND :fechaFinal', { fechaInicial, fechaFinal });
+    }
+    if (sede) {
+      queryBuilder.andWhere('evento.sede = :sede', { sede });
+    }
+    if (aseguradora) {
+      queryBuilder.andWhere('evento.aseguradora ILIKE :aseguradora', { aseguradora: `%${aseguradora}%` });
+    }
+    if (search) {
+      queryBuilder.andWhere(
+        '(evento.numeroFactura ILIKE :search OR evento.aseguradora ILIKE :search OR evento.paciente ILIKE :search)',
+        { search: `%${search}%` }
+      );
+    }
+    
+    // Obtener total de registros para metadatos de paginación
+    const total = await queryBuilder.getCount();
+    
+    // Aplicar paginación
+    const eventos = await queryBuilder
+      .skip(offset)
+      .take(limitNumber)
+      .getMany();
+    
+    // Metadatos de paginación
+    const totalPages = Math.ceil(total / limitNumber);
+    const hasNextPage = pageNumber < totalPages;
+    const hasPrevPage = pageNumber > 1;
+    
+    res.json({ 
+      ok: true, 
+      eventos,
+      pagination: {
+        currentPage: pageNumber,
+        totalPages,
+        totalRecords: total,
+        recordsPerPage: limitNumber,
+        hasNextPage,
+        hasPrevPage
+      }
+    });
   } catch (err) {
     res.status(500).json({ error: 'Error al obtener eventos', details: err });
   }

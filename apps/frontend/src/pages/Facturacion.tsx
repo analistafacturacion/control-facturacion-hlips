@@ -217,7 +217,7 @@ const ComparativaTabla: React.FC<ComparativaTablaProps> = ({ eventos }) => {
 };
 // --- Fin componente ComparativaTabla ---
 
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 // Estado para el tipo de análisis mostrado en el modal (debe ir después de los imports)
 import { GraficoComparativoSede } from '../ui/GraficoComparativoSede';
 
@@ -329,6 +329,13 @@ export default function Facturacion() {
     return localStorage.getItem('ultimaActualizacionFacturacion') || "";
   });
   const [eventos, setEventos] = useState<FacturacionEvento[]>([]);
+  
+  // Estados para paginación optimizada
+  const [loading, setLoading] = useState(false);
+  const [totalRegistros, setTotalRegistros] = useState(0);
+  const [totalPaginas, setTotalPaginas] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  
   // ...existing code...
   // Paginación
   const [paginaActual, setPaginaActual] = useState(1);
@@ -370,7 +377,66 @@ export default function Facturacion() {
   }
   const [{ inicial: fechaFiltroInicial, final: fechaFiltroFinal }, setFechasFiltro] = useState(getDefaultFechas());
 
-  // Agrupación de facturación para el análisis (debe ir después de todos los useState y destructuraciones)
+  
+  // Función optimizada para cargar eventos con paginación
+  const cargarEventos = useCallback(async (pagina = 1, busqueda = '', resetPagina = false) => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: String(resetPagina ? 1 : pagina),
+        limit: String(registrosPorPagina),
+        ...(fechaFiltroInicial && { fechaInicial: fechaFiltroInicial }),
+        ...(fechaFiltroFinal && { fechaFinal: fechaFiltroFinal }),
+        ...(sedeFiltro && { sede: sedeFiltro }),
+        ...(aseguradoraFiltro && { aseguradora: aseguradoraFiltro }),
+        ...(busqueda && { search: busqueda })
+      });
+
+      const res = await fetch(`${API_CONFIG.BASE_URL}/facturacion/eventos?${params}`);
+      const data = await res.json();
+      
+      if (data.ok) {
+        setEventos(data.eventos || []);
+        setTotalRegistros(data.pagination?.totalRecords || 0);
+        setTotalPaginas(data.pagination?.totalPages || 0);
+        if (resetPagina) {
+          setPaginaActual(1);
+        }
+      } else {
+        setEventos([]);
+        setTotalRegistros(0);
+        setTotalPaginas(0);
+      }
+    } catch (error) {
+      console.error('Error cargando eventos:', error);
+      setEventos([]);
+      setTotalRegistros(0);
+      setTotalPaginas(0);
+    } finally {
+      setLoading(false);
+    }
+  }, [fechaFiltroInicial, fechaFiltroFinal, sedeFiltro, aseguradoraFiltro, registrosPorPagina]);
+
+  // Debounce para búsqueda
+  const debouncedSearch = useCallback(
+    useMemo(() => {
+      let timeoutId: number;
+      return (searchTerm: string) => {
+        clearTimeout(timeoutId);
+        timeoutId = window.setTimeout(() => {
+          cargarEventos(1, searchTerm, true);
+        }, 500);
+      };
+    }, [cargarEventos]),
+    [cargarEventos]
+  );
+
+  // Efecto para búsqueda
+  useEffect(() => {
+    if (searchQuery !== undefined) {
+      debouncedSearch(searchQuery);
+    }
+  }, [searchQuery, debouncedSearch]);
   const datosAnalisis = agruparFacturacion(eventos.filter(ev => {
     const filtro = filtroBusqueda.trim().toLowerCase();
     const coincideTexto = !filtro ||
