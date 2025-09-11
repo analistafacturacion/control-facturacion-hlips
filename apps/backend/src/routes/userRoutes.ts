@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { getRepository } from 'typeorm';
 import { User } from '../entity/User';
 import fetch from 'node-fetch';
@@ -8,7 +8,7 @@ import jwt from 'jsonwebtoken';
 const router = Router();
 
 // Endpoint de login
-router.post('/login', async (req, res) => {
+router.post('/login', async (req: Request, res: Response) => {
   const repo = getRepository(User);
   const { usuario, password, rol } = req.body;
   if (!usuario || !password || !rol) {
@@ -69,14 +69,14 @@ router.post('/login', async (req, res) => {
 });
 
 // Obtener todos los usuarios
-router.get('/', async (req, res) => {
+router.get('/', async (req: Request, res: Response) => {
   const repo = getRepository(User);
   const users = await repo.find();
   res.json(users);
 });
 
 // Crear usuario
-router.post('/', async (req, res) => {
+router.post('/', async (req: Request, res: Response) => {
   const repo = getRepository(User);
   const { nombre, usuario, rol, aseguradoras, password } = req.body;
   if (!nombre || !usuario || !rol || !password) {
@@ -131,7 +131,7 @@ router.post('/', async (req, res) => {
 });
 
 // Editar usuario
-router.put('/:id', async (req, res) => {
+router.put('/:id', async (req: Request, res: Response) => {
   const repo = getRepository(User);
   const { id } = req.params;
   const { nombre, usuario, rol, aseguradoras, password, estado } = req.body;
@@ -152,7 +152,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // Eliminar usuario
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', async (req: Request, res: Response) => {
   const repo = getRepository(User);
   const { id } = req.params;
   try {
