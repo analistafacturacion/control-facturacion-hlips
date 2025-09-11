@@ -10,7 +10,7 @@ type ComparativaTablaProps = {
   eventos: any[];
 };
 
-const ComparativaTabla: React.FC<ComparativaTablaProps> = ({ eventos }) => {
+const ComparativaTabla: React.FC<ComparativaTablaProps> = React.memo(({ eventos }) => {
   // Filtros de fecha independientes para cada ítem a comparar
   const [mes1, setMes1] = React.useState('');
   const [mes2, setMes2] = React.useState('');
@@ -19,8 +19,11 @@ const ComparativaTabla: React.FC<ComparativaTablaProps> = ({ eventos }) => {
   const [dia2Inicio, setDia2Inicio] = React.useState('');
   const [dia2Fin, setDia2Fin] = React.useState('');
 
-  // Obtener meses disponibles a partir de los eventos
-  const mesesDisponibles = Array.from(new Set(eventos.map(ev => (ev.fecha || '').slice(0, 7)).filter(Boolean)));
+  // Memoizar meses disponibles
+  const mesesDisponibles = React.useMemo(() => 
+    Array.from(new Set(eventos.map(ev => (ev.fecha || '').slice(0, 7)).filter(Boolean))),
+    [eventos]
+  );
 
   // Cuando cambia el mes, resetear los días seleccionados
   React.useEffect(() => {
@@ -59,29 +62,44 @@ const ComparativaTabla: React.FC<ComparativaTablaProps> = ({ eventos }) => {
       return resultado;
     }
 
-  // eventos ya viene por props
-  const totales1 = obtenerTotalesPorSede(filtrarPorMesYDias(eventos, mes1, dia1Inicio, dia1Fin));
-  const totales2 = obtenerTotalesPorSede(filtrarPorMesYDias(eventos, mes2, dia2Inicio, dia2Fin));
+  // Memoizar cálculos pesados de totales
+  const totales1 = React.useMemo(() => 
+    obtenerTotalesPorSede(filtrarPorMesYDias(eventos, mes1, dia1Inicio, dia1Fin)),
+    [eventos, mes1, dia1Inicio, dia1Fin]
+  );
+  
+  const totales2 = React.useMemo(() => 
+    obtenerTotalesPorSede(filtrarPorMesYDias(eventos, mes2, dia2Inicio, dia2Fin)),
+    [eventos, mes2, dia2Inicio, dia2Fin]
+  );
 
-  // Unir todas las sedes presentes
-  const sedes = Array.from(new Set([...Object.keys(totales1), ...Object.keys(totales2)]));
+  // Memoizar generación de filas
+  const { filas, totalesGenerales } = React.useMemo(() => {
+    // Unir todas las sedes presentes
+    const sedes = Array.from(new Set([...Object.keys(totales1), ...Object.keys(totales2)]));
 
-  // Generar filas comparativas solo por sede
-  const filas = sedes.map(sede => {
-    const total1 = totales1[sede] || 0;
-    const total2 = totales2[sede] || 0;
+    // Generar filas comparativas solo por sede
+    const filasCalculadas = sedes.map(sede => {
+      const total1 = totales1[sede] || 0;
+      const total2 = totales2[sede] || 0;
+      return {
+        sede,
+        total1,
+        total2,
+        diferencia: total1 - total2
+      };
+    });
+
+    // Totales generales para la fila final
+    const totalFacturado1 = filasCalculadas.reduce((acc, f) => acc + f.total1, 0);
+    const totalFacturado2 = filasCalculadas.reduce((acc, f) => acc + f.total2, 0);
+    const totalDiferencia = filasCalculadas.reduce((acc, f) => acc + f.diferencia, 0);
+    
     return {
-      sede,
-      total1,
-      total2,
-      diferencia: total1 - total2
+      filas: filasCalculadas,
+      totalesGenerales: { totalFacturado1, totalFacturado2, totalDiferencia }
     };
-  });
-
-  // Totales generales para la fila final
-  const totalFacturado1 = filas.reduce((acc, f) => acc + f.total1, 0);
-  const totalFacturado2 = filas.reduce((acc, f) => acc + f.total2, 0);
-  const totalDiferencia = filas.reduce((acc, f) => acc + f.diferencia, 0);
+  }, [totales1, totales2]);
 
   // Función para mostrar el mes en formato bonito (ej: 2025-08 => Agosto)
   function mesBonito(mes: string) {
@@ -203,9 +221,9 @@ const ComparativaTabla: React.FC<ComparativaTablaProps> = ({ eventos }) => {
               {filas.length > 0 && (
                 <tr className="border-t bg-gray-100 font-bold">
                   <td className="px-2 py-1 whitespace-nowrap text-left w-1/4" style={{ color: '#002c50' }}>Total Facturado</td>
-                  <td className="px-2 py-1 whitespace-nowrap text-left w-1/4" style={{ color: '#002c50' }}>{totalFacturado1.toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 })}</td>
-                  <td className="px-2 py-1 whitespace-nowrap text-left w-1/4" style={{ color: '#002c50' }}>{totalFacturado2.toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 })}</td>
-                  <td className={`px-2 py-1 whitespace-nowrap text-left w-1/4 ${totalDiferencia >= 0 ? 'text-green-600' : 'text-red-600'}`}>{totalDiferencia >= 0 ? '+' : ''}{totalDiferencia.toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 })}</td>
+                  <td className="px-2 py-1 whitespace-nowrap text-left w-1/4" style={{ color: '#002c50' }}>{totalesGenerales.totalFacturado1.toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 })}</td>
+                  <td className="px-2 py-1 whitespace-nowrap text-left w-1/4" style={{ color: '#002c50' }}>{totalesGenerales.totalFacturado2.toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 })}</td>
+                  <td className={`px-2 py-1 whitespace-nowrap text-left w-1/4 ${totalesGenerales.totalDiferencia >= 0 ? 'text-green-600' : 'text-red-600'}`}>{totalesGenerales.totalDiferencia >= 0 ? '+' : ''}{totalesGenerales.totalDiferencia.toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 })}</td>
                 </tr>
               )}
             </tbody>
@@ -214,7 +232,7 @@ const ComparativaTabla: React.FC<ComparativaTablaProps> = ({ eventos }) => {
       </div>
     </div>
   );
-};
+});
 // --- Fin componente ComparativaTabla ---
 
 import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
@@ -437,21 +455,25 @@ export default function Facturacion() {
       debouncedSearch(searchQuery);
     }
   }, [searchQuery, debouncedSearch]);
-  const datosAnalisis = agruparFacturacion(eventos.filter(ev => {
-    const filtro = filtroBusqueda.trim().toLowerCase();
-    const coincideTexto = !filtro ||
-      (ev.numeroFactura && ev.numeroFactura.toLowerCase().includes(filtro)) ||
-      (ev.documento && ev.documento.toLowerCase().includes(filtro)) ||
-      (ev.paciente && ev.paciente.toLowerCase().includes(filtro));
-    const fechaEv = ev.fecha || '';
-    const enRango = (!fechaFiltroInicial || fechaEv >= fechaFiltroInicial) && (!fechaFiltroFinal || fechaEv <= fechaFiltroFinal);
-    const coincideSede = !sedeFiltro || (ev.sede && ev.sede.nombre === sedeFiltro);
-    const coincideAseg = !aseguradoraFiltro || (ev.aseguradora === aseguradoraFiltro);
-    const periodoEv = (ev.periodo || '').trim().toUpperCase();
-    const periodoFiltroNorm = (periodoFiltro || '').trim().toUpperCase();
-    const coincidePeriodo = !periodoFiltroNorm || periodoEv === periodoFiltroNorm;
-    return coincideTexto && enRango && coincideSede && coincideAseg && coincidePeriodo;
-  }));
+  // Memoización de datos de análisis para evitar recálculos innecesarios
+  const datosAnalisis = useMemo(() => {
+    const eventosFiltrados = eventos.filter(ev => {
+      const filtro = filtroBusqueda.trim().toLowerCase();
+      const coincideTexto = !filtro ||
+        (ev.numeroFactura && ev.numeroFactura.toLowerCase().includes(filtro)) ||
+        (ev.documento && ev.documento.toLowerCase().includes(filtro)) ||
+        (ev.paciente && ev.paciente.toLowerCase().includes(filtro));
+      const fechaEv = ev.fecha || '';
+      const enRango = (!fechaFiltroInicial || fechaEv >= fechaFiltroInicial) && (!fechaFiltroFinal || fechaEv <= fechaFiltroFinal);
+      const coincideSede = !sedeFiltro || (ev.sede && ev.sede.nombre === sedeFiltro);
+      const coincideAseg = !aseguradoraFiltro || (ev.aseguradora === aseguradoraFiltro);
+      const periodoEv = (ev.periodo || '').trim().toUpperCase();
+      const periodoFiltroNorm = (periodoFiltro || '').trim().toUpperCase();
+      const coincidePeriodo = !periodoFiltroNorm || periodoEv === periodoFiltroNorm;
+      return coincideTexto && enRango && coincideSede && coincideAseg && coincidePeriodo;
+    });
+    return agruparFacturacion(eventosFiltrados);
+  }, [eventos, filtroBusqueda, fechaFiltroInicial, fechaFiltroFinal, sedeFiltro, aseguradoraFiltro, periodoFiltro]);
   // Actualizar fechas por defecto al cambiar de mes
   useEffect(() => {
     const hoy = new Date();
@@ -462,14 +484,18 @@ export default function Facturacion() {
     const nuevaFinal = `${yyyy}-${mm}-${dd}`;
     setFechasFiltro(f => (f.inicial.slice(0,7) !== nuevaInicial.slice(0,7) ? { inicial: nuevaInicial, final: nuevaFinal } : f));
   }, []);
-  // Consultar los eventos de facturación
+  
+  // Cargar datos iniciales usando la nueva API paginada
   useEffect(() => {
-    fetch(`${API_CONFIG.BASE_URL}/facturacion/eventos`)
-      .then(res => res.json())
-      .then(data => setEventos(Array.isArray(data.eventos) ? data.eventos : []))
-      .catch(() => setEventos([]));
-    // Ya no se actualiza aquí, solo cuando se cargan datos
-  }, [actualizar]);
+    cargarEventos(1, '', false);
+  }, [cargarEventos]);
+  
+  // Efecto para recargar cuando cambian filtros importantes
+  useEffect(() => {
+    if (fechaFiltroInicial && fechaFiltroFinal) {
+      cargarEventos(1, '', true);
+    }
+  }, [fechaFiltroInicial, fechaFiltroFinal, sedeFiltro, aseguradoraFiltro, cargarEventos]);
   // Conexión a Socket.IO para refrescar en tiempo real
   useEffect(() => {
     const socket = getSocket();
@@ -1051,7 +1077,10 @@ export default function Facturacion() {
           className="border px-2 py-1 w-full text-xs"
           placeholder="Factura, Documento o Paciente"
           value={filtroBusqueda}
-          onChange={e => setFiltroBusqueda(e.target.value)}
+          onChange={e => {
+            setFiltroBusqueda(e.target.value);
+            setSearchQuery(e.target.value);
+          }}
         />
         {/* 2. Fechas */}
         <input
@@ -1126,32 +1155,19 @@ export default function Facturacion() {
             </tr>
           </thead>
           <tbody>
-            {eventos.length === 0 ? (
+            {loading ? (
+              <tr>
+                <td colSpan={12} className="text-center py-8">
+                  <div className="flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                    <span className="ml-2">Cargando datos...</span>
+                  </div>
+                </td>
+              </tr>
+            ) : eventos.length === 0 ? (
               <tr><td colSpan={12} className="text-center py-4">Sin registros</td></tr>
             ) : (
-              eventos
-                .filter(ev => {
-                  // Filtro texto
-                  const filtro = filtroBusqueda.trim().toLowerCase();
-                  const coincideTexto = !filtro ||
-                    (ev.numeroFactura && ev.numeroFactura.toLowerCase().includes(filtro)) ||
-                    (ev.documento && ev.documento.toLowerCase().includes(filtro)) ||
-                    (ev.paciente && ev.paciente.toLowerCase().includes(filtro));
-                  // Filtro fechas
-                  const fechaEv = ev.fecha || '';
-                  const enRango = (!fechaFiltroInicial || fechaEv >= fechaFiltroInicial) && (!fechaFiltroFinal || fechaEv <= fechaFiltroFinal);
-                  // Filtro sede
-                  const coincideSede = !sedeFiltro || (ev.sede && ev.sede.nombre === sedeFiltro);
-                  // Filtro aseguradora
-                  const coincideAseg = !aseguradoraFiltro || (ev.aseguradora === aseguradoraFiltro);
-                  // Filtro periodo (insensible a mayúsculas y espacios)
-                  const periodoEv = (ev.periodo || '').trim().toUpperCase();
-                  const periodoFiltroNorm = (periodoFiltro || '').trim().toUpperCase();
-                  const coincidePeriodo = !periodoFiltroNorm || periodoEv === periodoFiltroNorm;
-                  return coincideTexto && enRango && coincideSede && coincideAseg && coincidePeriodo;
-                })
-                .slice((paginaActual-1)*registrosPorPagina, paginaActual*registrosPorPagina)
-                .map((ev, i) => (
+              eventos.map((ev, i) => (
                   <tr key={ev.id} className="border-b hover:bg-blue-50">
                     <td className="px-1 py-1 text-center whitespace-nowrap overflow-hidden text-ellipsis" style={{width:'8%'}}>{ev.numeroFactura || ''}</td>
                     <td className="px-1 py-1 text-center whitespace-nowrap overflow-hidden text-ellipsis" style={{width:'8%'}}>{ev.fecha || ''}</td>
@@ -1212,11 +1228,50 @@ export default function Facturacion() {
             )}
           </tbody>
         </table>
-        {/* Paginación */}
-        <div className="flex justify-between items-center mt-2">
-          <button className="px-2 py-1 bg-gray-200 rounded disabled:opacity-50" onClick={() => setPaginaActual(p => Math.max(1, p-1))} disabled={paginaActual === 1}>Anterior</button>
-          <span className="text-xs">Página {paginaActual} de {Math.ceil(eventos.length/registrosPorPagina)}</span>
-          <button className="px-2 py-1 bg-gray-200 rounded disabled:opacity-50" onClick={() => setPaginaActual(p => Math.min(Math.ceil(eventos.length/registrosPorPagina), p+1))} disabled={paginaActual === Math.ceil(eventos.length/registrosPorPagina)}>Siguiente</button>
+        {/* Paginación optimizada con datos del backend */}
+        <div className="flex justify-between items-center mt-4 bg-gray-50 p-3 rounded">
+          <div className="flex items-center gap-2">
+            <button 
+              className="px-3 py-1 bg-blue-500 text-white rounded disabled:opacity-50 disabled:bg-gray-300" 
+              onClick={() => cargarEventos(1, searchQuery || '', false)} 
+              disabled={loading || paginaActual === 1}
+            >
+              ⏮️ Primera
+            </button>
+            <button 
+              className="px-3 py-1 bg-blue-500 text-white rounded disabled:opacity-50 disabled:bg-gray-300" 
+              onClick={() => cargarEventos(paginaActual - 1, searchQuery || '', false)} 
+              disabled={loading || paginaActual === 1}
+            >
+              ⬅️ Anterior
+            </button>
+          </div>
+          
+          <div className="text-center">
+            <div className="text-sm text-gray-600">
+              Página <strong>{paginaActual}</strong> de <strong>{totalPaginas}</strong>
+            </div>
+            <div className="text-xs text-gray-500">
+              {totalRegistros.toLocaleString()} registros total • Mostrando {registrosPorPagina} por página
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <button 
+              className="px-3 py-1 bg-blue-500 text-white rounded disabled:opacity-50 disabled:bg-gray-300" 
+              onClick={() => cargarEventos(paginaActual + 1, searchQuery || '', false)} 
+              disabled={loading || paginaActual === totalPaginas}
+            >
+              Siguiente ➡️
+            </button>
+            <button 
+              className="px-3 py-1 bg-blue-500 text-white rounded disabled:opacity-50 disabled:bg-gray-300" 
+              onClick={() => cargarEventos(totalPaginas, searchQuery || '', false)} 
+              disabled={loading || paginaActual === totalPaginas}
+            >
+              Última ⏭️
+            </button>
+          </div>
         </div>
       </div>
     </section>

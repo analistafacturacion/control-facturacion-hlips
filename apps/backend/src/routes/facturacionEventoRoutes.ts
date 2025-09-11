@@ -837,19 +837,19 @@ router.get('/eventos', async (req: RequestWithIO, res: Response) => {
       .orderBy('evento.fecha', 'DESC')
       .addOrderBy('evento.id', 'DESC');
     
-    // Aplicar filtros WHERE
+    // Aplicar filtros WHERE con índices optimizados
     if (fechaInicial && fechaFinal) {
       queryBuilder.andWhere('evento.fecha BETWEEN :fechaInicial AND :fechaFinal', { fechaInicial, fechaFinal });
     }
     if (sede) {
-      queryBuilder.andWhere('evento.sede = :sede', { sede });
+      queryBuilder.andWhere('sede.nombre ILIKE :sede', { sede: `%${sede}%` });
     }
     if (aseguradora) {
       queryBuilder.andWhere('evento.aseguradora ILIKE :aseguradora', { aseguradora: `%${aseguradora}%` });
     }
     if (search) {
       queryBuilder.andWhere(
-        '(evento.numeroFactura ILIKE :search OR evento.aseguradora ILIKE :search OR evento.paciente ILIKE :search)',
+        '(evento.numeroFactura ILIKE :search OR evento.aseguradora ILIKE :search OR evento.paciente ILIKE :search OR evento.documento ILIKE :search)',
         { search: `%${search}%` }
       );
     }
