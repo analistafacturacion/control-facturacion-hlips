@@ -1262,7 +1262,7 @@ export default function Facturacion() {
     </div>
     {/* Tarjeta: Última actualización */}
   <div className="relative bg-white rounded-2xl shadow-md px-7 py-6 flex flex-col items-center justify-center min-w-[180px] min-h-[110px]">
-  <span className="text-sm font-bold mb-2 mt-2 text-center leading-tight" style={{fontFamily: 'Segoe UI, Arial, sans-serif', color: '#1f1200'}}>
+  <span className="text-lg font-bold mb-2 mt-2 text-center leading-tight" style={{fontFamily: 'Segoe UI, Arial, sans-serif', color: '#1f1200'}}>
     {ultimaActualizacion || 'Sin datos'}
   </span>
       <span className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Última actualización</span>
@@ -1431,18 +1431,20 @@ export default function Facturacion() {
         <div className="flex justify-between items-center mt-4 bg-gray-50 p-3 rounded">
           <div className="flex items-center gap-2">
             <button 
-              className="px-3 py-1 bg-blue-500 text-white rounded disabled:opacity-50 disabled:bg-gray-300" 
+              className="px-3 py-1 text-white rounded disabled:opacity-50 disabled:bg-gray-300" 
+              style={{ backgroundColor: loading || paginaActual === 1 ? undefined : '#002c50' }}
               onClick={() => cargarEventos(1, searchQuery || '', false)} 
               disabled={loading || paginaActual === 1}
             >
-              ⏮️ Primera
+              Primera
             </button>
             <button 
-              className="px-3 py-1 bg-blue-500 text-white rounded disabled:opacity-50 disabled:bg-gray-300" 
+              className="px-3 py-1 text-white rounded disabled:opacity-50 disabled:bg-gray-300" 
+              style={{ backgroundColor: loading || paginaActual === 1 ? undefined : '#002c50' }}
               onClick={() => cargarEventos(paginaActual - 1, searchQuery || '', false)} 
               disabled={loading || paginaActual === 1}
             >
-              ⬅️ Anterior
+              Anterior
             </button>
           </div>
           
@@ -1457,18 +1459,20 @@ export default function Facturacion() {
           
           <div className="flex items-center gap-2">
             <button 
-              className="px-3 py-1 bg-blue-500 text-white rounded disabled:opacity-50 disabled:bg-gray-300" 
+              className="px-3 py-1 text-white rounded disabled:opacity-50 disabled:bg-gray-300" 
+              style={{ backgroundColor: loading || paginaActual === totalPaginas ? undefined : '#002c50' }}
               onClick={() => cargarEventos(paginaActual + 1, searchQuery || '', false)} 
               disabled={loading || paginaActual === totalPaginas}
             >
-              Siguiente ➡️
+              Siguiente
             </button>
             <button 
-              className="px-3 py-1 bg-blue-500 text-white rounded disabled:opacity-50 disabled:bg-gray-300" 
+              className="px-3 py-1 text-white rounded disabled:opacity-50 disabled:bg-gray-300" 
+              style={{ backgroundColor: loading || paginaActual === totalPaginas ? undefined : '#002c50' }}
               onClick={() => cargarEventos(totalPaginas, searchQuery || '', false)} 
               disabled={loading || paginaActual === totalPaginas}
             >
-              Última ⏭️
+              Última
             </button>
           </div>
         </div>
