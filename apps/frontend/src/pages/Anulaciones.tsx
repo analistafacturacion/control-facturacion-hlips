@@ -381,22 +381,46 @@ const [eventosFull, setEventosFull] = useState<any[]>([]);
 		       if (res.ok && data.ok) {
 			       setShowOpuSuccess(true);
 			       setTimeout(() => setShowOpuSuccess(false), 2000);
-			       setMensaje(`Carga exitosa: ${data.insertados} nuevas anulaciones, ${data.yaExistentes} ya existentes, ${data.ignoradosSede} ignoradas por sede.`);
-				   // Recargar anulaciones y guardar fecha/hora de actualización
-				   fetch(`${API_CONFIG.BASE_URL}/anulaciones`)
-					   .then(res => res.json())
-					   .then(data => {
-						   console.log('[ANULACIONES] Recarga anulaciones:', data);
-						   setAnulaciones(Array.isArray(data.anulaciones) ? data.anulaciones : []);
-						   const fechaAct = new Date().toISOString();
-						   setUltimaActualizacionFull(fechaAct);
-						   localStorage.setItem('ultimaActualizacionAnulaciones', fechaAct);
-					   })
-					   .catch(err => {
-						   console.error('[ANULACIONES] Error recargando anulaciones', err);
-						   setAnulaciones([]);
-						   setUltimaActualizacionFull('');
-					   });
+			       const mensajeInicial = `Carga exitosa: ${data.insertados} nuevas anulaciones, ${data.yaExistentes} ya existentes, ${data.ignoradosSede} ignoradas por sede.`;
+			       setMensaje(mensajeInicial + '\n\nActualizando vista...');
+			       
+			       // Recargar anulaciones y guardar fecha/hora de actualización
+			       try {
+				       const resAnulaciones = await fetch(`${API_CONFIG.BASE_URL}/anulaciones`);
+				       const dataAnulaciones = await resAnulaciones.json();
+				       console.log('[ANULACIONES] Recarga anulaciones:', dataAnulaciones);
+				       const anulacionesCargadas = Array.isArray(dataAnulaciones.anulaciones) ? dataAnulaciones.anulaciones : [];
+				       setAnulaciones(anulacionesCargadas);
+				       
+				       // Actualizar fecha de última actualización
+				       const fechaAct = new Date().toISOString();
+				       setUltimaActualizacionFull(fechaAct);
+				       localStorage.setItem('ultimaActualizacionAnulaciones', fechaAct);
+				       
+				       // Bloquear automáticamente filas que tienen información de archivo plano
+				       const filasConPlano = new Set<number>();
+				       anulacionesCargadas.forEach((anulacion: Anulacion) => {
+					       if (tieneInformacionPlano(anulacion) && anulacion.id) {
+						       filasConPlano.add(anulacion.id);
+					       }
+				       });
+				       
+				       // Combinar con las filas ya bloqueadas manualmente
+				       setFilasBloqueadas(prev => {
+					       const nuevasFilas = new Set([...prev, ...filasConPlano]);
+					       localStorage.setItem('anulaciones_filas_bloqueadas', JSON.stringify([...nuevasFilas]));
+					       return nuevasFilas;
+				       });
+				       
+				       // Resetear a la primera página para mostrar las nuevas anulaciones
+				       setPaginaActual(1);
+				       
+				       // Actualizar mensaje final
+				       setMensaje(mensajeInicial + `\n\n✅ Vista actualizada exitosamente. Total: ${anulacionesCargadas.length} anulaciones cargadas.`);
+			       } catch (errorRecarga) {
+				       console.error('[ANULACIONES] Error recargando anulaciones', errorRecarga);
+				       setMensaje(mensajeInicial + '\n\n⚠️ Los datos se actualizaron pero hubo un error al refrescar la vista. Recarga la página manualmente.');
+			       }
 		       } else {
 			       let errorMsg = data.error || 'Error al cargar anulaciones';
 			       if (data.details) {
@@ -457,20 +481,47 @@ const [eventosFull, setEventosFull] = useState<any[]>([]);
 		   const data = await res.json();
 		   if (res.ok && data.ok) {
 			   setShowOpuSuccess(true);
-			   setMensaje(`Carga exitosa: ${data.insertados} nuevas anulaciones, ${data.yaExistentes} ya existentes, ${data.ignoradosSede} ignoradas por sede.`);
+			   const mensajeInicial = `Carga exitosa: ${data.insertados} nuevas anulaciones, ${data.yaExistentes} ya existentes, ${data.ignoradosSede} ignoradas por sede.`;
+			   setMensaje(mensajeInicial + '\n\nActualizando vista...');
+			   
 			   // Recargar anulaciones y guardar fecha/hora de actualización
-			   fetch(`${API_CONFIG.BASE_URL}/anulaciones`)
-				   .then(res => res.json())
-				   .then(data => {
-					   setAnulaciones(Array.isArray(data.anulaciones) ? data.anulaciones : []);
-					   const fechaAct = new Date().toISOString();
-					   setUltimaActualizacionFull(fechaAct);
-					   localStorage.setItem('ultimaActualizacionAnulaciones', fechaAct);
-				   })
-				   .catch(() => {
-					   setAnulaciones([]);
-					   setUltimaActualizacionFull('');
+			   try {
+				   const resAnulaciones = await fetch(`${API_CONFIG.BASE_URL}/anulaciones`);
+				   const dataAnulaciones = await resAnulaciones.json();
+				   const anulacionesCargadas = Array.isArray(dataAnulaciones.anulaciones) ? dataAnulaciones.anulaciones : [];
+				   setAnulaciones(anulacionesCargadas);
+				   
+				   // Actualizar fecha de última actualización
+				   const fechaAct = new Date().toISOString();
+				   setUltimaActualizacionFull(fechaAct);
+				   localStorage.setItem('ultimaActualizacionAnulaciones', fechaAct);
+				   
+				   // Bloquear automáticamente filas que tienen información de archivo plano
+				   const filasConPlano = new Set<number>();
+				   anulacionesCargadas.forEach((anulacion: Anulacion) => {
+					   if (tieneInformacionPlano(anulacion) && anulacion.id) {
+						   filasConPlano.add(anulacion.id);
+					   }
 				   });
+				   
+				   // Combinar con las filas ya bloqueadas manualmente
+				   setFilasBloqueadas(prev => {
+					   const nuevasFilas = new Set([...prev, ...filasConPlano]);
+					   localStorage.setItem('anulaciones_filas_bloqueadas', JSON.stringify([...nuevasFilas]));
+					   return nuevasFilas;
+				   });
+				   
+				   // Resetear a la primera página para mostrar las nuevas anulaciones
+				   setPaginaActual(1);
+				   
+				   // Actualizar mensaje final
+				   setMensaje(mensajeInicial + `\n\n✅ Vista actualizada exitosamente. Total: ${anulacionesCargadas.length} anulaciones cargadas.`);
+				   
+				   console.log(`[ANULACIONES] Recargadas ${anulacionesCargadas.length} anulaciones después de actualización`);
+			   } catch (errorRecarga) {
+				   console.error('[ANULACIONES] Error al recargar después de actualización:', errorRecarga);
+				   setMensaje(mensajeInicial + '\n\n⚠️ Los datos se actualizaron pero hubo un error al refrescar la vista. Recarga la página manualmente.');
+			   }
 		   } else {
 			   let errorMsg = data.error || 'Error al cargar anulaciones del mes';
 			   if (data.details) {
