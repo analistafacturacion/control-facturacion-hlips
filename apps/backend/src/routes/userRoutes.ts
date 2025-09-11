@@ -272,4 +272,56 @@ router.delete('/:id', async (req: Request, res: Response) => {
   }
 });
 
+// Endpoint para ver resumen de toda la base de datos
+router.get('/database-summary', async (req: Request, res: Response) => {
+  try {
+    const { getConnection } = require('typeorm');
+    const connection = getConnection();
+    
+    // Obtener conteos de todas las tablas
+    const userCount = await connection.query('SELECT COUNT(*) FROM "user"');
+    const aseguradoraCount = await connection.query('SELECT COUNT(*) FROM "aseguradora"');
+    const sedeCount = await connection.query('SELECT COUNT(*) FROM "sede"');
+    const anulacionCount = await connection.query('SELECT COUNT(*) FROM "anulacion"');
+    const facturacionEventoCount = await connection.query('SELECT COUNT(*) FROM "facturacion_evento"');
+    const reporteRipsCount = await connection.query('SELECT COUNT(*) FROM "reporte_rips"');
+    const ripsFacturaCount = await connection.query('SELECT COUNT(*) FROM "rips_factura"');
+    
+    const summary = {
+      tablas: {
+        usuarios: parseInt(userCount[0].count),
+        aseguradoras: parseInt(aseguradoraCount[0].count),
+        sedes: parseInt(sedeCount[0].count),
+        anulaciones: parseInt(anulacionCount[0].count),
+        facturacion_eventos: parseInt(facturacionEventoCount[0].count),
+        reportes_rips: parseInt(reporteRipsCount[0].count),
+        rips_facturas: parseInt(ripsFacturaCount[0].count)
+      },
+      total_registros: parseInt(userCount[0].count) + 
+                     parseInt(aseguradoraCount[0].count) + 
+                     parseInt(sedeCount[0].count) + 
+                     parseInt(anulacionCount[0].count) + 
+                     parseInt(facturacionEventoCount[0].count) + 
+                     parseInt(reporteRipsCount[0].count) + 
+                     parseInt(ripsFacturaCount[0].count),
+      endpoints_disponibles: {
+        usuarios: '/api/users',
+        usuarios_debug: '/api/users/debug',
+        aseguradoras: '/api/aseguradoras',
+        sedes: '/api/sedes',
+        anulaciones: '/api/anulaciones'
+      }
+    };
+    
+    res.json(summary);
+    
+  } catch (error) {
+    console.error('Error getting database summary:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Error desconocido' 
+    });
+  }
+});
+
 export default router;
