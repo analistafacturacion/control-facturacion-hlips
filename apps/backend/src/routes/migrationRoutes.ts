@@ -36,15 +36,78 @@ router.post('/fix-user-sequence', async (req: Request, res: Response) => {
     
     res.json({
       success: true,
-      message: 'Secuencia de ID arreglada exitosamente',
+      message: 'Secuencia de ID de user arreglada exitosamente',
       configuration: result[0]
     });
     
   } catch (error) {
-    console.error('Error arreglando secuencia:', error);
+    console.error('Error arreglando secuencia de user:', error);
     res.status(500).json({
       success: false,
-      message: 'Error al arreglar la secuencia de ID',
+      message: 'Error al arreglar la secuencia de ID de user',
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
+// Endpoint para arreglar todas las secuencias ID de las tablas principales
+router.post('/fix-all-sequences', async (req: Request, res: Response) => {
+  try {
+    const connection = await AppDataSource.initialize();
+    const tables = ['user', 'aseguradora', 'sede', 'anulacion', 'facturacion_evento', 'reporte_rips', 'rips_factura'];
+    const results: any[] = [];
+    
+    for (const table of tables) {
+      try {
+        // 1. Crear la secuencia si no existe
+        await connection.query(`CREATE SEQUENCE IF NOT EXISTS ${table}_id_seq;`);
+        
+        // 2. Establecer el valor actual de la secuencia basado en el máximo ID existente
+        await connection.query(`SELECT setval('${table}_id_seq', COALESCE((SELECT MAX(id) FROM "${table}"), 0) + 1, false);`);
+        
+        // 3. Alterar la tabla para usar la secuencia como default
+        await connection.query(`ALTER TABLE "${table}" ALTER COLUMN id SET DEFAULT nextval('${table}_id_seq');`);
+        
+        // 4. Establecer la secuencia como propiedad de la columna
+        await connection.query(`ALTER SEQUENCE ${table}_id_seq OWNED BY "${table}".id;`);
+        
+        // Verificar la configuración
+        const result = await connection.query(`
+          SELECT 
+            column_name, 
+            column_default, 
+            is_nullable, 
+            data_type 
+          FROM information_schema.columns 
+          WHERE table_name = '${table}' AND column_name = 'id';
+        `);
+        
+        results.push({
+          table: table,
+          success: true,
+          configuration: result[0]
+        });
+        
+      } catch (tableError) {
+        results.push({
+          table: table,
+          success: false,
+          error: tableError instanceof Error ? tableError.message : String(tableError)
+        });
+      }
+    }
+    
+    res.json({
+      success: true,
+      message: 'Proceso de corrección de secuencias completado',
+      results: results
+    });
+    
+  } catch (error) {
+    console.error('Error arreglando secuencias:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al arreglar las secuencias de ID',
       error: error instanceof Error ? error.message : String(error)
     });
   }
