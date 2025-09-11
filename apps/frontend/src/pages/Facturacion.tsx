@@ -352,6 +352,8 @@ export default function Facturacion() {
   const [eventos, setEventos] = useState<FacturacionEvento[]>([]);
   // Variable separada para TODOS los eventos del rango de fechas (para tarjetas)
   const [todosEventosFecha, setTodosEventosFecha] = useState<FacturacionEvento[]>([]);
+  // Variable separada para TODOS los eventos del AÑO COMPLETO (solo para gráficas del modal)
+  const [eventosAñoCompleto, setEventosAñoCompleto] = useState<FacturacionEvento[]>([]);
   
   // Estado para totales precalculados (ultra-rápido)
   const [totalesTarjetas, setTotalesTarjetas] = useState({
@@ -622,6 +624,69 @@ export default function Facturacion() {
     }
   }, [fechaFiltroInicial, fechaFiltroFinal]);
 
+  // Función para cargar TODOS los eventos del AÑO COMPLETO (solo para gráficas)
+  const cargarEventosAñoCompleto = useCallback(async () => {
+    const callId = Date.now();
+    console.log(`[DEBUG GRÁFICAS ${callId}] Cargando eventos del año completo para gráficas...`);
+    
+    try {
+      const añoActual = new Date().getFullYear();
+      const fechaInicialAño = `${añoActual}-01-01`;
+      const fechaFinalAño = `${añoActual}-12-31`;
+      
+      // Intentar endpoint de resumen primero
+      const paramsResumen = new URLSearchParams({
+        fechaInicial: fechaInicialAño,
+        fechaFinal: fechaFinalAño
+      });
+
+      let res = await fetch(`${API_CONFIG.BASE_URL}/facturacion/eventos/resumen?${paramsResumen}`);
+      let data = await res.json();
+      
+      if (res.ok && data.ok) {
+        console.log(`[DEBUG GRÁFICAS ${callId}] Usando endpoint /resumen - Eventos año completo:`, data.eventos?.length || 0);
+        setEventosAñoCompleto(data.eventos || []);
+        return;
+      }
+      
+      console.log(`[DEBUG GRÁFICAS ${callId}] Endpoint /resumen no disponible, usando múltiples llamadas...`);
+      
+      // FALLBACK: Múltiples llamadas para todo el año
+      let todosLosEventos: any[] = [];
+      let pagina = 1;
+      let totalPaginas = 1;
+      
+      do {
+        const params = new URLSearchParams({
+          fechaInicial: fechaInicialAño,
+          fechaFinal: fechaFinalAño,
+          page: String(pagina),
+          limit: '500'
+        });
+
+        res = await fetch(`${API_CONFIG.BASE_URL}/facturacion/eventos?${params}`);
+        data = await res.json();
+        
+        if (data.ok && data.eventos) {
+          todosLosEventos = [...todosLosEventos, ...data.eventos];
+          totalPaginas = data.pagination?.totalPages || 1;
+          console.log(`[DEBUG GRÁFICAS ${callId}] Página ${pagina}/${totalPaginas} - Eventos año: ${todosLosEventos.length}`);
+        } else {
+          break;
+        }
+        
+        pagina++;
+      } while (pagina <= totalPaginas && pagina <= 50); // Más páginas para el año completo
+      
+      console.log(`[DEBUG GRÁFICAS ${callId}] Total eventos año completo cargados:`, todosLosEventos.length);
+      setEventosAñoCompleto(todosLosEventos);
+      
+    } catch (error) {
+      console.error(`[DEBUG GRÁFICAS ${callId}] Error cargando eventos del año completo:`, error);
+      setEventosAñoCompleto([]);
+    }
+  }, []); // Sin dependencias - siempre carga el año completo
+
   
   // Función optimizada para cargar eventos con paginación
   const cargarEventos = useCallback(async (pagina = 1, busqueda = '', resetPagina = false) => {
@@ -722,8 +787,9 @@ export default function Facturacion() {
   // Cargar datos iniciales usando la nueva API paginada
   useEffect(() => {
     cargarEventos(1, '', false);
+    cargarEventosAñoCompleto(); // AGREGADO: Cargar datos del año completo para gráficas
     // NO inicializar fecha automáticamente - solo con botones de actualizar
-  }, [cargarEventos]);
+  }, [cargarEventos, cargarEventosAñoCompleto]);
   
   // Efecto SEPARADO para cargar totales ULTRA-RÁPIDOS cuando cambien las fechas
   useEffect(() => {
@@ -1136,16 +1202,16 @@ export default function Facturacion() {
             <div className="flex-1 min-h-0 overflow-auto">
               {analisisTipo === 'grafico' && (
                 <GraficoComparativo
-                  data={todosEventosFecha.map(ev => ({
+                  data={eventosAñoCompleto.map(ev => ({
                     sede: ev.sede?.nombre || '',
                     aseguradora: ev.aseguradora || '',
                     año: Number(ev.fecha?.slice(0,4)),
                     mes: Number(ev.fecha?.slice(5,7)),
                     valor: Number(ev.total) || 0
                   }))}
-                  aseguradoras={[...new Set(todosEventosFecha.map(ev => ev.aseguradora).filter((x): x is string => Boolean(x)))]}
-                  sedes={[...new Set(todosEventosFecha.map(ev => ev.sede?.nombre).filter((x): x is string => Boolean(x)))]}
-                  años={[...new Set(todosEventosFecha.map(ev => Number(ev.fecha?.slice(0,4))).filter(Boolean))].sort()}
+                  aseguradoras={[...new Set(eventosAñoCompleto.map(ev => ev.aseguradora).filter((x): x is string => Boolean(x)))]}
+                  sedes={[...new Set(eventosAñoCompleto.map(ev => ev.sede?.nombre).filter((x): x is string => Boolean(x)))]}
+                  años={[...new Set(eventosAñoCompleto.map(ev => Number(ev.fecha?.slice(0,4))).filter(Boolean))].sort()}
                 />
               )}
               {analisisTipo === 'general' && (
@@ -1201,28 +1267,28 @@ export default function Facturacion() {
               {analisisTipo === 'sede' && (
                 <div className="w-full h-full flex flex-col items-center justify-center">
                   <GraficoComparativoSede
-                    data={todosEventosFecha.map(ev => ({
+                    data={eventosAñoCompleto.map(ev => ({
                       sede: ev.sede?.nombre || '',
                       año: Number(ev.fecha?.slice(0,4)),
                       mes: Number(ev.fecha?.slice(5,7)),
                       valor: Number(ev.total) || 0
                     }))}
-                    sedes={[...new Set(todosEventosFecha.map(ev => ev.sede?.nombre).filter((x): x is string => Boolean(x)))]}
-                    años={[...new Set(todosEventosFecha.map(ev => Number(ev.fecha?.slice(0,4))).filter(Boolean))].sort()}
+                    sedes={[...new Set(eventosAñoCompleto.map(ev => ev.sede?.nombre).filter((x): x is string => Boolean(x)))]}
+                    años={[...new Set(eventosAñoCompleto.map(ev => Number(ev.fecha?.slice(0,4))).filter(Boolean))].sort()}
                   />
                 </div>
               )}
               {analisisTipo === 'aseguradora' && (
                 <div className="w-full h-full flex flex-col items-center justify-center">
                   <GraficoComparativoAseguradora
-                    data={todosEventosFecha.map(ev => ({
+                    data={eventosAñoCompleto.map(ev => ({
                       aseguradora: ev.aseguradora || '',
                       año: Number(ev.fecha?.slice(0,4)),
                       mes: Number(ev.fecha?.slice(5,7)),
                       valor: Number(ev.total) || 0
                     }))}
-                    aseguradoras={[...new Set(todosEventosFecha.map(ev => ev.aseguradora).filter((x): x is string => Boolean(x)))]}
-                    años={[...new Set(todosEventosFecha.map(ev => Number(ev.fecha?.slice(0,4))).filter(Boolean))].sort()}
+                    aseguradoras={[...new Set(eventosAñoCompleto.map(ev => ev.aseguradora).filter((x): x is string => Boolean(x)))]}
+                    años={[...new Set(eventosAñoCompleto.map(ev => Number(ev.fecha?.slice(0,4))).filter(Boolean))].sort()}
                   />
                 </div>
               )}
