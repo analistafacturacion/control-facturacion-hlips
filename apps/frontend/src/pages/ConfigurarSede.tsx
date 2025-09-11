@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import API_CONFIG from '../config/api';
 
 interface Sede {
   id: number;
@@ -25,7 +26,7 @@ export default function ConfigurarSede() {
 
   const fetchSedes = async () => {
     setLoading(true);
-    const res = await fetch('http://localhost:3001/api/sedes');
+    const res = await fetch(`${API_CONFIG.BASE_URL}/api/sedes`);
     const data = await res.json();
     setSedes(data);
     setLoading(false);
@@ -44,7 +45,7 @@ export default function ConfigurarSede() {
     setError('');
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:3001/api/sedes${editId ? '/' + editId : ''}`, {
+      const res = await fetch(`${API_CONFIG.BASE_URL}/api/sedes${editId ? '/' + editId : ''}`, {
         method: editId ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
@@ -73,7 +74,7 @@ export default function ConfigurarSede() {
   const handleDelete = async (id: number) => {
     if (!window.confirm('¿Eliminar esta sede?')) return;
     setLoading(true);
-    await fetch(`http://localhost:3001/api/sedes/${id}`, { method: 'DELETE' });
+    await fetch(`${API_CONFIG.BASE_URL}/api/sedes/${id}`, { method: 'DELETE' });
     fetchSedes();
     setLoading(false);
   };

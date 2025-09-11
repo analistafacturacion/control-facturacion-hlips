@@ -13,6 +13,9 @@ import RequireAuth from './RequireAuth'
 import { AuthProvider } from './auth'
 import Anulaciones from './pages/Anulaciones';
 
+// Configuración de basename para GitHub Pages
+const basename = process.env.NODE_ENV === 'production' ? '/1.-Control-Facturacion' : '';
+
 const router = createBrowserRouter([
   {
     path: '/login',
@@ -35,7 +38,7 @@ const router = createBrowserRouter([
       },
     ],
   },
-])
+], { basename })
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

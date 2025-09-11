@@ -12,7 +12,9 @@ type Usuario = {
   estado: boolean;
 };
 
-const API_URL = 'http://localhost:3001/api/users';
+import API_CONFIG from '../config/api';
+
+const API_URL = `${API_CONFIG.BASE_URL}/users`;
 
 export default function GestionUsuarios() {
   function isFormValid() {
@@ -41,7 +43,7 @@ export default function GestionUsuarios() {
     async function fetchAseguradoras() {
       setAseguradorasLoading(true);
       try {
-        const res = await fetch('http://localhost:3001/api/aseguradoras');
+        const res = await fetch(`${API_CONFIG.BASE_URL}/aseguradoras`);
         const data = await res.json();
         setAseguradoras(data);
       } catch {

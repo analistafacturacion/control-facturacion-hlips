@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
+import API_CONFIG from './config/api'
 
 interface AuthContextType {
   user: null | { username: string; rol: string; nombre: string }
@@ -33,7 +34,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (username: string, password: string, rol: string) => {
     try {
-      const res = await fetch('http://localhost:3001/api/users/login', {
+      const res = await fetch(`${API_CONFIG.BASE_URL}/users/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ usuario: username, password, rol })
@@ -51,7 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.removeItem('pergamoToken')
       }
       // Enviar credenciales de Pergamo al backend para guardarlas en memoria
-      await fetch('http://localhost:3001/api/facturacion/pergamo/credenciales', {
+      await fetch(`${API_CONFIG.BASE_URL}/facturacion/pergamo/credenciales`, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({ user: username, pass: password, userId: username, token: data.pergamoToken })
@@ -65,7 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     // Borrar credenciales de Pergamo en backend
     if (user?.username) {
-      await fetch('http://localhost:3001/api/facturacion/pergamo/logout', {
+      await fetch(`${API_CONFIG.BASE_URL}/facturacion/pergamo/logout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user.username })

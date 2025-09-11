@@ -226,6 +226,7 @@ import { useAuth } from '../auth';
 import { getSocket } from '../socket';
 import type { Sede } from '../types/sede';
 import type { Aseguradora } from '../types/aseguradora';
+import API_CONFIG from '../config/api';
 import { GraficoComparativo } from '../ui/GraficoComparativo';
 import { GraficoComparativoAseguradora } from '../ui/GraficoComparativoAseguradora';
 
@@ -348,11 +349,11 @@ export default function Facturacion() {
   // Filtros de fecha inicial y final
   // Cargar sedes y aseguradoras
   useEffect(() => {
-    fetch('http://localhost:3001/api/sedes')
+    fetch(`${API_CONFIG.BASE_URL}/api/sedes`)
       .then(res => res.json())
       .then(data => setSedes(data))
       .catch(() => setSedes([]));
-    fetch('http://localhost:3001/api/aseguradoras')
+    fetch(`${API_CONFIG.BASE_URL}/api/aseguradoras`)
       .then(res => res.json())
       .then(data => setAseguradoras(data))
       .catch(() => setAseguradoras([]));
@@ -397,7 +398,7 @@ export default function Facturacion() {
   }, []);
   // Consultar los eventos de facturación
   useEffect(() => {
-    fetch('http://localhost:3001/api/facturacion/eventos')
+    fetch(`${API_CONFIG.BASE_URL}/api/facturacion/eventos`)
       .then(res => res.json())
       .then(data => setEventos(Array.isArray(data.eventos) ? data.eventos : []))
       .catch(() => setEventos([]));
@@ -438,7 +439,7 @@ export default function Facturacion() {
     }
     setLoadingCargar(true);
     try {
-      const res = await fetch('http://localhost:3001/api/facturacion/cargar', {
+      const res = await fetch(`${API_CONFIG.BASE_URL}/api/facturacion/cargar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fechaInicial, fechaFinal, token: pergamoToken, userId: user?.username })
@@ -487,7 +488,7 @@ export default function Facturacion() {
     }
     setLoadingUltimosDias(true);
     try {
-      const res = await fetch('http://localhost:3001/api/facturacion/cargar', {
+      const res = await fetch(`${API_CONFIG.BASE_URL}/api/facturacion/cargar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fechaInicial, fechaFinal, token: pergamoToken, userId: user?.username })
