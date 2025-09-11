@@ -61,10 +61,6 @@ AppDataSource.initialize().then(() => {
   const userRoutes = require('./routes/userRoutes').default;
   app.use('/api/users', userRoutes);
 
-  // Rutas de migración
-  const migrationRoutes = require('./routes/migrationRoutes').default;
-  app.use('/api/migration', migrationRoutes);
-
   // Rutas de facturación evento
   const facturacionEventoRoutes = require('./routes/facturacionEventoRoutes').default;
   app.use('/api/facturacion', (req: import('express').Request, res: import('express').Response, next: import('express').NextFunction) => {
