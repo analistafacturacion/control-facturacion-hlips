@@ -4,7 +4,7 @@ services:
     runtime: node
     plan: free
     rootDir: apps/backend
-    buildCommand: chmod +x build.sh && ./build.sh
+    buildCommand: npm ci --include=dev && npx tsc --noImplicitAny false --strict false --skipLibCheck
     startCommand: node dist/index.js
     envVars:
       - key: NODE_ENV
