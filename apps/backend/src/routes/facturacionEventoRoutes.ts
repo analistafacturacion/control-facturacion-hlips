@@ -940,7 +940,7 @@ router.get('/eventos/totales', async (req: RequestWithIO, res: Response) => {
         `SUM(CASE 
           WHEN UPPER(TRIM(COALESCE(evento.periodo, ''))) != 'ANULADA' 
           THEN CASE 
-            WHEN evento.tipoRegistro = 'Nota Crédito' 
+            WHEN "evento"."tipoRegistro" = 'Nota Crédito' 
             THEN -COALESCE(evento.valor, 0) 
             ELSE COALESCE(evento.valor, 0) 
           END 
@@ -949,7 +949,7 @@ router.get('/eventos/totales', async (req: RequestWithIO, res: Response) => {
         `SUM(CASE 
           WHEN UPPER(TRIM(COALESCE(evento.periodo, ''))) = 'CORRIENTE' 
           THEN CASE 
-            WHEN evento.tipoRegistro = 'Nota Crédito' 
+            WHEN "evento"."tipoRegistro" = 'Nota Crédito' 
             THEN -COALESCE(evento.valor, 0) 
             ELSE COALESCE(evento.valor, 0) 
           END 
