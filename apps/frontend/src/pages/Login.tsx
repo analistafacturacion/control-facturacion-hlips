@@ -106,8 +106,7 @@ export default function Login() {
               onChange={e => setRole(e.target.value)}
             >
               <option value="analista">Analista</option>
-              <option value="admin">Administrador</option>
-              <option value="coordinador">Coordinador</option>
+              <option value="administrador">Administrador</option>
             </select>
           </div>
           {/* El texto de error se oculta, pero la barra lateral sigue cambiando de color */}
