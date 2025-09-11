@@ -9,6 +9,34 @@ const getStaticFileUrl = (filename: string) => {
 	return `${baseUrl}${basePath}${filename}`;
 };
 
+// Función para descargar archivo estático
+const descargarArchivoEstatico = async (filename: string, displayName: string) => {
+	try {
+		const url = getStaticFileUrl(filename);
+		const response = await fetch(url);
+		
+		if (!response.ok) {
+			throw new Error(`HTTP error! status: ${response.status}`);
+		}
+		
+		const blob = await response.blob();
+		const downloadUrl = window.URL.createObjectURL(blob);
+		
+		const link = document.createElement('a');
+		link.href = downloadUrl;
+		link.download = displayName;
+		document.body.appendChild(link);
+		link.click();
+		
+		// Limpiar
+		document.body.removeChild(link);
+		window.URL.revokeObjectURL(downloadUrl);
+	} catch (error) {
+		console.error('Error al descargar archivo:', error);
+		alert('Error al descargar el archivo. Verifique que esté disponible.');
+	}
+};
+
 // Formateador contable para valores
 const formatearValor = (valor?: number) => {
 	if (valor === undefined || valor === null) return '';
@@ -1377,7 +1405,7 @@ const handleArchivoPlano = async (file: File) => {
 						       `}</style>
 						       {menuReportesOpen && (
 							       <div className="absolute z-50 top-8 -left-24 bg-white border border-gray-200 rounded shadow-md min-w-[180px] text-xs animate-fade-in">
-									<a className="w-full text-left px-4 py-2 hover:bg-green-100 block" href={getStaticFileUrl('Archivo_plano_anulaciones.xlsx')} download>Descargar archivo Plano</a>
+									<div role="button" tabIndex={0} className="w-full text-left px-4 py-2 hover:bg-green-100 cursor-pointer" onClick={e => {e.preventDefault(); descargarArchivoEstatico('Archivo_plano_anulaciones.xlsx', 'Archivo_plano_anulaciones.xlsx');}} onKeyDown={e => {if(e.key==='Enter'){descargarArchivoEstatico('Archivo_plano_anulaciones.xlsx', 'Archivo_plano_anulaciones.xlsx');}}}>Descargar archivo Plano</div>
 									<div role="button" tabIndex={0} className="w-full text-left px-4 py-2 hover:bg-green-100 cursor-pointer" onClick={e => {e.preventDefault(); descargarReporte('rips');}} onKeyDown={e => {if(e.key==='Enter'){descargarReporte('rips');}}}>Cargar archivo Plano</div>
 									<div role="button" tabIndex={0} className="w-full text-left px-4 py-2 hover:bg-green-100 cursor-pointer" onClick={e => {e.preventDefault(); descargarReporte('general');}} onKeyDown={e => {if(e.key==='Enter'){descargarReporte('general');}}}>Descargar reporte Anulaciones</div>
 									<div role="button" tabIndex={0} className="w-full text-left px-4 py-2 hover:bg-green-100 cursor-pointer" onClick={e => {e.preventDefault(); descargarReporte('sin_estado');}} onKeyDown={e => {if(e.key==='Enter'){descargarReporte('sin_estado');}}}>Descargar reporte Pendientes</div>
