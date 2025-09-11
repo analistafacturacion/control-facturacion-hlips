@@ -75,6 +75,24 @@ router.get('/', async (req: Request, res: Response) => {
   res.json(users);
 });
 
+// Endpoint temporal para debugging - mostrar info detallada de usuarios
+router.get('/debug', async (req: Request, res: Response) => {
+  const repo = getRepository(User);
+  const users = await repo.find();
+  const debug = users.map((user: User) => ({
+    id: user.id,
+    usuario: user.usuario,
+    rol: user.rol,
+    nombre: user.nombre,
+    estado: user.estado,
+    aseguradoras: user.aseguradoras,
+    passwordHash: user.password,
+    passwordLength: user.password.length,
+    isBcrypt: user.password.startsWith('$2a$') || user.password.startsWith('$2b$')
+  }));
+  res.json(debug);
+});
+
 // Crear usuario
 router.post('/', async (req: Request, res: Response) => {
   const repo = getRepository(User);
