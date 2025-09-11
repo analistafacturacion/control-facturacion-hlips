@@ -12,6 +12,13 @@ const getStaticFileUrl = (filename: string) => {
 // Función para descargar archivo estático
 const descargarArchivoEstatico = async (filename: string, displayName: string) => {
 	try {
+		// Si es el archivo plano de anulaciones, usar el endpoint del backend
+		if (filename === 'Archivo_plano_anulaciones.xlsx') {
+			const url = `${API_CONFIG.BASE_URL}/anulaciones/archivo-plano-template`;
+			window.open(url, '_blank');
+			return;
+		}
+		
 		const url = getStaticFileUrl(filename);
 		const response = await fetch(url);
 		
