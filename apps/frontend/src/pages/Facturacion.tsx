@@ -731,8 +731,9 @@ export default function Facturacion() {
     console.log(`[DEBUG USEEFFECT ${effectId}] Disparado con fechas:`, fechaFiltroInicial, fechaFiltroFinal);
     if (fechaFiltroInicial && fechaFiltroFinal) {
       cargarTotalesTarjetas(); // Usar función ultra-rápida
+      cargarTodosEventosFecha(); // AGREGADO: Cargar todos los eventos para gráficas
     }
-  }, [fechaFiltroInicial, fechaFiltroFinal, cargarTotalesTarjetas]);
+  }, [fechaFiltroInicial, fechaFiltroFinal, cargarTotalesTarjetas, cargarTodosEventosFecha]);
   
   // Efecto para recargar tabla cuando cambian filtros importantes
   useEffect(() => {
