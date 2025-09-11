@@ -21,14 +21,31 @@ AppDataSource.initialize().then(() => {
     origin: [
       'https://analistafacturacion.github.io',
       'http://localhost:5173',
-      'http://localhost:3000'
+      'http://localhost:3000',
+      'https://control-facturacion-hlips.onrender.com'
     ],
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+    preflightContinue: false,
+    optionsSuccessStatus: 204
   };
   
   app.use(cors(corsOptions));
+  
+  // Middleware adicional para manejar preflight OPTIONS
+  app.use((req: any, res: any, next: any) => {
+    if (req.method === 'OPTIONS') {
+      res.header('Access-Control-Allow-Origin', req.headers.origin);
+      res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+      res.header('Access-Control-Allow-Credentials', 'true');
+      res.status(200).end();
+      return;
+    }
+    next();
+  });
+  
   app.use(express.json());
 
   // Health check endpoint para Render
@@ -48,7 +65,8 @@ AppDataSource.initialize().then(() => {
       origin: [
         'https://analistafacturacion.github.io',
         'http://localhost:5173',
-        'http://localhost:3000'
+        'http://localhost:3000',
+        'https://control-facturacion-hlips.onrender.com'
       ],
       methods: ['GET', 'POST'],
       credentials: true
