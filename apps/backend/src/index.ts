@@ -88,7 +88,10 @@ AppDataSource.initialize().then(() => {
   const openapiPath = path.join(__dirname, '../../docs/api/openapi.yaml');
   const openapiSpec = fs.existsSync(openapiPath) ? fs.readFileSync(openapiPath, 'utf8') : '';
   app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(undefined, { swaggerOptions: { url: '/api/openapi.yaml' } }));
-  app.get('/api/openapi.yaml', (req: import('express').Request, res: import('express').Response) => res.type('yaml').send(openapiSpec));
+  app.get('/api/openapi.yaml', (req: any, res: any) => {
+    res.setHeader('Content-Type', 'text/yaml');
+    res.send(openapiSpec);
+  });
 
   // Endpoint de prueba
   app.get('/api/health', (req: import('express').Request, res: import('express').Response) => res.json({ status: 'ok' }));

@@ -1,6 +1,6 @@
-import { Server as SocketIOServer } from 'socket.io';
+import { Server } from 'socket.io';
 import { Request } from 'express';
 
 export interface RequestWithIO extends Request {
-  io?: SocketIOServer;
+  io?: InstanceType<typeof Server>;
 }
