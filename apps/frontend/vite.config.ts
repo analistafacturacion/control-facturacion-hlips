@@ -27,6 +27,8 @@ export default defineConfig({
         },
       },
     },
+    // Asegurar que los archivos de public se copien
+    copyPublicDir: true,
   },
   plugins: [react()],
 })

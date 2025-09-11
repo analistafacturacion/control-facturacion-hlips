@@ -12,10 +12,20 @@ const getStaticFileUrl = (filename: string) => {
 // Función para descargar archivo estático
 const descargarArchivoEstatico = async (filename: string, displayName: string) => {
 	try {
-		// Si es el archivo plano de anulaciones, usar el endpoint del backend
+		// Para el archivo plano de anulaciones, usar la URL directa con el path correcto
 		if (filename === 'Archivo_plano_anulaciones.xlsx') {
-			const url = `${API_CONFIG.BASE_URL}/anulaciones/archivo-plano-template`;
-			window.open(url, '_blank');
+			const isGitHubPages = window.location.hostname.includes('github.io');
+			const url = isGitHubPages 
+				? `${window.location.origin}/control-facturacion-hlips/${filename}`
+				: `${window.location.origin}/${filename}`;
+			
+			const link = document.createElement('a');
+			link.href = url;
+			link.download = displayName;
+			link.target = '_blank';
+			document.body.appendChild(link);
+			link.click();
+			document.body.removeChild(link);
 			return;
 		}
 		
