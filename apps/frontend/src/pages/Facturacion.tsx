@@ -404,24 +404,55 @@ export default function Facturacion() {
     console.log('[DEBUG TARJETAS] cargarTodosEventosFecha iniciado con fechas:', fechaFiltroInicial, 'hasta', fechaFiltroFinal);
     
     try {
-      const params = new URLSearchParams({
+      // SOLUCIÓN TEMPORAL: Intentar primero el nuevo endpoint
+      const paramsResumen = new URLSearchParams({
         fechaInicial: fechaFiltroInicial,
         fechaFinal: fechaFiltroFinal
       });
 
-      // Usar el nuevo endpoint sin límite de paginación
-      const res = await fetch(`${API_CONFIG.BASE_URL}/facturacion/eventos/resumen?${params}`);
-      const data = await res.json();
+      let res = await fetch(`${API_CONFIG.BASE_URL}/facturacion/eventos/resumen?${paramsResumen}`);
+      let data = await res.json();
       
-      console.log('[DEBUG TARJETAS] Respuesta del backend:', data);
-      
-      if (data.ok) {
-        console.log('[DEBUG TARJETAS] Eventos cargados para tarjetas:', data.eventos?.length || 0);
+      // Si el nuevo endpoint funciona, usarlo
+      if (res.ok && data.ok) {
+        console.log('[DEBUG TARJETAS] Usando endpoint /resumen - Eventos:', data.eventos?.length || 0);
         setTodosEventosFecha(data.eventos || []);
-      } else {
-        console.log('[DEBUG TARJETAS] Error en respuesta del backend:', data.error);
-        setTodosEventosFecha([]);
+        return;
       }
+      
+      console.log('[DEBUG TARJETAS] Endpoint /resumen no disponible, usando múltiples llamadas...');
+      
+      // FALLBACK: Hacer múltiples llamadas para obtener todos los datos
+      let todosLosEventos: any[] = [];
+      let pagina = 1;
+      let totalPaginas = 1;
+      
+      do {
+        const params = new URLSearchParams({
+          fechaInicial: fechaFiltroInicial,
+          fechaFinal: fechaFiltroFinal,
+          page: String(pagina),
+          limit: '500' // Máximo permitido
+        });
+
+        res = await fetch(`${API_CONFIG.BASE_URL}/facturacion/eventos?${params}`);
+        data = await res.json();
+        
+        if (data.ok && data.eventos) {
+          todosLosEventos = [...todosLosEventos, ...data.eventos];
+          totalPaginas = data.pagination?.totalPages || 1;
+          console.log(`[DEBUG TARJETAS] Página ${pagina}/${totalPaginas} - Eventos acumulados: ${todosLosEventos.length}`);
+        } else {
+          console.log('[DEBUG TARJETAS] Error en página', pagina, ':', data.error);
+          break;
+        }
+        
+        pagina++;
+      } while (pagina <= totalPaginas && pagina <= 20); // Límite de seguridad
+      
+      console.log('[DEBUG TARJETAS] Total final de eventos cargados:', todosLosEventos.length);
+      setTodosEventosFecha(todosLosEventos);
+      
     } catch (error) {
       console.error('[DEBUG TARJETAS] Error cargando todos los eventos:', error);
       setTodosEventosFecha([]);
