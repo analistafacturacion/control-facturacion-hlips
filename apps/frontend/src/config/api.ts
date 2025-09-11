@@ -7,7 +7,7 @@ const API_CONFIG = {
   DEVELOPMENT_URL: 'http://localhost:3001/api',
   
   // Detectar automáticamente el entorno
-  BASE_URL: process.env.NODE_ENV === 'production' 
+  BASE_URL: window.location.hostname.includes('github.io')
     ? 'https://control-facturacion-hlips.onrender.com/api'
     : window.location.hostname === 'localhost' 
       ? 'http://localhost:3001/api'
