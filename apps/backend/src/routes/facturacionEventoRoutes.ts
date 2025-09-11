@@ -195,11 +195,22 @@ router.get('/reporte', async (req, res) => {
         };
       });
     } else if (tipo === 'general') {
+      // Para el reporte general, calcular automáticamente el último mes vigente
+      // (mes anterior al actual)
+      const hoy = new Date();
+      const mesAnterior = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1);
+      const ultimoDiaMesAnterior = new Date(hoy.getFullYear(), hoy.getMonth(), 0);
+      
+      const fechaInicialGeneral = mesAnterior.toISOString().slice(0, 10);
+      const fechaFinalGeneral = ultimoDiaMesAnterior.toISOString().slice(0, 10);
+      
+      console.log(`[REPORTE GENERAL] Usando último mes vigente: ${fechaInicialGeneral} a ${fechaFinalGeneral}`);
+      
       // Lógica de agrupación para el reporte general
       const repo = getRepository(FacturacionEvento);
       const eventos = await repo.find({
         where: {
-          fecha: Between(fechaInicial, fechaFinal)
+          fecha: Between(fechaInicialGeneral, fechaFinalGeneral)
         },
         relations: ['sede']
       });

@@ -683,7 +683,7 @@ export default function Facturacion() {
   }, [searchQuery, debouncedSearch]);
   // Memoización de datos de análisis para evitar recálculos innecesarios
   const datosAnalisis = useMemo(() => {
-    const eventosFiltrados = eventos.filter(ev => {
+    const eventosFiltrados = todosEventosFecha.filter(ev => {
       const filtro = filtroBusqueda.trim().toLowerCase();
       const coincideTexto = !filtro ||
         (ev.numeroFactura && ev.numeroFactura.toLowerCase().includes(filtro)) ||
@@ -699,7 +699,7 @@ export default function Facturacion() {
       return coincideTexto && enRango && coincideSede && coincideAseg && coincidePeriodo;
     });
     return agruparFacturacion(eventosFiltrados);
-  }, [eventos, filtroBusqueda, fechaFiltroInicial, fechaFiltroFinal, sedeFiltro, aseguradoraFiltro, periodoFiltro]);
+  }, [todosEventosFecha, filtroBusqueda, fechaFiltroInicial, fechaFiltroFinal, sedeFiltro, aseguradoraFiltro, periodoFiltro]);
 
   // Datos para tarjetas - TODOS los eventos del rango de fechas
   const eventosPorFecha = useMemo(() => {
@@ -1135,16 +1135,16 @@ export default function Facturacion() {
             <div className="flex-1 min-h-0 overflow-auto">
               {analisisTipo === 'grafico' && (
                 <GraficoComparativo
-                  data={eventos.map(ev => ({
+                  data={todosEventosFecha.map(ev => ({
                     sede: ev.sede?.nombre || '',
                     aseguradora: ev.aseguradora || '',
                     año: Number(ev.fecha?.slice(0,4)),
                     mes: Number(ev.fecha?.slice(5,7)),
                     valor: Number(ev.total) || 0
                   }))}
-                  aseguradoras={[...new Set(eventos.map(ev => ev.aseguradora).filter((x): x is string => Boolean(x)))]}
-                  sedes={[...new Set(eventos.map(ev => ev.sede?.nombre).filter((x): x is string => Boolean(x)))]}
-                  años={[...new Set(eventos.map(ev => Number(ev.fecha?.slice(0,4))).filter(Boolean))].sort()}
+                  aseguradoras={[...new Set(todosEventosFecha.map(ev => ev.aseguradora).filter((x): x is string => Boolean(x)))]}
+                  sedes={[...new Set(todosEventosFecha.map(ev => ev.sede?.nombre).filter((x): x is string => Boolean(x)))]}
+                  años={[...new Set(todosEventosFecha.map(ev => Number(ev.fecha?.slice(0,4))).filter(Boolean))].sort()}
                 />
               )}
               {analisisTipo === 'general' && (
@@ -1195,33 +1195,33 @@ export default function Facturacion() {
                 </div>
               )}
               {analisisTipo === 'comparativa' && (
-                <ComparativaTabla eventos={eventos} />
+                <ComparativaTabla eventos={todosEventosFecha} />
               )}
               {analisisTipo === 'sede' && (
                 <div className="w-full h-full flex flex-col items-center justify-center">
                   <GraficoComparativoSede
-                    data={eventos.map(ev => ({
+                    data={todosEventosFecha.map(ev => ({
                       sede: ev.sede?.nombre || '',
                       año: Number(ev.fecha?.slice(0,4)),
                       mes: Number(ev.fecha?.slice(5,7)),
                       valor: Number(ev.total) || 0
                     }))}
-                    sedes={[...new Set(eventos.map(ev => ev.sede?.nombre).filter((x): x is string => Boolean(x)))]}
-                    años={[...new Set(eventos.map(ev => Number(ev.fecha?.slice(0,4))).filter(Boolean))].sort()}
+                    sedes={[...new Set(todosEventosFecha.map(ev => ev.sede?.nombre).filter((x): x is string => Boolean(x)))]}
+                    años={[...new Set(todosEventosFecha.map(ev => Number(ev.fecha?.slice(0,4))).filter(Boolean))].sort()}
                   />
                 </div>
               )}
               {analisisTipo === 'aseguradora' && (
                 <div className="w-full h-full flex flex-col items-center justify-center">
                   <GraficoComparativoAseguradora
-                    data={eventos.map(ev => ({
+                    data={todosEventosFecha.map(ev => ({
                       aseguradora: ev.aseguradora || '',
                       año: Number(ev.fecha?.slice(0,4)),
                       mes: Number(ev.fecha?.slice(5,7)),
                       valor: Number(ev.total) || 0
                     }))}
-                    aseguradoras={[...new Set(eventos.map(ev => ev.aseguradora).filter((x): x is string => Boolean(x)))]}
-                    años={[...new Set(eventos.map(ev => Number(ev.fecha?.slice(0,4))).filter(Boolean))].sort()}
+                    aseguradoras={[...new Set(todosEventosFecha.map(ev => ev.aseguradora).filter((x): x is string => Boolean(x)))]}
+                    años={[...new Set(todosEventosFecha.map(ev => Number(ev.fecha?.slice(0,4))).filter(Boolean))].sort()}
                   />
                 </div>
               )}
