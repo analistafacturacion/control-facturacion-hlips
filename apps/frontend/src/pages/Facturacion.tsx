@@ -408,8 +408,8 @@ export default function Facturacion() {
     const mm = String(hoy.getMonth() + 1).padStart(2, '0');
     const dd = String(hoy.getDate()).padStart(2, '0');
     return {
-      inicial: `${yyyy}-01-01`, // TODO EL AÑO: Desde enero
-      final: `${yyyy}-${mm}-${dd}` // Hasta hoy
+      inicial: `${yyyy}-${mm}-01`,
+      final: `${yyyy}-${mm}-${dd}`
     };
   }
   const [{ inicial: fechaFiltroInicial, final: fechaFiltroFinal }, setFechasFiltro] = useState(getDefaultFechas());
@@ -1135,21 +1135,38 @@ export default function Facturacion() {
             <hr className="border-t border-gray-300 mb-4 w-full" />
             <div className="flex-1 min-h-0 overflow-auto">
               {analisisTipo === 'grafico' && (
-                <GraficoComparativo
-                  data={todosEventosFecha.map(ev => ({
-                    sede: ev.sede?.nombre || '',
-                    aseguradora: ev.aseguradora || '',
-                    año: Number(ev.fecha?.slice(0,4)),
-                    mes: Number(ev.fecha?.slice(5,7)),
-                    valor: Number(ev.total) || 0
-                  }))}
-                  aseguradoras={[...new Set(todosEventosFecha.map(ev => ev.aseguradora).filter((x): x is string => Boolean(x)))]}
-                  sedes={[...new Set(todosEventosFecha.map(ev => ev.sede?.nombre).filter((x): x is string => Boolean(x)))]}
-                  años={[...new Set(todosEventosFecha.map(ev => Number(ev.fecha?.slice(0,4))).filter(Boolean))].sort()}
-                />
+                <>
+                  {/* DEBUG: Mostrar información sobre los datos */}
+                  <div className="mb-4 p-2 bg-yellow-100 text-xs">
+                    <strong>DEBUG:</strong> todosEventosFecha.length = {todosEventosFecha.length}
+                    {todosEventosFecha.length > 0 && (
+                      <div>
+                        Primer evento: {JSON.stringify(todosEventosFecha[0], null, 2)}
+                      </div>
+                    )}
+                  </div>
+                  <GraficoComparativo
+                    data={todosEventosFecha.map(ev => ({
+                      sede: ev.sede?.nombre || '',
+                      aseguradora: ev.aseguradora || '',
+                      año: Number(ev.fecha?.slice(0,4)),
+                      mes: Number(ev.fecha?.slice(5,7)),
+                      valor: Number(ev.total) || 0
+                    }))}
+                    aseguradoras={[...new Set(todosEventosFecha.map(ev => ev.aseguradora).filter((x): x is string => Boolean(x)))]}
+                    sedes={[...new Set(todosEventosFecha.map(ev => ev.sede?.nombre).filter((x): x is string => Boolean(x)))]}
+                    años={[...new Set(todosEventosFecha.map(ev => Number(ev.fecha?.slice(0,4))).filter(Boolean))].sort()}
+                  />
+                </>
               )}
               {analisisTipo === 'general' && (
                 <div className="flex flex-col gap-1">
+                  {/* DEBUG: Mostrar información sobre datosAnalisis */}
+                  <div className="mb-4 p-2 bg-blue-100 text-xs">
+                    <strong>DEBUG:</strong> datosAnalisis = {JSON.stringify(Object.keys(datosAnalisis))} 
+                    <br />Total sedes: {Object.keys(datosAnalisis).length}
+                    <br />todosEventosFecha.length = {todosEventosFecha.length}
+                  </div>
                   {Object.entries(datosAnalisis).map(([sede, aseguradoras]) => {
                     let totalSede = 0, corrienteSede = 0, remanenteSede = 0;
                     Object.values(aseguradoras as Record<string, AgrupacionValores>).forEach(val => {
