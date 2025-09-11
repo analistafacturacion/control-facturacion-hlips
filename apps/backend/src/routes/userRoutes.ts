@@ -93,6 +93,20 @@ router.get('/debug', async (req: Request, res: Response) => {
   res.json(debug);
 });
 
+// Endpoint para mostrar configuración de base de datos (solo para debugging)
+router.get('/config', async (req: Request, res: Response) => {
+  const config = {
+    nodeEnv: process.env.NODE_ENV,
+    databaseUrl: process.env.DATABASE_URL ? 'CONFIGURADA' : 'NO CONFIGURADA',
+    databaseUrlLength: process.env.DATABASE_URL ? process.env.DATABASE_URL.length : 0,
+    host: process.env.DB_HOST,
+    port: process.env.DB_PORT,
+    username: process.env.DB_USERNAME,
+    database: process.env.DB_NAME
+  };
+  res.json(config);
+});
+
 // Crear usuario
 router.post('/', async (req: Request, res: Response) => {
   const repo = getRepository(User);
