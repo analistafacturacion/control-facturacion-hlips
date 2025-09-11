@@ -884,3 +884,37 @@ router.get('/eventos', async (req: RequestWithIO, res: Response) => {
     res.status(500).json({ error: 'Error al obtener eventos', details: err });
   }
 });
+
+// Endpoint específico para tarjetas - SIN LÍMITE de paginación
+router.get('/eventos/resumen', async (req: RequestWithIO, res: Response) => {
+  try {
+    const facturacionRepo = getRepository(FacturacionEvento);
+    
+    // Solo filtros por fecha (para las tarjetas)
+    const { fechaInicial, fechaFinal } = req.query;
+    
+    if (!fechaInicial || !fechaFinal) {
+      return res.status(400).json({ error: 'fechaInicial y fechaFinal son requeridos' });
+    }
+    
+    // Consulta SIN LÍMITE para obtener TODOS los eventos del período
+    const queryBuilder = facturacionRepo.createQueryBuilder('evento')
+      .leftJoinAndSelect('evento.sede', 'sede')
+      .where('evento.fecha BETWEEN :fechaInicial AND :fechaFinal', { fechaInicial, fechaFinal })
+      .orderBy('evento.fecha', 'DESC')
+      .addOrderBy('evento.id', 'DESC');
+    
+    const eventos = await queryBuilder.getMany();
+    
+    console.log(`[RESUMEN] Encontrados ${eventos.length} eventos entre ${fechaInicial} y ${fechaFinal}`);
+    
+    res.json({ 
+      ok: true, 
+      eventos,
+      total: eventos.length
+    });
+  } catch (err) {
+    console.error('[RESUMEN] Error:', err);
+    res.status(500).json({ error: 'Error al obtener resumen de eventos', details: err });
+  }
+});

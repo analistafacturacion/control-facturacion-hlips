@@ -401,23 +401,29 @@ export default function Facturacion() {
   const cargarTodosEventosFecha = useCallback(async () => {
     if (!fechaFiltroInicial || !fechaFiltroFinal) return;
     
+    console.log('[DEBUG TARJETAS] cargarTodosEventosFecha iniciado con fechas:', fechaFiltroInicial, 'hasta', fechaFiltroFinal);
+    
     try {
       const params = new URLSearchParams({
         fechaInicial: fechaFiltroInicial,
-        fechaFinal: fechaFiltroFinal,
-        limit: '10000' // Límite alto para obtener todos los datos del período
+        fechaFinal: fechaFiltroFinal
       });
 
-      const res = await fetch(`${API_CONFIG.BASE_URL}/facturacion/eventos?${params}`);
+      // Usar el nuevo endpoint sin límite de paginación
+      const res = await fetch(`${API_CONFIG.BASE_URL}/facturacion/eventos/resumen?${params}`);
       const data = await res.json();
       
+      console.log('[DEBUG TARJETAS] Respuesta del backend:', data);
+      
       if (data.ok) {
+        console.log('[DEBUG TARJETAS] Eventos cargados para tarjetas:', data.eventos?.length || 0);
         setTodosEventosFecha(data.eventos || []);
       } else {
+        console.log('[DEBUG TARJETAS] Error en respuesta del backend:', data.error);
         setTodosEventosFecha([]);
       }
     } catch (error) {
-      console.error('Error cargando todos los eventos:', error);
+      console.error('[DEBUG TARJETAS] Error cargando todos los eventos:', error);
       setTodosEventosFecha([]);
     }
   }, [fechaFiltroInicial, fechaFiltroFinal]);
@@ -503,6 +509,9 @@ export default function Facturacion() {
 
   // Datos para tarjetas - TODOS los eventos del rango de fechas
   const eventosPorFecha = useMemo(() => {
+    console.log('[DEBUG TARJETAS] todosEventosFecha contiene:', todosEventosFecha.length, 'eventos');
+    console.log('[DEBUG TARJETAS] Primer evento:', todosEventosFecha[0]);
+    console.log('[DEBUG TARJETAS] eventosPorFecha creado con', todosEventosFecha.length, 'eventos');
     return todosEventosFecha; // Ya vienen filtrados por fecha desde el backend
   }, [todosEventosFecha]);
   // Actualizar fechas por defecto al cambiar de mes
@@ -519,16 +528,22 @@ export default function Facturacion() {
   // Cargar datos iniciales usando la nueva API paginada
   useEffect(() => {
     cargarEventos(1, '', false);
-    cargarTodosEventosFecha(); // Cargar también datos para tarjetas
-  }, [cargarEventos, cargarTodosEventosFecha]);
+  }, [cargarEventos]);
   
-  // Efecto para recargar cuando cambian filtros importantes
+  // Efecto SEPARADO para cargar todos los eventos para tarjetas cuando cambien las fechas
+  useEffect(() => {
+    console.log('[DEBUG TARJETAS] useEffect disparado. Fechas:', fechaFiltroInicial, fechaFiltroFinal);
+    if (fechaFiltroInicial && fechaFiltroFinal) {
+      cargarTodosEventosFecha();
+    }
+  }, [fechaFiltroInicial, fechaFiltroFinal, cargarTodosEventosFecha]);
+  
+  // Efecto para recargar tabla cuando cambian filtros importantes
   useEffect(() => {
     if (fechaFiltroInicial && fechaFiltroFinal) {
       cargarEventos(1, '', true);
-      cargarTodosEventosFecha(); // Recargar datos para tarjetas
     }
-  }, [fechaFiltroInicial, fechaFiltroFinal, sedeFiltro, aseguradoraFiltro, cargarEventos, cargarTodosEventosFecha]);
+  }, [fechaFiltroInicial, fechaFiltroFinal, sedeFiltro, aseguradoraFiltro, cargarEventos]);
   // Conexión a Socket.IO para refrescar en tiempo real
   useEffect(() => {
     const socket = getSocket();
@@ -1008,7 +1023,10 @@ export default function Facturacion() {
     {/* Tarjeta: Total facturas */}
   <div className="relative bg-white rounded-2xl shadow-md px-7 py-6 flex flex-col items-center justify-center min-w-[180px] min-h-[110px]">
   <span className="text-2xl font-bold mb-2 mt-2" style={{fontFamily: 'Segoe UI, Arial, sans-serif', color: '#1f1200'}}> 
-    {eventosPorFecha.length}
+    {(() => {
+      console.log('[DEBUG TARJETA-TOTAL] Mostrando total:', eventosPorFecha.length);
+      return eventosPorFecha.length;
+    })()}
   </span>
       <span className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Total facturas</span>
     </div>
