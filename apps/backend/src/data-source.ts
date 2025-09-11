@@ -12,11 +12,11 @@ export const AppDataSource = new DataSource({
     synchronize: process.env.NODE_ENV === "production" ? false : true,
     logging: process.env.NODE_ENV === "development",
     ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
-    entities: [
-        "src/entity/**/*.ts"
-    ],
-    migrations: [
-        "src/migration/**/*.ts"
-    ],
+    entities: process.env.NODE_ENV === "production" 
+        ? ["dist/entity/**/*.js"]
+        : ["src/entity/**/*.ts"],
+    migrations: process.env.NODE_ENV === "production"
+        ? ["dist/migration/**/*.js"] 
+        : ["src/migration/**/*.ts"],
     subscribers: [],
 });
