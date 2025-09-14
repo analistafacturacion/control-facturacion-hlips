@@ -148,7 +148,7 @@ export default function TopBar() {
             )}
 
             {open && (
-              <div className="absolute left-0 top-full mt-0 min-w-[160px] rounded-b-xl shadow-md py-2 z-50 animate-fadein flex flex-col gap-0.5 border-x border-b transform -translate-x-4 -translate-y-2" style={{ backgroundColor: '#002c50', borderColor: '#001a2e' }}>
+              <div className="absolute left-0 top-full mt-2 min-w-[160px] rounded-b-xl shadow-md py-2 z-50 animate-fadein flex flex-col gap-0.5 border-x border-b transform -translate-x-4 -translate-y-1" style={{ backgroundColor: '#002c50', borderColor: '#001a2e' }}>
                 <div className="flex flex-col gap-0.5 mt-1">
                   {userMenuLinks.map(link =>
                     link.isLogout ? (
