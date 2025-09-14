@@ -61,8 +61,8 @@ export default function TopBar() {
           </div>
         </div>
 
-        {/* Center: Navigation (hidden on small screens) */}
-        <nav className="absolute inset-x-0 top-0 bottom-0 flex items-center justify-center pointer-events-none">
+        {/* Right-aligned Navigation (hidden on small screens) */}
+        <nav className="absolute right-36 top-0 bottom-0 flex items-center justify-end pointer-events-none">
           <div className="pointer-events-auto hidden md:flex items-center gap-6">
             {navLinks.map(link => {
               const active = pathname === link.to || (link.to !== '/' && pathname.startsWith(link.to));
@@ -85,9 +85,11 @@ export default function TopBar() {
           </div>
         </nav>
 
-        {/* Right: User menu (pegado al borde derecho con padding) */}
-        <div className="absolute right-4 top-0 bottom-0 flex items-center" ref={menuRef}>
+        {/* Right: User menu (con padding al borde derecho) */}
+        <div className="absolute right-8 top-0 bottom-0 flex items-center" ref={menuRef}>
           <div className="flex items-center gap-2">
+            {/* Separador vertical fino entre nav y usuario (visible en md+) */}
+            <div className="hidden md:block h-7 w-px bg-[#1e3a5f] mr-4" />
             <button
               className="inline-flex items-center justify-center h-9 w-9 rounded-full bg-gradient-to-br from-gray-800 to-gray-700 border border-gray-700 shadow focus:outline-none focus:ring-2 focus:ring-white/30"
               onClick={() => setOpen(v => !v)}
