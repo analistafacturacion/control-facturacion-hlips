@@ -6,26 +6,27 @@ export default function PrismaLogo({ className }: { className?: string }) {
       className={className}
       width="36"
       height="36"
-      viewBox="0 0 36 36"
+      viewBox="0 0 48 48"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden="true"
       role="img"
     >
-      {/* Base prism silhouette */}
-      <path d="M6 9 L18 4 L30 9 L30 27 L18 32 L6 27 Z" fill="#FFFFFF" />
+      {/* Minimal elegant prism: three thin facets, white fills with subtle opacity for depth */}
+      <g fill="#FFFFFF" fillRule="evenodd">
+        <path d="M8 12 L24 6 L40 12 L32 24 L24 30 L16 24 Z" opacity="1" />
+        <path d="M8 12 L16 24 L24 30 L24 6 Z" opacity="0.95" />
+        <path d="M24 6 L40 12 L32 24 L24 30 Z" opacity="0.82" />
+      </g>
 
-      {/* Left facet (slightly darker white) */}
-      <path d="M6 9 L18 14 L18 32 L6 27 Z" fill="#FFFFFF" opacity="0.92" />
+      {/* Thin outline for crispness */}
+      <path d="M8 12 L24 6 L40 12 L32 24 L24 30 L16 24 Z" stroke="#FFFFFF" strokeWidth="0.8" fill="none" opacity="0.9" />
 
-      {/* Right facet (subtle highlight) */}
-      <path d="M18 14 L30 9 L30 27 L18 32 Z" fill="#FFFFFF" opacity="0.8" />
+      {/* Subtle cut highlight (small triangle) */}
+      <path d="M22 9 L26 11 L22 14 Z" fill="#FFFFFF" opacity="0.18" />
 
-      {/* Top shine */}
-      <path d="M9 12 L18 8 L27 12 L18 15 Z" fill="#FFFFFF" opacity="0.14" />
-
-      {/* Small crystal sparkle */}
-      <circle cx="24" cy="10" r="0.9" fill="#FFFFFF" opacity="0.95" />
+      {/* Tiny sparkle */}
+      <circle cx="36" cy="10" r="0.8" fill="#FFFFFF" opacity="0.9" />
     </svg>
   );
 }
