@@ -12,21 +12,13 @@ export default function PrismaLogo({ className }: { className?: string }) {
       aria-hidden="true"
       role="img"
     >
-      {/* Minimal elegant prism: three thin facets, white fills with subtle opacity for depth */}
-      <g fill="#FFFFFF" fillRule="evenodd">
-        <path d="M8 12 L24 6 L40 12 L32 24 L24 30 L16 24 Z" opacity="1" />
-        <path d="M8 12 L16 24 L24 30 L24 6 Z" opacity="0.95" />
-        <path d="M24 6 L40 12 L32 24 L24 30 Z" opacity="0.82" />
+      {/* Fragmented prism (option B) - white */}
+      <g fill="#FFFFFF">
+        <path d="M8 14 L24 6 L40 14 L34 28 L24 32 L14 28 Z" />
+        <path d="M14 16 L24 22 L34 16 L24 12 Z" opacity="0.14" />
+        <path d="M24 22 L34 16 L34 28 L24 32 Z" opacity="0.18" />
       </g>
-
-      {/* Thin outline for crispness */}
-      <path d="M8 12 L24 6 L40 12 L32 24 L24 30 L16 24 Z" stroke="#FFFFFF" strokeWidth="0.8" fill="none" opacity="0.9" />
-
-      {/* Subtle cut highlight (small triangle) */}
-      <path d="M22 9 L26 11 L22 14 Z" fill="#FFFFFF" opacity="0.18" />
-
-      {/* Tiny sparkle */}
-      <circle cx="36" cy="10" r="0.8" fill="#FFFFFF" opacity="0.9" />
+      <path d="M8 14 L24 6 L40 14 L34 28 L24 32 L14 28 Z" stroke="#FFFFFF" strokeWidth="0.6" fill="none" opacity="0.9" />
     </svg>
   );
 }
