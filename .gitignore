@@ -1,0 +1,47 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Dependency directories
+node_modules/
+
+# Build outputs
+/dist
+/build
+/.turbo
+apps/*/dist
+apps/*/build
+
+# Env files
+.env
+.env.*
+!.env.example
+!.env.production
+
+# Database backups
+backup_*
+*.backup
+maindb_*.sql
+backup_control_usuarios_*.sql
+
+# OS/Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Railway
+.railway/
+
+# TypeScript
+*.tsbuildinfo
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
