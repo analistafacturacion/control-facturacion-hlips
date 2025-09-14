@@ -41,9 +41,9 @@ export default function TopBar() {
   }, [open]);
 
   return (
-  <header className="fixed top-0 inset-x-0 h-20 shadow-lg z-50 border-b" style={{ backgroundColor: '#002c50', borderColor: '#001a2e' }}>
-      <div className="max-w-7xl mx-auto h-full px-1 flex items-center justify-between">
-        <div className="flex items-center gap-1">
+  <header className="fixed top-0 inset-x-0 h-20 shadow-lg z-50 border-b bg-[#002c50]" style={{ borderColor: '#001a2e' }}>
+      <div className="max-w-7xl mx-auto h-full px-4 sm:px-6 lg:px-8 flex items-center">
+        <div className="flex items-center gap-3 flex-shrink-0">
           <span className="inline-flex items-center justify-center h-11 w-11">
             <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
               {/* Marco principal - forma hexagonal moderna */}
@@ -64,29 +64,60 @@ export default function TopBar() {
           </span>
           <span className="text-xl font-bold tracking-tight text-white select-none">Control Facturación</span>
         </div>
-        <nav className="flex items-center gap-4 ml-auto py-2 px-1">
-          {navLinks.map(link => {
-            const active = pathname === link.to || (link.to !== '/' && pathname.startsWith(link.to));
-            return (
-              <Link
-                key={link.to}
-                to={link.to}
-                className={
-                  'relative px-1 py-1 text-base font-medium transition-colors duration-150 ' +
-                  (active
-                    ? 'text-white after:absolute after:left-0 after:-bottom-0.5 after:w-full after:h-0.5 after:bg-white after:rounded-full after:scale-x-100 after:transition-transform after:duration-300'
-                    : 'text-gray-300 hover:text-white after:absolute after:left-0 after:-bottom-0.5 after:w-full after:h-0.5 after:bg-white after:rounded-full after:scale-x-0 hover:after:scale-x-100 after:origin-left after:transition-transform after:duration-300')
-                }
-                style={{ textDecoration: 'none' }}
-              >
-                {link.label}
-              </Link>
-            );
-          })}
-          {/* Línea divisoria fina */}
-          <div className="h-7 w-px mx-0" style={{ backgroundColor: '#1e3a5f' }} />
+
+        {/* Desktop nav: ocupa el ancho disponible y centra los links */}
+        <nav className="hidden md:flex md:items-center md:justify-center md:flex-1">
+          <div className="w-full max-w-3xl flex items-center justify-center gap-6">
+            {navLinks.map(link => {
+              const active = pathname === link.to || (link.to !== '/' && pathname.startsWith(link.to));
+              return (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  className={
+                    'relative px-2 py-1 text-base font-medium transition-colors duration-150 ' +
+                    (active
+                      ? 'text-white after:absolute after:left-0 after:-bottom-0.5 after:w-full after:h-0.5 after:bg-white after:rounded-full after:scale-x-100 after:transition-transform after:duration-300'
+                      : 'text-gray-300 hover:text-white after:absolute after:left-0 after:-bottom-0.5 after:w-full after:h-0.5 after:bg-white after:rounded-full after:scale-x-0 hover:after:scale-x-100 after:origin-left after:transition-transform after:duration-300')
+                  }
+                  style={{ textDecoration: 'none' }}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
+          </div>
         </nav>
-        <div className="flex items-center gap-2 ml-6 relative" ref={menuRef}>
+
+        {/* Mobile: hamburguesa */}
+        <div className="md:hidden ml-auto">
+          <button
+            onClick={() => setOpen(v => !v)}
+            aria-label="Abrir menú"
+            className="inline-flex items-center justify-center p-2 rounded-md text-gray-200 hover:text-white hover:bg-[#01324d]/50 focus:outline-none"
+          >
+            <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={open ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'} />
+            </svg>
+          </button>
+        </div>
+
+        {/* Espacio para separar del área de usuario */}
+        <div className="hidden md:block md:ml-4 md:flex-shrink-0" />
+
+        {/* Mobile menu panel */}
+        {open && (
+          <div className="absolute top-20 left-0 right-0 bg-[#002c50] border-t" style={{ borderColor: '#001a2e' }}>
+            <div className="px-4 py-4 flex flex-col gap-2">
+              {navLinks.map(link => (
+                <Link key={link.to} to={link.to} className="text-gray-200 py-2 px-2 rounded hover:bg-[#01324d]" onClick={() => setOpen(false)}>
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+  <div className="flex items-center gap-2 ml-6 relative flex-shrink-0" ref={menuRef}>
           <button
             className="inline-flex items-center justify-center h-9 w-9 rounded-full bg-gradient-to-br from-gray-800 to-gray-700 border border-gray-700 shadow focus:outline-none focus:ring-2 focus:ring-white/30"
             onClick={() => setOpen(v => !v)}
