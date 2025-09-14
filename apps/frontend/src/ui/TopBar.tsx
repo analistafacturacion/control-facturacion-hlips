@@ -84,7 +84,7 @@ export default function TopBar() {
             })}
           </div>
           {/* Separador vertical */}
-          <div className="hidden md:block h-7 w-px bg-[#1e3a5f] mr-4" />
+          <div className="hidden md:block h-7 w-px bg-white mr-4" />
           <div className="flex items-center gap-2">
             <button
               className="inline-flex items-center justify-center h-9 w-9 rounded-full bg-gradient-to-br from-gray-800 to-gray-700 border border-gray-700 shadow focus:outline-none focus:ring-2 focus:ring-white/30"
@@ -113,7 +113,7 @@ export default function TopBar() {
             )}
 
             {open && (
-              <div className="absolute right-6 top-[54px] min-w-[160px] rounded-b-xl shadow-md py-2 z-50 animate-fadein flex flex-col gap-0.5 border-x border-b" style={{ backgroundColor: '#002c50', borderColor: '#001a2e' }}>
+              <div className="absolute right-4 top-full mt-1 min-w-[160px] rounded-b-xl shadow-md py-2 z-50 animate-fadein flex flex-col gap-0.5 border-x border-b" style={{ backgroundColor: '#002c50', borderColor: '#001a2e' }}>
                 <div className="flex flex-col gap-0.5 mt-1">
                   {userMenuLinks.map(link =>
                     link.isLogout ? (
