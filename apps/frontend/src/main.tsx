@@ -16,7 +16,16 @@ import Anulaciones from './pages/Anulaciones';
 // Configuración de basename para GitHub Pages
 const basename = process.env.NODE_ENV === 'production' ? '/control-facturacion-hlips' : '';
 
+// Componente de prueba temporal
+function TestApp() {
+  return <div style={{padding: '20px', fontSize: '24px', color: 'red'}}>¡React funciona! Prueba exitosa.</div>
+}
+
 const router = createHashRouter([
+  {
+    path: '/test',
+    element: <TestApp />,
+  },
   {
     path: '/login',
     element: <Login />,
@@ -38,7 +47,7 @@ const router = createHashRouter([
       },
     ],
   },
-], { basename })
+])
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
