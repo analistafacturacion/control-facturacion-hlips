@@ -61,17 +61,7 @@ export default function TopBar() {
   {/* Left: Title */}
   <div className="absolute left-8 top-0 bottom-0 flex items-center pl-3 md:pl-4 lg:pl-6">
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center justify-center h-11 w-11">
-              <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M9 4.5L21 4.5C22.24 4.5 23.5 5.26 24 6.5L24 23.5C23.5 24.74 22.24 25.5 21 25.5L9 25.5C7.76 25.5 6.5 24.74 6 23.5L6 6.5C6.5 5.26 7.76 4.5 9 4.5Z" stroke="#fff" strokeWidth="1.5" fill="none" />
-                <rect x="10" y="17" width="2" height="6" rx="1" fill="#fff" />
-                <rect x="13" y="14" width="2" height="9" rx="1" fill="#fff" />
-                <rect x="16" y="11" width="2" height="12" rx="1" fill="#fff" />
-                <rect x="19" y="15" width="2" height="8" rx="1" fill="#fff" />
-                <path d="M11 18L14 15L17 12L20 16" stroke="#fff" strokeWidth="1" strokeLinecap="round" strokeOpacity="0.6" />
-                <circle cx="22" cy="8" r="1.5" fill="#fff" />
-              </svg>
-            </span>
+            {/* logo replaced by PrismaLogo component */}
             <div className="flex items-center gap-3">
               <PrismaLogo className="w-9 h-9" />
               <span className="text-xl font-bold tracking-tight text-white select-none">Prisma Analytics</span>
