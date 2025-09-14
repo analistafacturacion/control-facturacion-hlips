@@ -71,7 +71,7 @@ export default function TopBar() {
                 <circle cx="22" cy="8" r="1.5" fill="#fff" />
               </svg>
             </span>
-            <span className="text-xl font-bold tracking-tight text-white select-none">Control Facturación</span>
+            <span className="text-xl font-bold tracking-tight text-white select-none">Prisma Analytics</span>
           </div>
         </div>
 
