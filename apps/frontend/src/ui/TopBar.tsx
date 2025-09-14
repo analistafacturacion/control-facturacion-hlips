@@ -22,7 +22,9 @@ const userMenuLinks = [
 export default function TopBar() {
   const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const mobileRef = useRef<HTMLDivElement>(null);
   const { logout, user } = useAuth();
   const navigate = useNavigate();
 
@@ -39,6 +41,18 @@ export default function TopBar() {
     }
     return () => document.removeEventListener('mousedown', handleClick);
   }, [open]);
+
+  // close mobile menu when clicking outside
+  useEffect(() => {
+    function handleMobileClick(e: MouseEvent) {
+      if (mobileRef.current && !mobileRef.current.contains(e.target as Node)) {
+        setMobileOpen(false);
+      }
+    }
+    if (mobileOpen) document.addEventListener('mousedown', handleMobileClick);
+    else document.removeEventListener('mousedown', handleMobileClick);
+    return () => document.removeEventListener('mousedown', handleMobileClick);
+  }, [mobileOpen]);
 
   return (
     <header className="fixed top-0 inset-x-0 h-20 shadow-lg z-50 border-b" style={{ backgroundColor: '#002c50', borderColor: '#001a2e' }}>
@@ -63,6 +77,29 @@ export default function TopBar() {
 
   {/* Right group: nav + separator + user */}
   <div className="absolute right-6 top-0 bottom-0 flex items-center" ref={menuRef}>
+          {/* Mobile: show first two links and a hamburger */}
+          <div className="flex md:hidden items-center gap-3 mr-3">
+            <Link to="/facturacion" className="text-sm text-gray-200 hover:text-white" style={{ textDecoration: 'none' }}>Facturación</Link>
+            <Link to="/anulaciones" className="text-sm text-gray-200 hover:text-white" style={{ textDecoration: 'none' }}>Anulaciones</Link>
+            <div className="relative" ref={mobileRef}>
+              <button
+                onClick={() => setMobileOpen(v => !v)}
+                aria-label="Abrir menú móvil"
+                className="ml-2 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-white/30"
+              >
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>
+              </button>
+              {mobileOpen && (
+                <div className="absolute right-0 top-full mt-2 min-w-[160px] rounded-b-xl shadow-md py-2 z-50 animate-fadein flex flex-col gap-0.5 border-x border-b" style={{ backgroundColor: '#002c50', borderColor: '#001a2e' }}>
+                  {navLinks.slice(2).map(link => (
+                    <Link key={link.to} to={link.to} className="px-4 py-2 text-sm text-gray-200 hover:text-white" onClick={() => setMobileOpen(false)} style={{ textDecoration: 'none' }}>
+                      {link.label}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
           <div className="hidden md:flex items-center gap-6 mr-4 pointer-events-auto">
             {navLinks.map(link => {
               const active = pathname === link.to || (link.to !== '/' && pathname.startsWith(link.to));
