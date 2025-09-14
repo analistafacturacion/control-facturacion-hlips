@@ -76,7 +76,7 @@ export default function TopBar() {
         </div>
 
   {/* Right group: nav + separator + user */}
-  <div className="absolute right-6 top-0 bottom-0 flex items-center" ref={menuRef}>
+  <div className="absolute right-8 top-0 bottom-0 flex items-center pr-3 md:pr-4 lg:pr-6" ref={menuRef}>
           {/* Mobile: hamburger that contains all nav links */}
           <div className="flex md:hidden items-center gap-3 mr-3">
             <div className="relative" ref={mobileRef}>
@@ -118,9 +118,9 @@ export default function TopBar() {
               );
             })}
           </div>
-          {/* Separador vertical (visible en mobile y desktop) */}
-          <div className="h-7 w-px bg-white mx-4 md:mx-6 lg:mx-8" />
-          <div className="flex items-center gap-2 ml-2 md:ml-4 lg:ml-6">
+          {/* Separador vertical (visible en mobile and desktop) - reduced margins */}
+          <div className="h-7 w-px bg-white mx-2 md:mx-3 lg:mx-4" />
+          <div className="flex items-center gap-2 ml-4 md:ml-6 lg:ml-8">
             <button
               className="inline-flex items-center justify-center h-9 w-9 rounded-full bg-gradient-to-br from-gray-800 to-gray-700 border border-gray-700 shadow focus:outline-none focus:ring-2 focus:ring-white/30"
               onClick={() => setOpen(v => !v)}
