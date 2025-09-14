@@ -1,6 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { createBrowserRouter, RouterProvider } from 'react-router-dom'
+import { createHashRouter, RouterProvider } from 'react-router-dom'
 import './index.css'
 import App from './App'
 import Facturacion from './pages/Facturacion'
@@ -16,7 +16,7 @@ import Anulaciones from './pages/Anulaciones';
 // Configuración de basename para GitHub Pages
 const basename = process.env.NODE_ENV === 'production' ? '/control-facturacion-hlips' : '';
 
-const router = createBrowserRouter([
+const router = createHashRouter([
   {
     path: '/login',
     element: <Login />,
