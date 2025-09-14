@@ -119,8 +119,8 @@ export default function TopBar() {
             })}
           </div>
           {/* Separador vertical (visible en mobile y desktop) */}
-          <div className="h-7 w-px bg-white mx-3 md:mx-4 lg:mx-6" />
-          <div className="flex items-center gap-2">
+          <div className="h-7 w-px bg-white mx-4 md:mx-6 lg:mx-8" />
+          <div className="flex items-center gap-2 ml-2 md:ml-4 lg:ml-6">
             <button
               className="inline-flex items-center justify-center h-9 w-9 rounded-full bg-gradient-to-br from-gray-800 to-gray-700 border border-gray-700 shadow focus:outline-none focus:ring-2 focus:ring-white/30"
               onClick={() => setOpen(v => !v)}
