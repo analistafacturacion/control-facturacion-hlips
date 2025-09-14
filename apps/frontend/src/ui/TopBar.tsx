@@ -57,8 +57,8 @@ export default function TopBar() {
   return (
     <header className="fixed top-0 inset-x-0 h-20 shadow-lg z-50 border-b" style={{ backgroundColor: '#002c50', borderColor: '#001a2e' }}>
       <div className="relative h-full">
-        {/* Left: Title */}
-        <div className="absolute left-4 top-0 bottom-0 flex items-center">
+  {/* Left: Title */}
+  <div className="absolute left-8 top-0 bottom-0 flex items-center pl-3 md:pl-4 lg:pl-6">
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center justify-center h-11 w-11">
               <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -120,7 +120,7 @@ export default function TopBar() {
           </div>
           {/* Separador vertical (visible en mobile and desktop) - reduced margins */}
           <div className="h-7 w-px bg-white mx-2 md:mx-3 lg:mx-4" />
-          <div className="flex items-center gap-2 ml-4 md:ml-6 lg:ml-8">
+          <div className="flex items-center gap-2 ml-4 md:ml-6 lg:ml-8 relative">
             <button
               className="inline-flex items-center justify-center h-9 w-9 rounded-full bg-gradient-to-br from-gray-800 to-gray-700 border border-gray-700 shadow focus:outline-none focus:ring-2 focus:ring-white/30"
               onClick={() => setOpen(v => !v)}
@@ -148,7 +148,7 @@ export default function TopBar() {
             )}
 
             {open && (
-              <div className="absolute right-0 top-full mt-0 min-w-[160px] rounded-b-xl shadow-md py-2 z-50 animate-fadein flex flex-col gap-0.5 border-x border-b transform translate-x-4 -translate-y-2" style={{ backgroundColor: '#002c50', borderColor: '#001a2e' }}>
+              <div className="absolute left-0 top-full mt-0 min-w-[160px] rounded-b-xl shadow-md py-2 z-50 animate-fadein flex flex-col gap-0.5 border-x border-b transform -translate-x-4 -translate-y-2" style={{ backgroundColor: '#002c50', borderColor: '#001a2e' }}>
                 <div className="flex flex-col gap-0.5 mt-1">
                   {userMenuLinks.map(link =>
                     link.isLogout ? (
