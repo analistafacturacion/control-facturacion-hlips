@@ -77,10 +77,8 @@ export default function TopBar() {
 
   {/* Right group: nav + separator + user */}
   <div className="absolute right-6 top-0 bottom-0 flex items-center" ref={menuRef}>
-          {/* Mobile: show first two links and a hamburger */}
+          {/* Mobile: hamburger that contains all nav links */}
           <div className="flex md:hidden items-center gap-3 mr-3">
-            <Link to="/facturacion" className="text-sm text-gray-200 hover:text-white" style={{ textDecoration: 'none' }}>Facturación</Link>
-            <Link to="/anulaciones" className="text-sm text-gray-200 hover:text-white" style={{ textDecoration: 'none' }}>Anulaciones</Link>
             <div className="relative" ref={mobileRef}>
               <button
                 onClick={() => setMobileOpen(v => !v)}
@@ -91,7 +89,7 @@ export default function TopBar() {
               </button>
               {mobileOpen && (
                 <div className="absolute right-0 top-full mt-2 min-w-[160px] rounded-b-xl shadow-md py-2 z-50 animate-fadein flex flex-col gap-0.5 border-x border-b" style={{ backgroundColor: '#002c50', borderColor: '#001a2e' }}>
-                  {navLinks.slice(2).map(link => (
+                  {navLinks.map(link => (
                     <Link key={link.to} to={link.to} className="px-4 py-2 text-sm text-gray-200 hover:text-white" onClick={() => setMobileOpen(false)} style={{ textDecoration: 'none' }}>
                       {link.label}
                     </Link>
@@ -100,7 +98,7 @@ export default function TopBar() {
               )}
             </div>
           </div>
-          <div className="hidden md:flex items-center gap-6 mr-4 pointer-events-auto">
+          <div className="hidden md:flex items-center gap-8 mr-6 pointer-events-auto">
             {navLinks.map(link => {
               const active = pathname === link.to || (link.to !== '/' && pathname.startsWith(link.to));
               return (
@@ -120,8 +118,8 @@ export default function TopBar() {
               );
             })}
           </div>
-          {/* Separador vertical */}
-          <div className="hidden md:block h-7 w-px bg-white mr-4" />
+          {/* Separador vertical (visible en mobile y desktop) */}
+          <div className="h-7 w-px bg-white mx-3 md:mx-4 lg:mx-6" />
           <div className="flex items-center gap-2">
             <button
               className="inline-flex items-center justify-center h-9 w-9 rounded-full bg-gradient-to-br from-gray-800 to-gray-700 border border-gray-700 shadow focus:outline-none focus:ring-2 focus:ring-white/30"
