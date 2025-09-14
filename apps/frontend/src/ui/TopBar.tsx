@@ -61,9 +61,9 @@ export default function TopBar() {
           </div>
         </div>
 
-        {/* Right-aligned Navigation (hidden on small screens) */}
-        <nav className="absolute right-36 top-0 bottom-0 flex items-center justify-end pointer-events-none">
-          <div className="pointer-events-auto hidden md:flex items-center gap-6">
+        {/* Right group: nav + separator + user */}
+        <div className="absolute right-6 top-0 bottom-0 flex items-center" ref={menuRef}>
+          <div className="hidden md:flex items-center gap-6 mr-4 pointer-events-auto">
             {navLinks.map(link => {
               const active = pathname === link.to || (link.to !== '/' && pathname.startsWith(link.to));
               return (
@@ -83,13 +83,9 @@ export default function TopBar() {
               );
             })}
           </div>
-        </nav>
-
-        {/* Right: User menu (con padding al borde derecho) */}
-        <div className="absolute right-8 top-0 bottom-0 flex items-center" ref={menuRef}>
+          {/* Separador vertical */}
+          <div className="hidden md:block h-7 w-px bg-[#1e3a5f] mr-4" />
           <div className="flex items-center gap-2">
-            {/* Separador vertical fino entre nav y usuario (visible en md+) */}
-            <div className="hidden md:block h-7 w-px bg-[#1e3a5f] mr-4" />
             <button
               className="inline-flex items-center justify-center h-9 w-9 rounded-full bg-gradient-to-br from-gray-800 to-gray-700 border border-gray-700 shadow focus:outline-none focus:ring-2 focus:ring-white/30"
               onClick={() => setOpen(v => !v)}
@@ -117,7 +113,7 @@ export default function TopBar() {
             )}
 
             {open && (
-              <div className="absolute right-4 top-[54px] min-w-[160px] rounded-b-xl shadow-md py-2 z-50 animate-fadein flex flex-col gap-0.5 border-x border-b" style={{ backgroundColor: '#002c50', borderColor: '#001a2e' }}>
+              <div className="absolute right-6 top-[54px] min-w-[160px] rounded-b-xl shadow-md py-2 z-50 animate-fadein flex flex-col gap-0.5 border-x border-b" style={{ backgroundColor: '#002c50', borderColor: '#001a2e' }}>
                 <div className="flex flex-col gap-0.5 mt-1">
                   {userMenuLinks.map(link =>
                     link.isLogout ? (
