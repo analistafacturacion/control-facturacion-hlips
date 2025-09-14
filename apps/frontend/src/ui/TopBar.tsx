@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth';
 import { useNavigate } from 'react-router-dom';
+import PrismaLogo from './PrismaLogo';
 
 const navLinks = [
   { to: '/facturacion', label: 'Facturación' },
@@ -71,7 +72,10 @@ export default function TopBar() {
                 <circle cx="22" cy="8" r="1.5" fill="#fff" />
               </svg>
             </span>
-            <span className="text-xl font-bold tracking-tight text-white select-none">Prisma Analytics</span>
+            <div className="flex items-center gap-3">
+              <PrismaLogo className="w-9 h-9" />
+              <span className="text-xl font-bold tracking-tight text-white select-none">Prisma Analytics</span>
+            </div>
           </div>
         </div>
 
