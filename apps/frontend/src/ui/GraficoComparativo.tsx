@@ -141,17 +141,16 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
       <div style={{height: 'calc(100% - 48px)', minHeight: 0, flex: 1, overflow: 'hidden', position: 'relative'}}>
         <div style={{width: '100%', height: '100%', overflow: 'visible'}} aria-hidden>
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={datosGrafico} margin={{ top: 24, right: 8, left: 8, bottom: 24 }}>
+            <LineChart data={datosGrafico} margin={{ top: 12, right: 8, left: 8, bottom: 12 }}>
+              {/* Fondo blanco para mayor contraste del área */}
+              <rect x={0} y={0} width="100%" height="100%" fill="#ffffff" />
               <defs>
                 <linearGradient id="gradArea" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#0369a1" stopOpacity={0.6} />
-                  <stop offset="30%" stopColor="#0369a1" stopOpacity={0.45} />
-                  <stop offset="60%" stopColor="#0ea5e9" stopOpacity={0.18} />
-                  <stop offset="100%" stopColor="#0ea5e9" stopOpacity={0.04} />
+                  <stop offset="0%" stopColor="#0369a1" stopOpacity={0.9} />
+                  <stop offset="25%" stopColor="#0369a1" stopOpacity={0.7} />
+                  <stop offset="55%" stopColor="#0ea5e9" stopOpacity={0.28} />
+                  <stop offset="100%" stopColor="#0ea5e9" stopOpacity={0.06} />
                 </linearGradient>
-                <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
-                  <feDropShadow dx="0" dy="8" stdDeviation="12" floodColor="#0369a1" floodOpacity="0.12" />
-                </filter>
               </defs>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
               <XAxis dataKey="mes" axisLine={false} tickLine={false} />
@@ -163,9 +162,7 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
               }} />
               <Tooltip content={<CustomTooltip />} />
               {/* Área sutil debajo de la línea para dar profundidad */}
-              <g filter="url(#softShadow)">
-                <Area type="monotone" dataKey="valor" stroke="none" fill="url(#gradArea)" isAnimationActive={false} connectNulls={false} baseValue={0} fillOpacity={0.9} />
-              </g>
+              <Area type="monotone" dataKey="valor" stroke="none" fill="url(#gradArea)" isAnimationActive={false} connectNulls={false} baseValue={0} fillOpacity={1} />
               <Line type="monotone" dataKey="valor" stroke="#0369a1" strokeWidth={2} dot={renderDot} activeDot={{ r: 5 }} connectNulls={false} />
             </LineChart>
           </ResponsiveContainer>
