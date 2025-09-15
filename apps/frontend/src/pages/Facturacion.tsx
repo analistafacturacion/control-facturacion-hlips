@@ -1342,7 +1342,7 @@ export default function Facturacion() {
     </div>
     {/* Tarjeta: Última actualización */}
   <div className="relative bg-white rounded-2xl shadow-md px-7 py-6 flex flex-col items-center justify-center min-w-[180px] min-h-[110px]">
-  <span className="text-2xl font-bold mb-2 mt-2" style={{fontFamily: 'Segoe UI, Arial, sans-serif', color: '#1f1200'}}>
+  <span className="text-xl font-bold mb-2 mt-2" style={{fontFamily: 'Segoe UI, Arial, sans-serif', color: '#1f1200'}}>
     {ultimaActualizacion || 'Sin datos'}
   </span>
       <span className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Última actualización</span>
