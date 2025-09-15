@@ -1033,11 +1033,19 @@ router.post('/ultima-actualizacion', async (req: RequestWithIO, res: Response) =
         const _e: any = ensureErr;
         console.log('[ULTIMA-ACTUALIZACION] Advertencia al crear tabla (posible falta de permisos):', _e.message || _e);
       }
-      // Insertar nuevo registro para mantener histórico y ordenar por updatedAt
-      const nuevo = repo.create({ fecha });
-      await repo.save(nuevo);
-      console.log('[ULTIMA-ACTUALIZACION] Guardada en DB:', fecha);
-      return res.json({ ok: true, mensaje: 'Fecha actualizada en DB' });
+      // Upsert: mantener un único registro (id = 1) y actualizarlo en cada petición
+      try {
+        await repo.query(
+          'INSERT INTO ultima_actualizacion (id, fecha) VALUES (1, $1) ON CONFLICT (id) DO UPDATE SET fecha = EXCLUDED.fecha, updated_at = now()',
+          [fecha]
+        );
+        console.log('[ULTIMA-ACTUALIZACION] Guardada/actualizada en DB (upsert):', fecha);
+        return res.json({ ok: true, mensaje: 'Fecha actualizada en DB' });
+      } catch (upsertErr) {
+        const _up: any = upsertErr;
+        console.log('[ULTIMA-ACTUALIZACION] Error en upsert:', _up && _up.message ? _up.message : _up);
+        // continuar al fallback (archivo)
+      }
     } catch (dbErr) {
       const _dbErr: any = dbErr;
       console.log('[ULTIMA-ACTUALIZACION] No se pudo guardar en DB, usando archivo. Error:', _dbErr && _dbErr.message ? _dbErr.message : _dbErr);
