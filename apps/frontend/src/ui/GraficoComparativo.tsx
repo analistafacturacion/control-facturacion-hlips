@@ -11,8 +11,9 @@ interface Props {
 const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
 export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes, años }) => {
-  const [sede, setSede] = useState(sedes[0] || '');
-  const [aseguradora, setAseguradora] = useState(aseguradoras[0] || '');
+  // Por defecto mostramos "Todas" las sedes/aseguradoras para que el gráfico agregue datos
+  const [sede, setSede] = useState('');
+  const [aseguradora, setAseguradora] = useState('');
   const [año, setAño] = useState(años[años.length-1] || new Date().getFullYear());
 
   // Debug: Log inicial de datos recibidos
@@ -34,10 +35,11 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
   // Generar datos para el gráfico: total facturado por mes
   const datosGrafico = meses.map((mes, idx) => {
     // Filtrar todos los eventos del mes actual, sede, aseguradora y año
+    // Si sede o aseguradora están vacíos significa "todas" -> no filtrar por ese campo
     const eventosMes = data.filter(d => {
-      const coincideSede = d.sede === sede;
-      const coincideAseguradora = d.aseguradora === aseguradora;
-      const coincideAño = d.año === año;
+      const coincideSede = !sede || d.sede === sede;
+      const coincideAseguradora = !aseguradora || d.aseguradora === aseguradora;
+      const coincideAño = !año || d.año === año;
       const coincideMes = d.mes === idx+1;
       
       // Debug para el primer mes
@@ -67,7 +69,8 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
     
     return {
       mes: mes.slice(0,3),
-      valor: totalMes > 0 ? totalMes : null
+  // Dejar null cuando no hay datos para que el gráfico muestre huecos, pero 0 cuando hay suma 0 real
+  valor: totalMes > 0 ? totalMes : (totalMes === 0 ? 0 : null)
     };
   });
 
@@ -129,16 +132,17 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="mes" />
             <YAxis tickFormatter={v => {
-              if (!v) return '';
+              // Mostrar tick solo si el valor es distinto de null/undefined
+              if (v == null) return '';
               if (Math.abs(v) >= 1000000) {
                 return `${Math.round(v/1000000)}M`;
               }
               if (Math.abs(v) >= 1000) {
                 return `${Math.round(v/1000)}K`;
               }
-              return v.toLocaleString('es-CO');
+              return (v as number).toLocaleString('es-CO');
             }} />
-            <Tooltip formatter={v => `$ ${Number(v).toLocaleString('es-CO')}`} />
+            <Tooltip formatter={(v: any) => v == null ? 'Sin datos' : `$ ${Number(v).toLocaleString('es-CO')}`} />
             <Legend />
             <Line type="monotone" dataKey="valor" stroke="#1F497D" strokeWidth={3} dot={renderDot} activeDot={{ r: 7 }} />
           </LineChart>
