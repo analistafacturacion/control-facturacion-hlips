@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '../auth'
 import { useNavigate } from 'react-router-dom'
-import bgImage from '../assets/bg-v3.jpg'
-// Cache-bust token para forzar una nueva URL en el CDN/edges cuando despleguemos
-const BUILD_ID = '20250915T0000'
+// Fondo eliminado: usamos fondo blanco por defecto en la página de login
 
 export default function Login() {
   const { login } = useAuth()
@@ -48,14 +46,7 @@ export default function Login() {
 
   return (
   <div className="h-screen overflow-hidden flex items-center justify-center relative">
-      {/* fondo (capa) con blur y ligera escala para efecto difuminado */}
-      <div
-        className="absolute inset-0 bg-cover bg-center filter blur-md scale-105 z-0"
-        // Añadimos un query param fijo (BUILD_ID) para romper caches CDN que aún sirven la versión antigua
-        style={{ backgroundImage: `url(${bgImage}?v=${BUILD_ID})` }}
-      />
-      {/* overlay para mejorar contraste sin bloquear interacciones */}
-      <div className="absolute inset-0 bg-black/30 dark:bg-black/50 pointer-events-none z-10" />
+      {/* Fondo: eliminado - dejamos el fondo blanco por defecto */}
       <form
         key={errorCount}
         onSubmit={handleSubmit}
