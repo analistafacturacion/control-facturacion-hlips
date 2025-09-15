@@ -51,12 +51,12 @@ export default function Login() {
       {/* fondo (capa) con blur y ligera escala para efecto difuminado */}
 
       <div
-        className="absolute inset-0 bg-cover bg-center filter blur-md scale-105 z-0"
+        className="absolute inset-0 bg-cover bg-center filter blur-sm scale-105 z-0"
         // Añadimos un query param fijo (BUILD_ID) para romper caches CDN que aún sirven la versión antigua
         style={{ backgroundImage: `url(${bgImage}?v=${BUILD_ID})` }}
       />
       {/* overlay para mejorar contraste sin bloquear interacciones */}
-      <div className="absolute inset-0 bg-black/30 dark:bg-black/50 pointer-events-none z-10" />
+      <div className="absolute inset-0 bg-black/20 dark:bg-black/45 pointer-events-none z-10" />
       <form
         key={errorCount}
         onSubmit={handleSubmit}
