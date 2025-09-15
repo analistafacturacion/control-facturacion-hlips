@@ -4,14 +4,20 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Prisma Analytics</title>
-  <!-- Prefer the PNG-embedded SVG (black) which preserves the original PNG silhouette filled in black -->
-  <link rel="icon" type="image/svg+xml" href="/favicon-png-black.svg?v=2">
-  <!-- Fallbacks for older browsers / better cache-busting -->
-  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=2">
-  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png?v=2">
-  <link rel="shortcut icon" href="/favicon.ico?v=2">
-  <!-- Fallback: plain black SVG favicon -->
-  <link rel="alternate icon" href="/favicon-black.svg?v=2">
+  <!-- Prefer color-scheme specific favicons -->
+  <!-- Dark mode: use white icon on dark background -->
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-light-32.png?v=3" media="(prefers-color-scheme: dark)">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-light-16.png?v=3" media="(prefers-color-scheme: dark)">
+  <link rel="shortcut icon" href="/favicon-light.ico?v=3" media="(prefers-color-scheme: dark)">
+
+  <!-- Light mode: use black icon on light background -->
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-dark-32.png?v=3" media="(prefers-color-scheme: light)">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-dark-16.png?v=3" media="(prefers-color-scheme: light)">
+  <link rel="shortcut icon" href="/favicon-dark.ico?v=3" media="(prefers-color-scheme: light)">
+
+  <!-- Generic fallbacks -->
+  <link rel="icon" type="image/svg+xml" href="/favicon-png-black.svg?v=3">
+  <link rel="alternate icon" href="/favicon-black.svg?v=3">
   </head>
   <body>
     <div id="root"></div>
