@@ -7,9 +7,19 @@ export default function PrismaLogo({ className, variant = 'B', imgSrc }: { class
   // A: outline prism + a few small squares
   // B: solid triangular prism + small pixel cluster (default)
   // C: monogram / favicon-friendly single-line prism + single pixel
-  // Resolve default public path using Vite's base (import.meta.env.BASE_URL) so it works on GitHub Pages
-  const base = typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env.BASE_URL ? (import.meta as any).env.BASE_URL : '/';
-  const src = imgSrc ?? `${base}logo.png`;
+  // Resolve default public path. Prefer a robust absolute URL derived from the current location
+  // so GitHub Pages serves the asset correctly even when base is './'.
+  const viteBase = typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env.BASE_URL ? (import.meta as any).env.BASE_URL : './';
+  let defaultSrc = '';
+  if (typeof window !== 'undefined' && window.location) {
+    // window.location.pathname usually ends with '/control-facturacion-hlips/' on GH Pages
+    const pathname = window.location.pathname.replace(/\/$/, '');
+    defaultSrc = `${window.location.origin}${pathname}/logo.png`;
+  } else {
+    // fallback to vite base
+    defaultSrc = `${viteBase}logo.png`;
+  }
+  const src = imgSrc ?? defaultSrc;
 
   // Render image if explicit imgSrc was provided or if the default public logo exists at runtime.
   // Add onError to fall back to SVG variants without leaving a broken image.
