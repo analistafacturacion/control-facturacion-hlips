@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '../auth'
 import { useNavigate } from 'react-router-dom'
-import bgImage from '../assets/bg.jpg'
+import bgImage from '../assets/bg-v2.jpg'
 
 export default function Login() {
   const { login } = useAuth()
