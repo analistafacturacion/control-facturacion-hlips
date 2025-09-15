@@ -59,10 +59,10 @@ export default function Login() {
         </div>
         <div className="flex flex-col gap-3 px-6">
             <div className="flex flex-col gap-1 mb-0">
-            <label className="text-xs text-gray-600 dark:text-gray-400 font-medium" htmlFor="username">Usuario</label>
+            <label className="text-xs text-[#002c50] dark:text-[#bcd3e6] font-medium" htmlFor="username">Usuario</label>
             <input
               id="username"
-              className="w-full border-0 rounded-md px-3 py-2 bg-gray-100 dark:bg-gray-800 text-black dark:text-white text-base focus:outline-none focus:ring-2 focus:ring-black/70 transition shadow-sm"
+              className="w-full border-0 rounded-md px-3 py-2 bg-gray-100 dark:bg-gray-800 text-black dark:text-white text-base focus:outline-none focus:ring-2 focus:ring-[#002c50]/80 transition shadow-sm"
               placeholder="Usuario"
               value={username}
               onChange={e => setUsername(e.target.value)}
@@ -70,7 +70,7 @@ export default function Login() {
             />
           </div>
             <div className="flex flex-col gap-1 mb-0">
-            <label className="text-xs text-gray-600 dark:text-gray-400 font-medium" htmlFor="password">Contraseña</label>
+            <label className="text-xs text-[#002c50] dark:text-[#bcd3e6] font-medium" htmlFor="password">Contraseña</label>
             <div className="relative">
               <input
                 id="password"
@@ -98,7 +98,7 @@ export default function Login() {
             </div>
           </div>
             <div className="flex flex-col gap-1 mb-0">
-            <label className="text-xs text-gray-600 dark:text-gray-400 font-medium" htmlFor="role">Rol</label>
+            <label className="text-xs text-[#002c50] dark:text-[#bcd3e6] font-medium" htmlFor="role">Rol</label>
             <select
               id="role"
               className="appearance-none w-full border-0 rounded-md px-3 py-2 bg-gray-100 dark:bg-gray-800 text-black dark:text-white text-base focus:outline-none focus:ring-2 focus:ring-black/70 transition shadow-sm min-h-[40px]"
@@ -112,7 +112,7 @@ export default function Login() {
           {/* El texto de error se oculta, pero la barra lateral sigue cambiando de color */}
           {loading ? (
             <div className="flex justify-center items-center mt-0 mb-0">
-              <svg className="animate-spin h-6 w-6 text-black dark:text-white" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg className="animate-spin h-6 w-6 text-[#002c50] dark:text-[#bcd3e6]" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="2" className="opacity-30" />
                 <path d="M15 8A7 7 0 0 0 8 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
               </svg>
@@ -120,7 +120,7 @@ export default function Login() {
           ) : (
             <button
               type="submit"
-              className="w-full bg-black hover:bg-gray-900 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition-colors duration-200 flex items-center justify-center gap-2 mt-0"
+              className="w-full bg-[#002c50] hover:bg-[#001a2e] text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-[#002c50]/60 transition-colors duration-200 flex items-center justify-center gap-2 mt-0"
               disabled={loading || !username || !password}
             >
               Iniciar sesión
