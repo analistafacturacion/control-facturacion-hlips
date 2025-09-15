@@ -362,21 +362,17 @@ export default function Facturacion() {
     facturadoCorriente: 0,
     facturadoRemanente: 0
   });
-  // Ref para proteger respuestas fuera de orden en totales rápidos
-  const lastTotalesCallIdRef = useRef<number | null>(null);
   
   // Estados para paginación optimizada
   const [loading, setLoading] = useState(false);
   const [totalRegistros, setTotalRegistros] = useState(0);
   const [totalPaginas, setTotalPaginas] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
-  // Ref para proteger contra respuestas fuera de orden en cargarEventos
-  const lastCargarEventosCallIdRef = useRef<number | null>(null);
   
   // ...existing code...
   // Paginación
   const [paginaActual, setPaginaActual] = useState(1);
-  const registrosPorPagina = 50; // reducido para mejorar respuesta y UX
+  const registrosPorPagina = 100;
   // Mostrar/ocultar filtros avanzados
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   // Filtro unificado
@@ -504,95 +500,39 @@ export default function Facturacion() {
     cargarUltimaActualizacion();
   }, [cargarUltimaActualizacion]);
 
-  // Función ULTRA-RÁPIDA para cargar solo totales (no todos los datos).
-  // Acepta filtros opcionales y por defecto usa los estados actuales (search, sede, aseguradora, periodo).
-  // Helper: compute totals locally from eventos list (fast fallback/optimistic)
-  function computeTotalsFromEvents(events: FacturacionEvento[], filters: { fechaInicial?: string; fechaFinal?: string; search?: string; sede?: string; aseguradora?: string; periodo?: string }) {
-    const { fechaInicial: fIni, fechaFinal: fFin, search, sede, aseguradora, periodo } = filters || {};
-    let filtered = events;
-    if (fIni) filtered = filtered.filter(e => e.fecha >= fIni);
-    if (fFin) filtered = filtered.filter(e => e.fecha <= fFin);
-    if (sede) filtered = filtered.filter(e => (e.sede && e.sede.nombre === sede));
-    if (aseguradora) filtered = filtered.filter(e => e.aseguradora === aseguradora);
-    if (periodo) filtered = filtered.filter(e => ((e.periodo || '').trim().toUpperCase() === (periodo || '').trim().toUpperCase()));
-    if (search) {
-      const q = String(search).toLowerCase();
-      filtered = filtered.filter(e => (e.numeroFactura && e.numeroFactura.toLowerCase().includes(q)) || (e.paciente && e.paciente.toLowerCase().includes(q)) || (e.documento && e.documento.toLowerCase().includes(q)) || (e.aseguradora && e.aseguradora.toLowerCase().includes(q)));
-    }
-    const totals = filtered.reduce((acc, ev) => {
-      const val = Number(ev.valor || ev.total || 0) || 0;
-      const periodoEv = (ev.periodo || '').trim().toUpperCase();
-      if ((periodoEv) === 'ANULADA') return acc;
-      acc.totalFacturas += 1;
-      acc.totalFacturado += val;
-      if (periodoEv === 'CORRIENTE') acc.facturadoCorriente += val;
-      if (periodoEv === 'REMANENTE') acc.facturadoRemanente += val;
-      return acc;
-    }, { totalFacturas: 0, totalFacturado: 0, facturadoCorriente: 0, facturadoRemanente: 0 });
-    return totals;
-  }
-
-  const cargarTotalesTarjetas = useCallback(async (extraFilters?: { search?: string; sede?: string; aseguradora?: string; periodo?: string }) => {
+  // Función ULTRA-RÁPIDA para cargar solo totales (no todos los datos)
+  const cargarTotalesTarjetas = useCallback(async () => {
     if (!fechaFiltroInicial || !fechaFiltroFinal) return;
+    
     const callId = Date.now();
-    lastTotalesCallIdRef.current = callId;
-
-    // Primero: si ya tenemos todos los eventos del rango en cliente, calcular totales localmente y mostrar inmediatamente
+    console.log(`[TOTALES RÁPIDOS ${callId}] Iniciando cálculo para fechas:`, fechaFiltroInicial, 'hasta', fechaFiltroFinal);
+    
     try {
-      const localTotals = computeTotalsFromEvents(todosEventosFecha, { fechaInicial: fechaFiltroInicial, fechaFinal: fechaFiltroFinal, search: extraFilters?.search ?? searchQuery, sede: extraFilters?.sede ?? sedeFiltro, aseguradora: extraFilters?.aseguradora ?? aseguradoraFiltro, periodo: extraFilters?.periodo ?? periodoFiltro });
-      // Mostrar resultados locales inmediatamente para mejorar percepción de velocidad
-      setTotalesTarjetas(localTotals);
-    } catch (err) {
-      // si falla el cálculo local, no interrumpir la petición remota
-      console.warn('[TOTALES] Error calculando totales locales:', err);
-    }
-
-    console.log(`[TOTALES RÁPIDOS ${callId}] Iniciando fetch remoto para fechas:`, fechaFiltroInicial, fechaFiltroFinal, 'extraFilters=', extraFilters);
-    try {
-      const search = extraFilters?.search ?? searchQuery ?? '';
-      const sede = extraFilters?.sede ?? sedeFiltro ?? '';
-      const aseguradora = extraFilters?.aseguradora ?? aseguradoraFiltro ?? '';
-      const periodo = extraFilters?.periodo ?? periodoFiltro ?? '';
-
-      const paramsObj: Record<string, string> = {
+      const params = new URLSearchParams({
         fechaInicial: fechaFiltroInicial,
-        fechaFinal: fechaFiltroFinal,
-      };
-      if (sede) paramsObj.sede = sede;
-      if (aseguradora) paramsObj.aseguradora = aseguradora;
-      if (periodo) paramsObj.periodo = periodo;
-      if (search) paramsObj.search = search;
+        fechaFinal: fechaFiltroFinal
+      });
 
-      const params = new URLSearchParams(paramsObj);
-      const res = await fetch(`${API_CONFIG.BASE_URL}/facturacion/eventos/totales?${params.toString()}`);
+      const res = await fetch(`${API_CONFIG.BASE_URL}/facturacion/eventos/totales?${params}`);
       const data = await res.json();
-
-      // Ignorar respuestas fuera de orden
-      if (lastTotalesCallIdRef.current !== callId) {
-        console.log('[TOTALES] Ignorando respuesta antigua para callId', callId);
+      
+      if (data.ok && data.totales) {
+        console.log(`[TOTALES RÁPIDOS ${callId}] ✅ Totales recibidos:`, data.totales);
+        setTotalesTarjetas(data.totales);
+        // NO actualizar fecha aquí - solo cuando se usen botones de actualizar
         return;
       }
-
-      if (data && (data.totales || data.total_facturas !== undefined)) {
-        const totals = data.totales || {
-          totalFacturas: Number(data.total_facturas || data.totalFacturas || 0),
-          totalFacturado: Number(data.total_facturado || data.totalFacturado || 0),
-          facturadoCorriente: Number(data.facturado_corriente || data.facturadoCorriente || 0),
-          facturadoRemanente: Number(data.facturado_remanente || data.facturadoRemanente || 0),
-        };
-        console.log(`[TOTALES RÁPIDOS ${callId}] ✅ Totales remotos recibidos:`, totals);
-        setTotalesTarjetas(totals);
-        return;
-      }
-
-      console.log(`[TOTALES RÁPIDOS ${callId}] ❌ Endpoint /totales no devolvió totales, usando fallback...`);
+      
+      console.log(`[TOTALES RÁPIDOS ${callId}] ❌ Endpoint /totales no disponible, usando fallback...`);
+      // Fallback: usar el método anterior
       await cargarTodosEventosFecha();
+      
     } catch (error) {
-      console.error(`[TOTALES RÁPIDOS ${callId}] Error fetch remoto:`, error);
-      // Si falla la petición remota, intentar fallback
+      console.error(`[TOTALES RÁPIDOS ${callId}] Error:`, error);
+      // Fallback: usar el método anterior
       await cargarTodosEventosFecha();
     }
-  }, [fechaFiltroInicial, fechaFiltroFinal, searchQuery, sedeFiltro, aseguradoraFiltro, periodoFiltro]);
+  }, [fechaFiltroInicial, fechaFiltroFinal]);
 
   // Función para cargar TODOS los eventos del rango de fechas (para tarjetas)
   const cargarTodosEventosFecha = useCallback(async () => {
@@ -620,61 +560,35 @@ export default function Facturacion() {
       
       console.log(`[DEBUG TARJETAS ${callId}] Endpoint /resumen no disponible, usando múltiples llamadas...`);
       
-      // FALLBACK: Hacer múltiples llamadas para obtener todos los datos (paralelizadas)
+      // FALLBACK: Hacer múltiples llamadas para obtener todos los datos
       let todosLosEventos: any[] = [];
-      // Primera llamada para conocer totalPages
-      const firstParams = new URLSearchParams({
-        fechaInicial: fechaFiltroInicial,
-        fechaFinal: fechaFiltroFinal,
-        page: '1',
-        limit: '500'
-      });
-      res = await fetch(`${API_CONFIG.BASE_URL}/facturacion/eventos?${firstParams}`);
-      data = await res.json();
-      if (!(data.ok && data.eventos)) {
-        console.log(`[DEBUG TARJETAS ${callId}] Error en primera página fallback:`, data.error);
-        setTodosEventosFecha([]);
-        return;
-      }
-      todosLosEventos = [...todosLosEventos, ...data.eventos];
-      let totalPaginas = data.pagination?.totalPages || 1;
-      console.log(`[DEBUG TARJETAS ${callId}] Fallback: totalPages estimado: ${totalPaginas}`);
-
-      // Limitar el número máximo de páginas a descargar (seguridad)
-      totalPaginas = Math.min(totalPaginas, 50);
-
-      // Crear array de índices restantes (2..totalPaginas)
-      const pages = [];
-      for (let p = 2; p <= totalPaginas; p++) pages.push(p);
-
-      // Batch fetch: 4 requests concurrentes por vez
-      const CONCURRENCY = 4;
-      for (let i = 0; i < pages.length; i += CONCURRENCY) {
-        const batch = pages.slice(i, i + CONCURRENCY);
-        const batchPromises = batch.map(p => {
-          const params = new URLSearchParams({
-            fechaInicial: fechaFiltroInicial,
-            fechaFinal: fechaFiltroFinal,
-            page: String(p),
-            limit: '500'
-          });
-          return fetch(`${API_CONFIG.BASE_URL}/facturacion/eventos?${params}`).then(r => r.json()).catch(err => ({ ok: false, error: err }));
+      let pagina = 1;
+      let totalPaginas = 1;
+      
+      do {
+        const params = new URLSearchParams({
+          fechaInicial: fechaFiltroInicial,
+          fechaFinal: fechaFiltroFinal,
+          page: String(pagina),
+          limit: '500' // Máximo permitido
         });
 
-        const results = await Promise.all(batchPromises);
-        results.forEach((r, idx) => {
-          if (r.ok && r.eventos) {
-            todosLosEventos = todosLosEventos.concat(r.eventos);
-            console.log(`[DEBUG TARJETAS ${callId}] Batch page ${batch[idx]} ok - acumulado ${todosLosEventos.length}`);
-          } else {
-            console.log(`[DEBUG TARJETAS ${callId}] Batch page ${batch[idx]} error:`, r.error || r);
-          }
-        });
-        // Pequeña pausa entre batches para no saturar el servidor
-        await new Promise(resP => setTimeout(resP, 120));
-      }
-
-      console.log(`[DEBUG TARJETAS ${callId}] Total final de eventos cargados (paralelo):`, todosLosEventos.length);
+        res = await fetch(`${API_CONFIG.BASE_URL}/facturacion/eventos?${params}`);
+        data = await res.json();
+        
+        if (data.ok && data.eventos) {
+          todosLosEventos = [...todosLosEventos, ...data.eventos];
+          totalPaginas = data.pagination?.totalPages || 1;
+          console.log(`[DEBUG TARJETAS ${callId}] Página ${pagina}/${totalPaginas} - Eventos acumulados: ${todosLosEventos.length}`);
+        } else {
+          console.log(`[DEBUG TARJETAS ${callId}] Error en página`, pagina, ':', data.error);
+          break;
+        }
+        
+        pagina++;
+      } while (pagina <= totalPaginas && pagina <= 20); // Límite de seguridad
+      
+      console.log(`[DEBUG TARJETAS ${callId}] Total final de eventos cargados:`, todosLosEventos.length);
       setTodosEventosFecha(todosLosEventos);
       
       // CALCULAR TOTALES PARA COMPATIBILIDAD
@@ -776,8 +690,6 @@ export default function Facturacion() {
   
   // Función optimizada para cargar eventos con paginación
   const cargarEventos = useCallback(async (pagina = 1, busqueda = '', resetPagina = false) => {
-    const callId = Date.now();
-    lastCargarEventosCallIdRef.current = callId;
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -793,12 +705,6 @@ export default function Facturacion() {
       const res = await fetch(`${API_CONFIG.BASE_URL}/facturacion/eventos?${params}`);
       const data = await res.json();
       
-      // Ignorar respuestas antiguas
-      if (lastCargarEventosCallIdRef.current !== callId) {
-        console.log('[cargarEventos] Ignorando respuesta antigua para callId', callId);
-        return null;
-      }
-
       if (data.ok) {
         setEventos(data.eventos || []);
         setTotalRegistros(data.pagination?.totalRecords || 0);
@@ -810,7 +716,6 @@ export default function Facturacion() {
         setTotalRegistros(0);
         setTotalPaginas(0);
       }
-      return data;
     } catch (error) {
       console.error('Error cargando eventos:', error);
       setEventos([]);
@@ -829,8 +734,6 @@ export default function Facturacion() {
         clearTimeout(timeoutId);
         timeoutId = window.setTimeout(() => {
           cargarEventos(1, searchTerm, true);
-          // También recargar totales rápidos con el término de búsqueda actual
-          cargarTotalesTarjetas({ search: searchTerm });
         }, 500);
       };
     }, [cargarEventos]),
@@ -893,38 +796,17 @@ export default function Facturacion() {
     const effectId = Date.now();
     console.log(`[DEBUG USEEFFECT ${effectId}] Disparado con fechas:`, fechaFiltroInicial, fechaFiltroFinal);
     if (fechaFiltroInicial && fechaFiltroFinal) {
-  // Cargar solo los totales rápidos inmediatamente para render inmediato de tarjetas
-  cargarTotalesTarjetas({ search: searchQuery, sede: sedeFiltro, aseguradora: aseguradoraFiltro, periodo: periodoFiltro });
-      // Deferir la carga completa de todos los eventos a background para no bloquear la UI
-      // Si el endpoint /resumen está disponible, se usará allí; si no, la carga en background
-      // intentará paralelizar las páginas para acelerar la obtención.
-      setTimeout(() => {
-        // cargarTodosEventosFecha es costosa; ejecutarla en background
-        cargarTodosEventosFecha();
-      }, 200);
+      cargarTotalesTarjetas(); // Usar función ultra-rápida
+      cargarTodosEventosFecha(); // AGREGADO: Cargar todos los eventos para gráficas
     }
   }, [fechaFiltroInicial, fechaFiltroFinal, cargarTotalesTarjetas, cargarTodosEventosFecha]);
   
   // Efecto para recargar tabla cuando cambian filtros importantes
   useEffect(() => {
     if (fechaFiltroInicial && fechaFiltroFinal) {
-      // Usar helper que sincroniza tabla y totales
-      refreshTableAndTotals();
+      cargarEventos(1, '', true);
     }
   }, [fechaFiltroInicial, fechaFiltroFinal, sedeFiltro, aseguradoraFiltro, cargarEventos]);
-
-  // Helper para recargar tabla y totales en paralelo y evitar condiciones de carrera
-  async function refreshTableAndTotals() {
-    try {
-      setLoading(true);
-      // Ejecutar en paralelo
-  await Promise.all([cargarEventos(1, '', true), cargarTotalesTarjetas({ search: searchQuery, sede: sedeFiltro, aseguradora: aseguradoraFiltro, periodo: periodoFiltro })]);
-    } catch (err) {
-      console.error('Error refrescando tabla y totales:', err);
-    } finally {
-      setLoading(false);
-    }
-  }
   // Conexión a Socket.IO para refrescar en tiempo real
   useEffect(() => {
     const socket = getSocket();
@@ -932,22 +814,17 @@ export default function Facturacion() {
       console.log('[SOCKET] Evento facturacion_actualizada recibido:', data);
       setShowOpuSuccess(true);
       setTimeout(() => setShowOpuSuccess(false), 3000);
-      // Debounce: evitar múltiples recargas pesadas en ráfaga
-      if (fechaFiltroInicial && fechaFiltroFinal) {
-        if (!loading) {
-          console.log('[SOCKET] Recargando totales y primera página (debounced)...');
-          cargarEventos(1, '', true); // recargar la tabla (primera página)
-          cargarTotalesTarjetas({ search: searchQuery, sede: sedeFiltro, aseguradora: aseguradoraFiltro, periodo: periodoFiltro }); // recargar totales rápidos
-          // Deferir carga completa en background si hace falta
-          setTimeout(() => {
-            if (!loading) {
-              cargarTodosEventosFecha();
-            }
-          }, 1000);
-          // También recargar datos para gráficas de forma diferida
-          setTimeout(() => cargarEventosAñoCompleto(), 1500);
-        } else {
-          console.log('[SOCKET] Ignorando recarga porque ya se está cargando');
+      
+      // Solo recargar si tenemos fechas configuradas y no estamos en modo de solo lectura
+      if (fechaFiltroInicial && fechaFiltroFinal && !loading) {
+        console.log('[SOCKET] Recargando datos debido a actualización...');
+        try {
+          cargarEventos(1, '', true);
+          cargarTotalesTarjetas();
+          cargarTodosEventosFecha();
+          cargarEventosAñoCompleto();
+        } catch (error) {
+          console.error('[SOCKET] Error recargando datos:', error);
         }
       }
     });
