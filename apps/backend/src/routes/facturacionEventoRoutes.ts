@@ -901,8 +901,8 @@ router.get('/eventos/resumen', async (req: RequestWithIO, res: Response) => {
   try {
     const facturacionRepo = getRepository(FacturacionEvento);
     
-    // Solo filtros por fecha (para las tarjetas)
-    const { fechaInicial, fechaFinal } = req.query;
+    // Filtros posibles (fecha, sede, aseguradora, search, periodo)
+    const { fechaInicial, fechaFinal, sede, aseguradora, search, periodo } = req.query;
     
     if (!fechaInicial || !fechaFinal) {
       return res.status(400).json({ error: 'fechaInicial y fechaFinal son requeridos' });
@@ -914,6 +914,21 @@ router.get('/eventos/resumen', async (req: RequestWithIO, res: Response) => {
       .where('evento.fecha BETWEEN :fechaInicial AND :fechaFinal', { fechaInicial, fechaFinal })
       .orderBy('evento.fecha', 'DESC')
       .addOrderBy('evento.id', 'DESC');
+
+    // Aplicar filtros adicionales
+    if (sede) {
+      queryBuilder.andWhere('sede.nombre = :sede', { sede });
+    }
+    if (aseguradora) {
+      queryBuilder.andWhere('evento.aseguradora = :aseguradora', { aseguradora });
+    }
+    if (periodo) {
+      queryBuilder.andWhere("UPPER(TRIM(COALESCE(evento.periodo, ''))) = UPPER(TRIM(:periodo))", { periodo });
+    }
+    if (search) {
+      const s = `%${String(search).toLowerCase()}%`;
+      queryBuilder.andWhere('(LOWER(evento.numeroFactura) LIKE :s OR LOWER(evento.documento) LIKE :s OR LOWER(evento.paciente) LIKE :s)', { s });
+    }
     
     const eventos = await queryBuilder.getMany();
     
@@ -924,9 +939,10 @@ router.get('/eventos/resumen', async (req: RequestWithIO, res: Response) => {
       eventos,
       total: eventos.length
     });
-  } catch (err) {
-    console.error('[RESUMEN] Error:', err);
-    res.status(500).json({ error: 'Error al obtener resumen de eventos', details: err });
+    } catch (err) {
+    const _err: any = err;
+    console.error('[RESUMEN] Error:', _err);
+    res.status(500).json({ error: 'Error al obtener resumen de eventos', details: _err });
   }
 });
 
@@ -935,7 +951,7 @@ router.get('/eventos/totales', async (req: RequestWithIO, res: Response) => {
   try {
     const facturacionRepo = getRepository(FacturacionEvento);
     
-    const { fechaInicial, fechaFinal } = req.query;
+    const { fechaInicial, fechaFinal, sede, aseguradora, search, periodo } = req.query;
     
     if (!fechaInicial || !fechaFinal) {
       return res.status(400).json({ error: 'fechaInicial y fechaFinal son requeridos' });
@@ -944,8 +960,9 @@ router.get('/eventos/totales', async (req: RequestWithIO, res: Response) => {
     console.log(`[TOTALES] Calculando totales entre ${fechaInicial} y ${fechaFinal}`);
     
     // Consulta SQL simple para totales de FACTURACIÓN
-    const resultado = await facturacionRepo
+    const qb = facturacionRepo
       .createQueryBuilder('evento')
+      .leftJoin('evento.sede', 'sede')
       .select([
         'COUNT(*) as total_facturas',
         'SUM(COALESCE(evento.valor, 0)) as total_facturado',
@@ -960,8 +977,23 @@ router.get('/eventos/totales', async (req: RequestWithIO, res: Response) => {
           ELSE 0 
         END) as facturado_remanente`
       ])
-      .where('evento.fecha BETWEEN :fechaInicial AND :fechaFinal', { fechaInicial, fechaFinal })
-      .getRawOne();
+      .where('evento.fecha BETWEEN :fechaInicial AND :fechaFinal', { fechaInicial, fechaFinal });
+
+    if (sede) {
+      qb.andWhere('sede.nombre = :sede', { sede });
+    }
+    if (aseguradora) {
+      qb.andWhere('evento.aseguradora = :aseguradora', { aseguradora });
+    }
+    if (periodo) {
+      qb.andWhere("UPPER(TRIM(COALESCE(evento.periodo, ''))) = UPPER(TRIM(:periodo))", { periodo });
+    }
+    if (search) {
+      const s = `%${String(search).toLowerCase()}%`;
+      qb.andWhere('(LOWER(evento.numeroFactura) LIKE :s OR LOWER(evento.documento) LIKE :s OR LOWER(evento.paciente) LIKE :s)', { s });
+    }
+
+    const resultado = await qb.getRawOne();
     
     const totales = {
       totalFacturas: parseInt(resultado.total_facturas) || 0,
@@ -977,8 +1009,9 @@ router.get('/eventos/totales', async (req: RequestWithIO, res: Response) => {
       totales
     });
   } catch (err) {
-    console.error('[TOTALES] Error:', err);
-    res.status(500).json({ error: 'Error al calcular totales', details: err });
+    const _err: any = err;
+    console.error('[TOTALES] Error:', _err);
+    res.status(500).json({ error: 'Error al calcular totales', details: _err });
   }
 });
 
@@ -993,7 +1026,8 @@ router.get('/ultima-actualizacion', async (req: RequestWithIO, res: Response) =>
         return res.json({ ok: true, ultimaActualizacion: row.fecha });
       }
     } catch (dbErr) {
-      console.log('[ULTIMA-ACTUALIZACION] DB no disponible o error:', dbErr.message || dbErr);
+      const _dbErr: any = dbErr;
+      console.log('[ULTIMA-ACTUALIZACION] DB no disponible o error:', _dbErr.message || _dbErr);
       // continuar y usar archivo como fallback
     }
 
