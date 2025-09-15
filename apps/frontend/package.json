@@ -32,6 +32,8 @@
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.20",
     "gh-pages": "^6.3.0",
+    "jimp": "^0.16.1",
+    "png-to-ico": "^3.0.1",
     "postcss": "^8.4.40",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.9.2",
