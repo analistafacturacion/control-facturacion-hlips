@@ -60,10 +60,10 @@ export default function TopBar() {
       <div className="relative h-full">
   {/* Left: Title */}
   <div className="absolute left-8 top-0 bottom-0 flex items-center pl-3 md:pl-4 lg:pl-6">
-          <div className="flex items-center gap-2">
-            {/* logo replaced by PrismaLogo component */}
-            <div className="flex items-center gap-3">
-              <PrismaLogo className="w-9 h-9" />
+              <div className="flex items-center gap-3">
+              {/* logo replaced by PrismaLogo component */}
+              <div className="flex items-center gap-3">
+              <PrismaLogo className="w-7 h-7" />
               <span className="text-xl font-bold tracking-tight text-white select-none">Prisma Analytics</span>
             </div>
           </div>
