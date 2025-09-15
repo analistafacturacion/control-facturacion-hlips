@@ -868,7 +868,7 @@ export default function Facturacion() {
     if (fechaFiltroInicial && fechaFiltroFinal) {
       cargarEventos(1, '', true);
     }
-  }, [fechaFiltroInicial, fechaFiltroFinal, sedeFiltro, aseguradoraFiltro, cargarEventos]);
+  }, [fechaFiltroInicial, fechaFiltroFinal, sedeFiltro, aseguradoraFiltro, periodoFiltro, cargarEventos]);
   // Conexión a Socket.IO para refrescar en tiempo real
   useEffect(() => {
     const socket = getSocket();
