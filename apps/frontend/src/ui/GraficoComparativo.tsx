@@ -32,14 +32,8 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
     console.log('🔍 Estructura de los primeros 3 eventos:', data.slice(0, 3));
   }
 
-  // Determinar hasta qué mes pintar según el año seleccionado
-  const currentYear = new Date().getFullYear();
-  const currentMonth = new Date().getMonth() + 1; // 1-12
-  const maxMonthToShow = año === currentYear ? currentMonth : 12;
-  const mesesAMostrar = meses.slice(0, maxMonthToShow);
-
-  // Generar datos para el gráfico: total facturado por mes (solo meses a mostrar)
-  const datosGrafico = mesesAMostrar.map((mes, idx) => {
+  // Generar datos para el gráfico: total facturado por mes (mostrar siempre 12 meses)
+  const datosGrafico = meses.map((mes, idx) => {
     // Filtrar todos los eventos del mes actual, sede, aseguradora y año
     // Si sede o aseguradora están vacíos significa "todas" -> no filtrar por ese campo
     const eventosMes = data.filter(d => {
@@ -75,8 +69,8 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
     
     return {
       mes: mes.slice(0,3),
-  // Dejar null cuando no hay datos para que el gráfico muestre huecos, pero 0 cuando hay suma 0 real
-  valor: totalMes > 0 ? totalMes : (totalMes === 0 ? 0 : null)
+      // Igual que en los gráficos por sede/aseguradora: usar null cuando no hay datos para que no se dibuje punto/valor
+      valor: totalMes > 0 ? totalMes : null
     };
   });
 
