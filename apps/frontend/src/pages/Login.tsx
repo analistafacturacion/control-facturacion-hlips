@@ -37,7 +37,7 @@ export default function Login() {
       <form
         key={errorCount}
         onSubmit={handleSubmit}
-  className={`relative bg-white dark:bg-gray-900/90 border border-gray-200 dark:border-gray-800 rounded-xl shadow-2xl px-8 py-8 w-full max-w-md flex flex-col gap-6 overflow-hidden transition-all duration-300 transform -translate-y-16 ${error ? 'animate-shake' : ''}`}
+  className={`relative bg-white dark:bg-gray-900/90 border border-gray-200 dark:border-gray-800 rounded-xl shadow-2xl px-8 py-6 w-full max-w-md max-h-[90vh] flex flex-col gap-6 overflow-hidden transition-all duration-300 transform -translate-y-24 ${error ? 'animate-shake' : ''}`}
         style={{ boxShadow: '0 6px 32px 0 rgba(0,0,0,0.13)' }}
       >
       {/* Animación shake personalizada para Tailwind */}
@@ -58,7 +58,7 @@ export default function Login() {
           <p className="text-gray-500 text-sm text-center">Accede con tus credenciales</p>
         </div>
         <div className="flex flex-col gap-3 px-6">
-            <div className="flex flex-col gap-1 mb-1">
+            <div className="flex flex-col gap-1 mb-0">
             <label className="text-xs text-gray-600 dark:text-gray-400 font-medium" htmlFor="username">Usuario</label>
             <input
               id="username"
@@ -69,7 +69,7 @@ export default function Login() {
               autoFocus
             />
           </div>
-            <div className="flex flex-col gap-1 mb-1">
+            <div className="flex flex-col gap-1 mb-0">
             <label className="text-xs text-gray-600 dark:text-gray-400 font-medium" htmlFor="password">Contraseña</label>
             <div className="relative">
               <input
@@ -97,7 +97,7 @@ export default function Login() {
               </button>
             </div>
           </div>
-            <div className="flex flex-col gap-1 mb-1">
+            <div className="flex flex-col gap-1 mb-0">
             <label className="text-xs text-gray-600 dark:text-gray-400 font-medium" htmlFor="role">Rol</label>
             <select
               id="role"
@@ -111,7 +111,7 @@ export default function Login() {
           </div>
           {/* El texto de error se oculta, pero la barra lateral sigue cambiando de color */}
           {loading ? (
-            <div className="flex justify-center items-center mt-2 mb-2">
+            <div className="flex justify-center items-center mt-0 mb-0">
               <svg className="animate-spin h-6 w-6 text-black dark:text-white" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="2" className="opacity-30" />
                 <path d="M15 8A7 7 0 0 0 8 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -120,7 +120,7 @@ export default function Login() {
           ) : (
             <button
               type="submit"
-              className="w-full bg-black hover:bg-gray-900 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition-colors duration-200 flex items-center justify-center gap-2 mt-2"
+              className="w-full bg-black hover:bg-gray-900 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition-colors duration-200 flex items-center justify-center gap-2 mt-0"
               disabled={loading || !username || !password}
             >
               Iniciar sesión
