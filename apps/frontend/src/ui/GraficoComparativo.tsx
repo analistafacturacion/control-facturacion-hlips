@@ -145,12 +145,21 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
               {/* Fondo blanco para mayor contraste del área */}
               <rect x={0} y={0} width="100%" height="100%" fill="#ffffff" />
               <defs>
+                {/* Gradiente más intenso y con transiciones de opacidad para asegurar visibilidad */}
                 <linearGradient id="gradArea" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#0369a1" stopOpacity={0.9} />
-                  <stop offset="25%" stopColor="#0369a1" stopOpacity={0.7} />
-                  <stop offset="55%" stopColor="#0ea5e9" stopOpacity={0.28} />
-                  <stop offset="100%" stopColor="#0ea5e9" stopOpacity={0.06} />
+                  {/* color principal en la parte superior (más opaco) */}
+                  <stop offset="0%" stopColor="#0369a1" stopOpacity={0.85} />
+                  {/* suavizado intermedio */}
+                  <stop offset="30%" stopColor="#0369a1" stopOpacity={0.55} />
+                  {/* transición hacia transparencia */}
+                  <stop offset="70%" stopColor="#0369a1" stopOpacity={0.18} />
+                  <stop offset="100%" stopColor="#0369a1" stopOpacity={0.02} />
                 </linearGradient>
+
+                {/* Filtro drop-shadow suave para dar volumen al área (aplicar como filter en el Area) */}
+                <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feDropShadow dx="0" dy="6" stdDeviation="10" floodColor="#0369a1" floodOpacity="0.08" />
+                </filter>
               </defs>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
               <XAxis dataKey="mes" axisLine={false} tickLine={false} />
@@ -161,8 +170,21 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
                 return (v as number).toLocaleString('es-CO');
               }} />
               <Tooltip content={<CustomTooltip />} />
-              {/* Área sutil debajo de la línea para dar profundidad */}
-              <Area type="monotone" dataKey="valor" stroke="none" fill="url(#gradArea)" isAnimationActive={false} connectNulls={false} baseValue={0} fillOpacity={1} />
+              {/* Área visible y con sombra debajo de la línea para dar el desvanecido azul pedido */}
+              <Area
+                type="monotone"
+                dataKey="valor"
+                stroke="none"
+                fill="url(#gradArea)"
+                isAnimationActive={false}
+                connectNulls={false}
+                baseValue={0}
+                fillOpacity={1}
+                // Aplica el filtro SVG para dar leve sombra y volumen
+                filter="url(#softShadow)"
+              />
+
+              {/* Línea sobre el área */}
               <Line type="monotone" dataKey="valor" stroke="#0369a1" strokeWidth={2} dot={renderDot} activeDot={{ r: 5 }} connectNulls={false} />
             </LineChart>
           </ResponsiveContainer>
