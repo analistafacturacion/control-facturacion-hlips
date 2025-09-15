@@ -935,33 +935,40 @@ router.get('/eventos/totales', async (req: RequestWithIO, res: Response) => {
   try {
     const facturacionRepo = getRepository(FacturacionEvento);
     
-    const { fechaInicial, fechaFinal } = req.query;
-    
+    const { fechaInicial, fechaFinal, sede, aseguradora, search, periodo } = req.query;
+
     if (!fechaInicial || !fechaFinal) {
       return res.status(400).json({ error: 'fechaInicial y fechaFinal son requeridos' });
     }
-    
-    console.log(`[TOTALES] Calculando totales entre ${fechaInicial} y ${fechaFinal}`);
-    
-    // Consulta SQL simple para totales de FACTURACIÓN
-    const resultado = await facturacionRepo
+
+    console.log(`[TOTALES] Calculando totales entre ${fechaInicial} y ${fechaFinal} con filtros: sede=${sede} aseguradora=${aseguradora} search=${search} periodo=${periodo}`);
+
+    // Consulta SQL para totales aplicando filtros adicionales si vienen
+    const qb = facturacionRepo
       .createQueryBuilder('evento')
+      .leftJoin('evento.sede', 'sede')
       .select([
         'COUNT(*) as total_facturas',
         'SUM(COALESCE(evento.valor, 0)) as total_facturado',
-        `SUM(CASE 
-          WHEN UPPER(TRIM(COALESCE(evento.periodo, ''))) = 'CORRIENTE' 
-          THEN COALESCE(evento.valor, 0) 
-          ELSE 0 
-        END) as facturado_corriente`,
-        `SUM(CASE 
-          WHEN UPPER(TRIM(COALESCE(evento.periodo, ''))) = 'REMANENTE' 
-          THEN COALESCE(evento.valor, 0) 
-          ELSE 0 
-        END) as facturado_remanente`
+        `SUM(CASE WHEN UPPER(TRIM(COALESCE(evento.periodo, ''))) = 'CORRIENTE' THEN COALESCE(evento.valor, 0) ELSE 0 END) as facturado_corriente`,
+        `SUM(CASE WHEN UPPER(TRIM(COALESCE(evento.periodo, ''))) = 'REMANENTE' THEN COALESCE(evento.valor, 0) ELSE 0 END) as facturado_remanente`
       ])
-      .where('evento.fecha BETWEEN :fechaInicial AND :fechaFinal', { fechaInicial, fechaFinal })
-      .getRawOne();
+      .where('evento.fecha BETWEEN :fechaInicial AND :fechaFinal', { fechaInicial, fechaFinal });
+
+    if (sede) {
+      qb.andWhere('sede.nombre ILIKE :sede', { sede: `%${String(sede)}%` });
+    }
+    if (aseguradora) {
+      qb.andWhere('evento.aseguradora ILIKE :aseguradora', { aseguradora: `%${String(aseguradora)}%` });
+    }
+    if (periodo) {
+      qb.andWhere('UPPER(TRIM(COALESCE(evento.periodo, \'\'))) = UPPER(TRIM(:periodo))', { periodo: String(periodo) });
+    }
+    if (search) {
+      qb.andWhere('(evento.numeroFactura ILIKE :search OR evento.aseguradora ILIKE :search OR evento.paciente ILIKE :search OR evento.documento ILIKE :search)', { search: `%${String(search)}%` });
+    }
+
+    const resultado = await qb.getRawOne();
     
     const totales = {
       totalFacturas: parseInt(resultado.total_facturas) || 0,
@@ -992,8 +999,8 @@ router.get('/ultima-actualizacion', async (req: RequestWithIO, res: Response) =>
       if (row) {
         return res.json({ ok: true, ultimaActualizacion: row.fecha });
       }
-    } catch (dbErr) {
-      console.log('[ULTIMA-ACTUALIZACION] DB no disponible o error:', dbErr.message || dbErr);
+    } catch (dbErr: any) {
+      console.log('[ULTIMA-ACTUALIZACION] DB no disponible o error:', dbErr?.message || dbErr);
       // continuar y usar archivo como fallback
     }
 
