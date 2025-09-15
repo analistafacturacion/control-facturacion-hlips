@@ -21,8 +21,7 @@ export default function PrismaLogo({ className, variant = 'B', imgSrc }: { class
       <img
         src={src}
         alt="Prisma Analytics"
-        className={className}
-        style={{ width: 40, height: 40, objectFit: 'contain' }}
+        className={className + ' object-contain'}
         onError={() => setImgError(true)}
       />
     );
@@ -30,7 +29,7 @@ export default function PrismaLogo({ className, variant = 'B', imgSrc }: { class
 
   if (variant === 'A') {
     return (
-      <svg className={className} width="40" height="40" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" role="img">
+      <svg className={className} viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" role="img">
         <g stroke="#ffffff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" fill="none">
           <path d="M50 100 L100 50 L150 100 L100 150 Z" />
           <path d="M100 50 L100 150 M50 100 L150 100" strokeOpacity="0.7" />
@@ -46,7 +45,7 @@ export default function PrismaLogo({ className, variant = 'B', imgSrc }: { class
 
   if (variant === 'C') {
     return (
-      <svg className={className} width="40" height="40" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" role="img">
+      <svg className={className} viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" role="img">
         <g stroke="#ffffff" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" fill="none">
           <path d="M60 110 L100 70 L140 110" />
         </g>
@@ -57,7 +56,7 @@ export default function PrismaLogo({ className, variant = 'B', imgSrc }: { class
 
   // Default variant B
   return (
-    <svg className={className} width="40" height="40" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" role="img">
+    <svg className={className} viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" role="img">
       <g>
         <path d="M50 100 L100 50 L150 100 L100 150 Z" fill="#ffffff" opacity={0.06} />
         <path d="M50 100 L100 50 L150 100 L100 150 Z" stroke="#ffffff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" fill="none" />
