@@ -19,6 +19,28 @@
   <!-- Triangle SVG fallbacks -->
   <link rel="icon" type="image/svg+xml" href="/favicon-triangle-dark.svg?v=4">
   <link rel="alternate icon" href="/favicon-triangle-light.svg?v=4">
+  
+  <!-- Apply 125% zoom at load (Chromium: zoom; Firefox: transform fallback) -->
+  <script>
+    (function(){
+      try{
+        var scale = 1.25;
+        // Chromium-based browsers support documentElement.style.zoom
+        document.documentElement.style.zoom = scale;
+        // For Firefox which ignores zoom, apply transform on body and adjust width to avoid scrollbars
+        var isFirefox = navigator.userAgent.indexOf('Firefox') !== -1;
+        if(isFirefox){
+          document.documentElement.style.width = (100/scale) + '%';
+          document.documentElement.style.height = (100/scale) + '%';
+          document.documentElement.style.transformOrigin = '0 0';
+          document.documentElement.style.transform = 'scale(' + scale + ')';
+        }
+      }catch(e){
+        // noop
+        console.error('zoom-script', e);
+      }
+    })();
+  </script>
   </head>
   <body>
     <div id="root"></div>
