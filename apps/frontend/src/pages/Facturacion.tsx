@@ -368,11 +368,13 @@ export default function Facturacion() {
   const [totalRegistros, setTotalRegistros] = useState(0);
   const [totalPaginas, setTotalPaginas] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
+  // Ref para proteger contra respuestas fuera de orden en cargarEventos
+  const lastCargarEventosCallIdRef = useRef<number | null>(null);
   
   // ...existing code...
   // Paginación
   const [paginaActual, setPaginaActual] = useState(1);
-  const registrosPorPagina = 100;
+  const registrosPorPagina = 50; // reducido para mejorar respuesta y UX
   // Mostrar/ocultar filtros avanzados
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   // Filtro unificado
@@ -716,6 +718,8 @@ export default function Facturacion() {
   
   // Función optimizada para cargar eventos con paginación
   const cargarEventos = useCallback(async (pagina = 1, busqueda = '', resetPagina = false) => {
+    const callId = Date.now();
+    lastCargarEventosCallIdRef.current = callId;
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -731,6 +735,12 @@ export default function Facturacion() {
       const res = await fetch(`${API_CONFIG.BASE_URL}/facturacion/eventos?${params}`);
       const data = await res.json();
       
+      // Ignorar respuestas antiguas
+      if (lastCargarEventosCallIdRef.current !== callId) {
+        console.log('[cargarEventos] Ignorando respuesta antigua para callId', callId);
+        return null;
+      }
+
       if (data.ok) {
         setEventos(data.eventos || []);
         setTotalRegistros(data.pagination?.totalRecords || 0);
@@ -742,6 +752,7 @@ export default function Facturacion() {
         setTotalRegistros(0);
         setTotalPaginas(0);
       }
+      return data;
     } catch (error) {
       console.error('Error cargando eventos:', error);
       setEventos([]);
@@ -837,9 +848,23 @@ export default function Facturacion() {
   // Efecto para recargar tabla cuando cambian filtros importantes
   useEffect(() => {
     if (fechaFiltroInicial && fechaFiltroFinal) {
-      cargarEventos(1, '', true);
+      // Usar helper que sincroniza tabla y totales
+      refreshTableAndTotals();
     }
   }, [fechaFiltroInicial, fechaFiltroFinal, sedeFiltro, aseguradoraFiltro, cargarEventos]);
+
+  // Helper para recargar tabla y totales en paralelo y evitar condiciones de carrera
+  async function refreshTableAndTotals() {
+    try {
+      setLoading(true);
+      // Ejecutar en paralelo
+      await Promise.all([cargarEventos(1, '', true), cargarTotalesTarjetas()]);
+    } catch (err) {
+      console.error('Error refrescando tabla y totales:', err);
+    } finally {
+      setLoading(false);
+    }
+  }
   // Conexión a Socket.IO para refrescar en tiempo real
   useEffect(() => {
     const socket = getSocket();
