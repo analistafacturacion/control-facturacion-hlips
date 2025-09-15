@@ -7,22 +7,25 @@ export default function PrismaLogo({ className, variant = 'B', imgSrc }: { class
   // A: outline prism + a few small squares
   // B: solid triangular prism + small pixel cluster (default)
   // C: monogram / favicon-friendly single-line prism + single pixel
-  // If an image source is provided (or default to /logo.png), render the image instead of the SVG
-  const src = imgSrc ?? '/logo.png';
-  if (imgSrc !== undefined || typeof window !== 'undefined') {
-    // Note: we render the <img> unconditionally when imgSrc provided. If imgSrc is undefined we still allow '/logo.png' in prod,
-    // but the consumer may prefer explicit control.
-  }
+  // Resolve default public path using Vite's base (import.meta.env.BASE_URL) so it works on GitHub Pages
+  const base = typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env.BASE_URL ? (import.meta as any).env.BASE_URL : '/';
+  const src = imgSrc ?? `${base}logo.png`;
 
-  if (imgSrc) {
-    return <img src={imgSrc} alt="Prisma Analytics" className={className} style={{ width: 40, height: 40, objectFit: 'contain' }} />;
-  }
+  // Render image if explicit imgSrc was provided or if the default public logo exists at runtime.
+  // Add onError to fall back to SVG variants without leaving a broken image.
+  const [imgError, setImgError] = React.useState(false);
 
-  // If no explicit imgSrc, try defaulting to '/logo.png' (public folder). We still keep SVG variants as fallback.
-  if (!imgSrc) {
-    // Render image from public if available; this will still show broken image if file missing, so SVG remains available below as fallback.
-    // We'll attempt to use the public image by rendering it first; if the user prefers strict fallback behavior we can add image onError handling.
-    return <img src={src} alt="Prisma Analytics" className={className} style={{ width: 40, height: 40, objectFit: 'contain' }} />;
+  if (!imgError) {
+    return (
+      // eslint-disable-next-line jsx-a11y/alt-text
+      <img
+        src={src}
+        alt="Prisma Analytics"
+        className={className}
+        style={{ width: 40, height: 40, objectFit: 'contain' }}
+        onError={() => setImgError(true)}
+      />
+    );
   }
 
   if (variant === 'A') {
