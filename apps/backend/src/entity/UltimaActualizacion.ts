@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, UpdateDateColumn } from 'typeorm';
 
-@Entity({ name: 'ultima_actualizacion' })
+@Entity('ultima_actualizacion')
 export class UltimaActualizacion {
   @PrimaryGeneratedColumn()
   id!: number;
