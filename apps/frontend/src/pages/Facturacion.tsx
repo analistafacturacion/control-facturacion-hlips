@@ -1409,13 +1409,23 @@ export default function Facturacion() {
             <div className="flex-1 min-h-0 overflow-auto">
               {analisisTipo === 'grafico' && (
                 <GraficoComparativo
-                  data={eventosAñoCompleto.map(ev => ({
-                    sede: ev.sede?.nombre || '',
-                    aseguradora: ev.aseguradora || '',
-                    año: Number(ev.fecha?.slice(0,4)),
-                    mes: Number(ev.fecha?.slice(5,7)),
-                    valor: parseNumericValue(ev.total) || parseNumericValue(ev.valor) || parseNumericValue(ev.copago)
-                  }))}
+                  data={eventosAñoCompleto
+                    .filter(ev => {
+                      // aplicar filtros activos: sedeFiltro, aseguradoraFiltro y año (si fechaFiltroInicial está presente)
+                      const sedeMatch = !sedeFiltro || (ev.sede?.nombre || '') === sedeFiltro;
+                      const asegMatch = !aseguradoraFiltro || (ev.aseguradora || '') === aseguradoraFiltro;
+                      const evYear = Number(ev.fecha?.slice(0,4));
+                      const filterYear = fechaFiltroInicial ? Number(fechaFiltroInicial.slice(0,4)) : null;
+                      const yearMatch = !filterYear || evYear === filterYear;
+                      return sedeMatch && asegMatch && yearMatch;
+                    })
+                    .map(ev => ({
+                      sede: ev.sede?.nombre || '',
+                      aseguradora: ev.aseguradora || '',
+                      año: Number(ev.fecha?.slice(0,4)),
+                      mes: Number(ev.fecha?.slice(5,7)),
+                      valor: parseNumericValue(ev.total) || parseNumericValue(ev.valor) || parseNumericValue(ev.copago)
+                    }))}
                   aseguradoras={[...new Set(eventosAñoCompleto.map(ev => ev.aseguradora).filter((x): x is string => Boolean(x)))]}
                   sedes={[...new Set(eventosAñoCompleto.map(ev => ev.sede?.nombre).filter((x): x is string => Boolean(x)))]}
                   años={[...new Set(eventosAñoCompleto.map(ev => Number(ev.fecha?.slice(0,4))).filter(Boolean))].sort()}

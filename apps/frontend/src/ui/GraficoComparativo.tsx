@@ -144,13 +144,14 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
             <LineChart data={datosGrafico} margin={{ top: 24, right: 8, left: 8, bottom: 24 }}>
               <defs>
                 <linearGradient id="gradArea" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#1F497D" stopOpacity={0.14} />
-                  <stop offset="100%" stopColor="#1F497D" stopOpacity={0.02} />
+                  <stop offset="0%" stopColor="#0ea5e9" stopOpacity={0.28} />
+                  <stop offset="60%" stopColor="#0ea5e9" stopOpacity={0.12} />
+                  <stop offset="100%" stopColor="#0ea5e9" stopOpacity={0.02} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
               <XAxis dataKey="mes" axisLine={false} tickLine={false} />
-              <YAxis axisLine={false} tickLine={false} tickFormatter={v => {
+              <YAxis axisLine={false} tickLine={false} domain={[0, 'dataMax']} tickFormatter={v => {
                 if (v == null) return '';
                 if (Math.abs(v) >= 1000000) return `${Math.round(v/1000000)}M`;
                 if (Math.abs(v) >= 1000) return `${Math.round(v/1000)}K`;
@@ -159,7 +160,7 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
               <Tooltip content={<CustomTooltip />} />
               {/* Área sutil debajo de la línea para dar profundidad */}
               <Area type="monotone" dataKey="valor" stroke="none" fill="url(#gradArea)" isAnimationActive={false} connectNulls={false} />
-              <Line type="monotone" dataKey="valor" stroke="#1F497D" strokeWidth={2} dot={renderDot} activeDot={{ r: 5 }} connectNulls={false} />
+              <Line type="monotone" dataKey="valor" stroke="#0369a1" strokeWidth={2} dot={renderDot} activeDot={{ r: 5 }} connectNulls={false} />
             </LineChart>
           </ResponsiveContainer>
         </div>
