@@ -6,15 +6,18 @@ interface Props {
   aseguradoras: string[];
   sedes: string[];
   años: number[];
+  initialSede?: string;
+  initialAseguradora?: string;
+  initialAño?: number;
 }
 
 const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
-export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes, años }) => {
+export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes, años, initialSede, initialAseguradora, initialAño }) => {
   // Por defecto mostramos "Todas" las sedes/aseguradoras para que el gráfico agregue datos
-  const [sede, setSede] = useState('');
-  const [aseguradora, setAseguradora] = useState('');
-  const [año, setAño] = useState(años[años.length-1] || new Date().getFullYear());
+  const [sede, setSede] = useState(initialSede ?? '');
+  const [aseguradora, setAseguradora] = useState(initialAseguradora ?? '');
+  const [año, setAño] = useState<number>(initialAño ?? (años[años.length-1] || new Date().getFullYear()));
 
   // Debug: Log inicial de datos recibidos
   console.log('🎯 GraficoComparativo - Datos recibidos:', {
@@ -33,6 +36,10 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
   }
 
   // Generar datos para el gráfico: total facturado por mes (mostrar siempre 12 meses)
+  const currentDate = new Date();
+  const currentMonth = currentDate.getMonth() + 1; // 1-12
+  const currentYear = currentDate.getFullYear();
+
   const datosGrafico = meses.map((mes, idx) => {
     // Filtrar todos los eventos del mes actual, sede, aseguradora y año
     // Si sede o aseguradora están vacíos significa "todas" -> no filtrar por ese campo
@@ -59,18 +66,19 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
     
     const totalMes = eventosMes.reduce((acc, ev) => {
       const valor = Number(ev.valor) || 0;
-      if (idx === 0 && valor > 0) {
-        console.log(`💰 Sumando valor en ${mes}:`, valor, 'del evento:', ev);
-      }
       return acc + valor;
     }, 0);
     
   console.log(`📅 ${mes} (${idx+1}): ${eventosMes.length} eventos, total: $${totalMes.toLocaleString()}`);
     
+    // Determinar si este mes es futuro respecto al año seleccionado
+    const mesNum = idx + 1;
+    const isFuture = (año === currentYear && mesNum > currentMonth) || (año > currentYear);
+
     return {
       mes: mes.slice(0,3),
-      // Igual que en los gráficos por sede/aseguradora: usar null cuando no hay datos para que no se dibuje punto/valor
-      valor: totalMes > 0 ? totalMes : null
+      // Para meses futuros no mostramos nada (null). Para meses pasados o actuales mostramos 0 si no hay datos.
+      valor: isFuture ? null : totalMes
     };
   });
 

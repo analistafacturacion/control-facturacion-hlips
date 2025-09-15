@@ -1419,6 +1419,9 @@ export default function Facturacion() {
                   aseguradoras={[...new Set(eventosAñoCompleto.map(ev => ev.aseguradora).filter((x): x is string => Boolean(x)))]}
                   sedes={[...new Set(eventosAñoCompleto.map(ev => ev.sede?.nombre).filter((x): x is string => Boolean(x)))]}
                   años={[...new Set(eventosAñoCompleto.map(ev => Number(ev.fecha?.slice(0,4))).filter(Boolean))].sort()}
+                  initialSede={sedeFiltro}
+                  initialAseguradora={aseguradoraFiltro}
+                  initialAño={fechaFiltroInicial ? Number(fechaFiltroInicial.slice(0,4)) : undefined}
                 />
               )}
               {analisisTipo === 'general' && (
