@@ -1624,7 +1624,10 @@ export default function Facturacion() {
         <select
           className={`border px-2 py-1 w-full text-xs ${isLoadingDatos ? 'opacity-50' : ''}`}
           value={periodoFiltro}
-          onChange={e => setPeriodoFiltro(e.target.value)}
+          onChange={e => {
+            console.log('[FILTRO PERIODO] Cambio de:', periodoFiltro, 'a:', e.target.value);
+            setPeriodoFiltro(e.target.value);
+          }}
           disabled={isLoadingDatos}
         >
           <option value="">Todos los periodos</option>
