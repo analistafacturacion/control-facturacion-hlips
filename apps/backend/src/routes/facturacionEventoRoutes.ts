@@ -916,6 +916,7 @@ router.get('/eventos', async (req: RequestWithIO, res: Response) => {
       SELECT 
         e.id, e."numeroFactura" as numero_factura, e.fecha, e.valor,
         e.aseguradora, e.paciente, e.documento, e.periodo, e.ambito,
+        e."tipoDocumento" as tipo_documento,
         e."fechaInicial" as fecha_inicial, e."fechaFinal" as fecha_final,
         s.nombre as sede_nombre, s.id as sede_id
       FROM facturacion_evento e
@@ -945,6 +946,7 @@ router.get('/eventos', async (req: RequestWithIO, res: Response) => {
       documento: row.documento || '',
       periodo: row.periodo || '',
       ambito: row.ambito || '',
+      tipoDocumento: row.tipo_documento || '',
       fechaInicial: row.fecha_inicial || null,
       fechaFinal: row.fecha_final || null,
       sede: row.sede_nombre ? { id: row.sede_id, nombre: row.sede_nombre } : null
@@ -1002,6 +1004,7 @@ router.get('/eventos/resumen', async (req: RequestWithIO, res: Response) => {
       SELECT 
         e.id, e."numeroFactura" as numero_factura, e.fecha, e.valor,
         e.aseguradora, e.paciente, e.documento, e.periodo, e.ambito,
+        e."tipoDocumento" as tipo_documento,
         e."fechaInicial" as fecha_inicial, e."fechaFinal" as fecha_final,
         s.nombre as sede_nombre, s.id as sede_id
       FROM facturacion_evento e
@@ -1025,6 +1028,7 @@ router.get('/eventos/resumen', async (req: RequestWithIO, res: Response) => {
       documento: row.documento || '',
       periodo: row.periodo || '',
       ambito: row.ambito || '',
+      tipoDocumento: row.tipo_documento || '',
       fechaInicial: row.fecha_inicial || null,
       fechaFinal: row.fecha_final || null,
       sede: row.sede_nombre ? { id: row.sede_id, nombre: row.sede_nombre } : null

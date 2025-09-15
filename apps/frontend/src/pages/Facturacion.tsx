@@ -1672,7 +1672,7 @@ export default function Facturacion() {
                   <tr key={ev.id} className="border-b hover:bg-blue-50">
                     <td className="px-1 py-1 text-center whitespace-nowrap overflow-hidden text-ellipsis" style={{width:'8%'}}>{ev.numeroFactura || ''}</td>
                     <td className="px-1 py-1 text-center whitespace-nowrap overflow-hidden text-ellipsis" style={{width:'8%'}}>{formatearFecha(ev.fecha)}</td>
-                    <td className="px-1 py-1 text-center whitespace-nowrap overflow-hidden text-ellipsis" style={{width:'4%'}}>{ev.ambito || ''}</td>
+                    <td className="px-1 py-1 text-center whitespace-nowrap overflow-hidden text-ellipsis" style={{width:'4%'}}>{ev.tipoDocumento || ''}</td>
                     <td className="px-1 py-1 text-center whitespace-nowrap overflow-hidden text-ellipsis" style={{width:'10%'}}>{ev.documento || ''}</td>
                     <td className="px-1 py-1 whitespace-nowrap overflow-hidden text-ellipsis" style={{width:'16%'}}>{ev.paciente || ''}</td>
                     <td className="px-1 py-1 text-center whitespace-nowrap overflow-hidden text-ellipsis" style={{width:'10%'}}>{ev.sede?.nombre || ''}</td>
