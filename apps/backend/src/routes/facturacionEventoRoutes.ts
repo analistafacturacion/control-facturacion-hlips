@@ -826,11 +826,14 @@ function buildFilterSQL(filters: any): { whereClause: string, params: any[] } {
   const params: any[] = [];
   let paramIndex = 1;
   
+  console.log('[buildFilterSQL] Filtros recibidos:', filters);
+  
   // Filtro de fechas (obligatorio para rendimiento)
   if (fechaInicial && fechaFinal) {
     whereClause += ` AND e.fecha BETWEEN $${paramIndex} AND $${paramIndex + 1}`;
     params.push(fechaInicial, fechaFinal);
     paramIndex += 2;
+    console.log('[buildFilterSQL] Añadido filtro de fechas:', { fechaInicial, fechaFinal });
   }
   
   // Filtro de sede
@@ -838,6 +841,7 @@ function buildFilterSQL(filters: any): { whereClause: string, params: any[] } {
     whereClause += ` AND s.nombre = $${paramIndex}`;
     params.push(sede.trim());
     paramIndex++;
+    console.log('[buildFilterSQL] Añadido filtro de sede:', sede.trim());
   }
   
   // Filtro de aseguradora (exacto para máximo rendimiento)
@@ -845,6 +849,7 @@ function buildFilterSQL(filters: any): { whereClause: string, params: any[] } {
     whereClause += ` AND e.aseguradora = $${paramIndex}`;
     params.push(aseguradora.trim());
     paramIndex++;
+    console.log('[buildFilterSQL] Añadido filtro de aseguradora:', aseguradora.trim());
   }
   
   // Filtro de periodo (normalizado)
@@ -852,6 +857,7 @@ function buildFilterSQL(filters: any): { whereClause: string, params: any[] } {
     whereClause += ` AND UPPER(TRIM(COALESCE(e.periodo, ''))) = $${paramIndex}`;
     params.push(periodo.trim().toUpperCase());
     paramIndex++;
+    console.log('[buildFilterSQL] Añadido filtro de periodo:', periodo.trim().toUpperCase());
   }
   
   // Búsqueda de texto (optimizada)
@@ -865,7 +871,11 @@ function buildFilterSQL(filters: any): { whereClause: string, params: any[] } {
     )`;
     params.push(searchTerm);
     paramIndex++;
+    console.log('[buildFilterSQL] Añadido filtro de búsqueda:', searchTerm);
   }
+  
+  console.log('[buildFilterSQL] WHERE final:', whereClause);
+  console.log('[buildFilterSQL] Parámetros finales:', params);
   
   return { whereClause, params };
 }
@@ -955,7 +965,12 @@ router.get('/eventos', async (req: RequestWithIO, res: Response) => {
       }
     });
   } catch (err) {
-    res.status(500).json({ error: 'Error al obtener eventos', details: err });
+    console.error('[EVENTOS] Error completo:', err);
+    console.error('[EVENTOS] Stack trace:', (err as Error).stack);
+    res.status(500).json({ 
+      error: 'Error al obtener eventos', 
+      details: err instanceof Error ? err.message : String(err) 
+    });
   }
 });
 
@@ -1017,12 +1032,12 @@ router.get('/eventos/resumen', async (req: RequestWithIO, res: Response) => {
       total: eventos.length
     });
   } catch (err) {
-    const _err: any = err;
-    console.error('[RESUMEN] Error:', _err);
+    console.error('[RESUMEN] Error completo:', err);
+    console.error('[RESUMEN] Stack trace:', (err as Error).stack);
     res.status(500).json({ 
       ok: false, 
       error: 'Error al obtener resumen de eventos', 
-      details: _err 
+      details: err instanceof Error ? err.message : String(err)
     });
   }
 });
