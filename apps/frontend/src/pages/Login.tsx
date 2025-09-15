@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import { useAuth } from '../auth'
 import { useNavigate } from 'react-router-dom'
-import PrismaLogo from '../ui/PrismaLogo'
 
 export default function Login() {
   const { login } = useAuth()
@@ -54,12 +53,9 @@ export default function Login() {
         }
       `}</style>
   <div className={`absolute left-0 top-0 h-full w-2 rounded-l-xl transition-colors duration-300 ${success ? 'bg-green-600' : error ? 'bg-red-600' : 'bg-[#002c50] dark:bg-[#001a2e]'}`} />
-        <div className="flex items-center gap-3 px-6">
-          <PrismaLogo className="h-10 w-10" />
-          <div className="flex flex-col gap-1">
-            <h2 className="text-2xl font-bold text-[#002c50] dark:text-[#bcd3e6] tracking-tight">Prisma Analytics</h2>
-            <p className="text-sm text-[#002c50] dark:text-[#bcd3e6]">Accede con tus credenciales</p>
-          </div>
+        <div className="flex flex-col gap-1 items-center px-6">
+          <h2 className="text-2xl font-bold text-[#002c50] dark:text-[#bcd3e6] tracking-tight text-center">Prisma Analytics</h2>
+          <p className="text-sm text-[#002c50] dark:text-[#bcd3e6] text-center">Accede con tus credenciales</p>
         </div>
         <div className="flex flex-col gap-3 px-6">
             <div className="flex flex-col gap-1 mb-0">
