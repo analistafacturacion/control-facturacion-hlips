@@ -902,7 +902,7 @@ export default function Facturacion() {
         setIsLoadingDatos(false);
       }
     }
-  }, [fechaFiltroInicial, fechaFiltroFinal, sedeFiltro, aseguradoraFiltro, registrosPorPagina, fetchWithFilters]);
+  }, [fechaFiltroInicial, fechaFiltroFinal, sedeFiltro, aseguradoraFiltro, periodoFiltro, registrosPorPagina, fetchWithFilters]);
 
   // Debounce para búsqueda
   const debouncedSearch = useCallback(
