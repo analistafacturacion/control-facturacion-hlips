@@ -935,78 +935,47 @@ router.get('/eventos/totales', async (req: RequestWithIO, res: Response) => {
   try {
     const facturacionRepo = getRepository(FacturacionEvento);
     
-    const { fechaInicial, fechaFinal, sede, aseguradora, search, periodo } = req.query;
-
+    const { fechaInicial, fechaFinal } = req.query;
+    
     if (!fechaInicial || !fechaFinal) {
       return res.status(400).json({ error: 'fechaInicial y fechaFinal son requeridos' });
     }
-
-    console.log(`[TOTALES] Calculando totales entre ${fechaInicial} y ${fechaFinal} con filtros: sede=${sede} aseguradora=${aseguradora} search=${search} periodo=${periodo}`);
-
-  // Construir clausulas SQL y parámetros posicionales para evitar joins innecesarios en la agregación
-  const paramValues: any[] = [];
-  const whereClauses: string[] = [];
-  // fechaInicial y fechaFinal serán $1 y $2
-  paramValues.push(fechaInicial, fechaFinal);
-  whereClauses.push(`fecha BETWEEN $1 AND $2`);
-  let paramIndex = 2; // último índice usado
-
-    // Manejo de sede: si nos pasan nombre de sede, resolver ids primero (subquery), para filtrar por sede_id
-    if (sede) {
-      // Buscamos las sedes que coincidan con el nombre (ILIKE)
-      const sedesRes = await facturacionRepo.manager.query('SELECT id FROM sede WHERE nombre ILIKE $1', [`%${String(sede)}%`]);
-      const sedeIds = sedesRes.map((r: any) => r.id);
-      if (sedeIds.length === 0) {
-        // No coinciden sedes: devolver ceros
-        return res.json({ ok: true, totales: { totalFacturas: 0, totalFacturado: 0, facturadoCorriente: 0, facturadoRemanente: 0 } });
-      }
-      // Añadir array de ids como parámetro posicional
-      paramValues.push(sedeIds);
-      paramIndex++;
-      whereClauses.push(`sede_id = ANY($${paramIndex})`);
-    }
-
-    if (aseguradora) {
-      paramValues.push(`%${String(aseguradora)}%`);
-      paramIndex++;
-      whereClauses.push(`aseguradora ILIKE $${paramIndex}`);
-    }
-
-    if (periodo) {
-      paramValues.push(String(periodo).trim().toUpperCase());
-      paramIndex++;
-      whereClauses.push(`UPPER(TRIM(COALESCE(periodo, ''))) = $${paramIndex}`);
-    }
-
-    if (search) {
-      paramValues.push(`%${String(search)}%`);
-      paramIndex++;
-      whereClauses.push(`(numeroFactura ILIKE $${paramIndex} OR aseguradora ILIKE $${paramIndex} OR paciente ILIKE $${paramIndex} OR documento ILIKE $${paramIndex})`);
-    }
-
-  const whereSQL = whereClauses.length ? 'WHERE ' + whereClauses.join(' AND ') : '';
-
-    const sql = `SELECT
-      COUNT(*)::int as total_facturas,
-      COALESCE(SUM(valor),0)::numeric::float8 as total_facturado,
-      COALESCE(SUM(CASE WHEN UPPER(TRIM(COALESCE(periodo,''))) = 'CORRIENTE' THEN valor ELSE 0 END),0)::numeric::float8 as facturado_corriente,
-      COALESCE(SUM(CASE WHEN UPPER(TRIM(COALESCE(periodo,''))) = 'REMANENTE' THEN valor ELSE 0 END),0)::numeric::float8 as facturado_remanente
-    FROM facturacion_evento
-    ${whereSQL};`;
-
-  const resultado = await facturacionRepo.manager.query(sql, paramValues);
-    const row = resultado[0] || { total_facturas: 0, total_facturado: 0, facturado_corriente: 0, facturado_remanente: 0 };
-
+    
+    console.log(`[TOTALES] Calculando totales entre ${fechaInicial} y ${fechaFinal}`);
+    
+    // Consulta SQL simple para totales de FACTURACIÓN
+    const resultado = await facturacionRepo
+      .createQueryBuilder('evento')
+      .select([
+        'COUNT(*) as total_facturas',
+        'SUM(COALESCE(evento.valor, 0)) as total_facturado',
+        `SUM(CASE 
+          WHEN UPPER(TRIM(COALESCE(evento.periodo, ''))) = 'CORRIENTE' 
+          THEN COALESCE(evento.valor, 0) 
+          ELSE 0 
+        END) as facturado_corriente`,
+        `SUM(CASE 
+          WHEN UPPER(TRIM(COALESCE(evento.periodo, ''))) = 'REMANENTE' 
+          THEN COALESCE(evento.valor, 0) 
+          ELSE 0 
+        END) as facturado_remanente`
+      ])
+      .where('evento.fecha BETWEEN :fechaInicial AND :fechaFinal', { fechaInicial, fechaFinal })
+      .getRawOne();
+    
     const totales = {
-      totalFacturas: Number(row.total_facturas) || 0,
-      totalFacturado: Number(row.total_facturado) || 0,
-      facturadoCorriente: Number(row.facturado_corriente) || 0,
-      facturadoRemanente: Number(row.facturado_remanente) || 0,
+      totalFacturas: parseInt(resultado.total_facturas) || 0,
+      totalFacturado: parseFloat(resultado.total_facturado) || 0,
+      facturadoCorriente: parseFloat(resultado.facturado_corriente) || 0,
+      facturadoRemanente: parseFloat(resultado.facturado_remanente) || 0
     };
-
-    console.log(`[TOTALES] Calculados (raw SQL):`, totales);
-
-    res.json({ ok: true, totales });
+    
+    console.log(`[TOTALES] Calculados:`, totales);
+    
+    res.json({ 
+      ok: true, 
+      totales
+    });
   } catch (err) {
     console.error('[TOTALES] Error:', err);
     res.status(500).json({ error: 'Error al calcular totales', details: err });
@@ -1023,8 +992,8 @@ router.get('/ultima-actualizacion', async (req: RequestWithIO, res: Response) =>
       if (row) {
         return res.json({ ok: true, ultimaActualizacion: row.fecha });
       }
-    } catch (dbErr: any) {
-      console.log('[ULTIMA-ACTUALIZACION] DB no disponible o error:', dbErr?.message || dbErr);
+    } catch (dbErr) {
+      console.log('[ULTIMA-ACTUALIZACION] DB no disponible o error:', dbErr.message || dbErr);
       // continuar y usar archivo como fallback
     }
 
