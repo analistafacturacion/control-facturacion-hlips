@@ -52,10 +52,10 @@ export default function Login() {
           animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
         }
       `}</style>
-  <div className={`absolute left-0 top-0 h-full w-2 rounded-l-xl transition-colors duration-300 ${success ? 'bg-green-600' : error ? 'bg-red-600' : 'bg-black'}`} />
+  <div className={`absolute left-0 top-0 h-full w-2 rounded-l-xl transition-colors duration-300 ${success ? 'bg-green-600' : error ? 'bg-red-600' : 'bg-[#002c50] dark:bg-[#001a2e]'}`} />
         <div className="flex flex-col gap-1 items-center px-6">
-          <h2 className="text-2xl font-bold text-black dark:text-white tracking-tight text-center">Prisma Analytics</h2>
-          <p className="text-gray-500 text-sm text-center">Accede con tus credenciales</p>
+          <h2 className="text-2xl font-bold text-[#002c50] dark:text-[#bcd3e6] tracking-tight text-center">Prisma Analytics</h2>
+          <p className="text-sm text-[#002c50] dark:text-[#bcd3e6] text-center">Accede con tus credenciales</p>
         </div>
         <div className="flex flex-col gap-3 px-6">
             <div className="flex flex-col gap-1 mb-0">
