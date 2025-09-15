@@ -7,6 +7,7 @@ import { Aseguradora } from "./entity/Aseguradora";
 import { Sede } from "./entity/Sede";
 import { ReporteRips } from "./entity/ReporteRips";
 import { RipsFactura } from "./entity/RipsFactura";
+import { UltimaActualizacion } from "./entity/UltimaActualizacion";
 
 let connection: any;
 
@@ -35,6 +36,7 @@ export const AppDataSource = {
                 Sede,
                 ReporteRips,
                 RipsFactura
+                ,UltimaActualizacion
             ],
             migrations: process.env.NODE_ENV === "production"
                 ? ["dist/migration/**/*.js"] 
