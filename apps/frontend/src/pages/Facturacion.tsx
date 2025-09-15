@@ -384,6 +384,8 @@ export default function Facturacion() {
   const [sedeFiltro, setSedeFiltro] = useState<string>('');
   const [aseguradoraFiltro, setAseguradoraFiltro] = useState<string>('');
   const [periodoFiltro, setPeriodoFiltro] = useState<string>('');
+  // Ref para manejar abort controllers y evitar condiciones de carrera
+  const abortControllersRef = useRef<any>({ eventos: null, totales: null, tarjetas: null });
   // ...existing code...
   // Agrupación de facturación para el análisis (debe ir después de todos los useState)
   // Agrupación de facturación para el análisis (debe ir después de todos los useState)
@@ -503,9 +505,19 @@ export default function Facturacion() {
 
   // Función ULTRA-RÁPIDA para cargar solo totales (no todos los datos)
   const cargarTotalesTarjetas = useCallback(async () => {
+    // Cancelar llamada previa de totales si existe
+    try {
+      if (abortControllersRef.current.totales) {
+        abortControllersRef.current.totales.abort();
+      }
+    } catch (e) {}
+    const controller = new AbortController();
+    abortControllersRef.current.totales = controller;
     setIsLoadingDatos(true);
-    if (!fechaFiltroInicial || !fechaFiltroFinal) return;
-    
+    if (!fechaFiltroInicial || !fechaFiltroFinal) {
+      setIsLoadingDatos(false);
+      return;
+    }
     const callId = Date.now();
     console.log(`[TOTALES RÁPIDOS ${callId}] Iniciando cálculo para fechas:`, fechaFiltroInicial, 'hasta', fechaFiltroFinal);
     
@@ -515,7 +527,7 @@ export default function Facturacion() {
         fechaFinal: fechaFiltroFinal
       });
 
-      const res = await fetch(`${API_CONFIG.BASE_URL}/facturacion/eventos/totales?${params}`);
+  const res = await fetch(`${API_CONFIG.BASE_URL}/facturacion/eventos/totales?${params}`, { signal: controller.signal });
       const data = await res.json();
       
       if (data.ok && data.totales) {
@@ -529,21 +541,35 @@ export default function Facturacion() {
       // Fallback: usar el método anterior
       await cargarTodosEventosFecha();
       
-    } catch (error) {
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        console.log(`[TOTALES RÁPIDOS ${callId}] Llamada abortada`);
+        return;
+      }
       console.error(`[TOTALES RÁPIDOS ${callId}] Error:`, error);
       // Fallback: usar el método anterior
       await cargarTodosEventosFecha();
     }
     finally {
-      setIsLoadingDatos(false);
+      // Solo limpiar isLoading si el controller actual es el nuestro
+      if (abortControllersRef.current.totales === controller) {
+        abortControllersRef.current.totales = null;
+        setIsLoadingDatos(false);
+      }
     }
   }, [fechaFiltroInicial, fechaFiltroFinal]);
 
   // Función para cargar TODOS los eventos del rango de fechas (para tarjetas)
   const cargarTodosEventosFecha = useCallback(async () => {
+    // Cancelar cualquier carga previa de tarjetas
+    try { if (abortControllersRef.current.tarjetas) abortControllersRef.current.tarjetas.abort(); } catch (e) {}
+    const controller = new AbortController();
+    abortControllersRef.current.tarjetas = controller;
     setIsLoadingDatos(true);
-    if (!fechaFiltroInicial || !fechaFiltroFinal) return;
-    
+    if (!fechaFiltroInicial || !fechaFiltroFinal) {
+      setIsLoadingDatos(false);
+      return;
+    }
     const callId = Date.now(); // ID único para esta llamada
     console.log(`[DEBUG TARJETAS ${callId}] cargarTodosEventosFecha iniciado con fechas:`, fechaFiltroInicial, 'hasta', fechaFiltroFinal);
     
@@ -554,7 +580,7 @@ export default function Facturacion() {
         fechaFinal: fechaFiltroFinal
       });
 
-      let res = await fetch(`${API_CONFIG.BASE_URL}/facturacion/eventos/resumen?${paramsResumen}`);
+  let res = await fetch(`${API_CONFIG.BASE_URL}/facturacion/eventos/resumen?${paramsResumen}`, { signal: controller.signal });
       let data = await res.json();
       
       // Si el nuevo endpoint funciona, usarlo
@@ -578,8 +604,7 @@ export default function Facturacion() {
           page: String(pagina),
           limit: '500' // Máximo permitido
         });
-
-        res = await fetch(`${API_CONFIG.BASE_URL}/facturacion/eventos?${params}`);
+        res = await fetch(`${API_CONFIG.BASE_URL}/facturacion/eventos?${params}`, { signal: controller.signal });
         data = await res.json();
         
         if (data.ok && data.eventos) {
@@ -624,12 +649,19 @@ export default function Facturacion() {
         totalFacturas, totalFacturado, facturadoCorriente, facturadoRemanente
       });
       
-    } catch (error) {
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        console.log(`[DEBUG TARJETAS ${callId}] Llamada abortada`);
+        return;
+      }
       console.error(`[DEBUG TARJETAS ${callId}] Error cargando todos los eventos:`, error);
       setTodosEventosFecha([]);
     }
       finally {
-        setIsLoadingDatos(false);
+        if (abortControllersRef.current.tarjetas === controller) {
+          abortControllersRef.current.tarjetas = null;
+          setIsLoadingDatos(false);
+        }
       }
   }, [fechaFiltroInicial, fechaFiltroFinal]);
 
@@ -699,6 +731,10 @@ export default function Facturacion() {
   
   // Función optimizada para cargar eventos con paginación
   const cargarEventos = useCallback(async (pagina = 1, busqueda = '', resetPagina = false) => {
+    // Cancelar petición previa de eventos
+    try { if (abortControllersRef.current.eventos) abortControllersRef.current.eventos.abort(); } catch (e) {}
+    const controller = new AbortController();
+    abortControllersRef.current.eventos = controller;
     setLoading(true);
     setIsLoadingDatos(true);
     try {
@@ -711,8 +747,7 @@ export default function Facturacion() {
         ...(aseguradoraFiltro && { aseguradora: aseguradoraFiltro }),
         ...(busqueda && { search: busqueda })
       });
-
-      const res = await fetch(`${API_CONFIG.BASE_URL}/facturacion/eventos?${params}`);
+      const res = await fetch(`${API_CONFIG.BASE_URL}/facturacion/eventos?${params}`, { signal: controller.signal });
       const data = await res.json();
       
       if (data.ok) {
@@ -727,13 +762,20 @@ export default function Facturacion() {
         setTotalPaginas(0);
       }
     } catch (error) {
+      if ((error as any).name === 'AbortError') {
+        console.log('[CARGA EVENTOS] Llamada abortada');
+        return;
+      }
       console.error('Error cargando eventos:', error);
       setEventos([]);
       setTotalRegistros(0);
       setTotalPaginas(0);
     } finally {
-      setLoading(false);
-      setIsLoadingDatos(false);
+      if (abortControllersRef.current.eventos === controller) {
+        abortControllersRef.current.eventos = null;
+        setLoading(false);
+        setIsLoadingDatos(false);
+      }
     }
   }, [fechaFiltroInicial, fechaFiltroFinal, sedeFiltro, aseguradoraFiltro, registrosPorPagina]);
 
