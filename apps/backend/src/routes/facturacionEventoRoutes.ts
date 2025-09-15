@@ -1115,3 +1115,25 @@ router.post('/ultima-actualizacion', async (req: RequestWithIO, res: Response) =
     res.status(500).json({ error: 'Error al guardar fecha', details: err });
   }
 });
+
+// Endpoint de depuración: contar registros por periodo y rango de fechas
+router.get('/eventos/debug/periodo-count', async (req: RequestWithIO, res: Response) => {
+  try {
+    const facturacionRepo = getRepository(FacturacionEvento);
+    const { fechaInicial, fechaFinal, periodo } = req.query;
+    if (!fechaInicial || !fechaFinal || !periodo) {
+      return res.status(400).json({ error: 'fechaInicial, fechaFinal y periodo son requeridos' });
+    }
+
+    // Usar consulta SQL directa para evitar ambigüedades en QueryBuilder
+    const sql = `SELECT COUNT(*)::int as count FROM facturacion_evento WHERE UPPER(TRIM(COALESCE(periodo, ''))) = UPPER(TRIM($1)) AND fecha BETWEEN $2 AND $3`;
+    console.log('[DEBUG PERIOD0] Ejecutando SQL debug para periodo:', periodo, 'fechas:', fechaInicial, fechaFinal);
+    const result = await facturacionRepo.query(sql, [String(periodo), String(fechaInicial), String(fechaFinal)]);
+    const count = (result && result[0] && result[0].count) ? parseInt(result[0].count as any, 10) : 0;
+    return res.json({ ok: true, periodo: periodo, fechaInicial, fechaFinal, count });
+  } catch (err) {
+    const _err: any = err;
+    console.error('[DEBUG PERIOD0] Error:', _err);
+    return res.status(500).json({ error: 'Error en debug periodo', details: _err });
+  }
+});
