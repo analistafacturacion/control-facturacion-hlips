@@ -864,7 +864,7 @@ function buildFilterSQL(filters: any): { whereClause: string, params: any[] } {
   if (search && search.trim()) {
     const searchTerm = `%${search.trim().toLowerCase()}%`;
     whereClause += ` AND (
-      LOWER(e.numero_factura) LIKE $${paramIndex} OR 
+      LOWER(e.numeroFactura) LIKE $${paramIndex} OR 
       LOWER(e.documento) LIKE $${paramIndex} OR 
       LOWER(e.paciente) LIKE $${paramIndex} OR
       LOWER(e.aseguradora) LIKE $${paramIndex}
@@ -914,7 +914,7 @@ router.get('/eventos', async (req: RequestWithIO, res: Response) => {
     
     const sqlData = `
       SELECT 
-        e.id, e.numero_factura as "numeroFactura", e.fecha, e.valor,
+        e.id, e.numeroFactura as numero_factura, e.fecha, e.valor,
         e.aseguradora, e.paciente, e.documento, e.periodo, e.ambito,
         s.nombre as sede_nombre, s.id as sede_id
       FROM facturacion_evento e
@@ -936,7 +936,7 @@ router.get('/eventos', async (req: RequestWithIO, res: Response) => {
     const total = countResult[0]?.total || 0;
     const eventos = dataResult.map((row: any) => ({
       id: row.id,
-      numeroFactura: row.numeroFactura,
+      numeroFactura: row.numero_factura,
       fecha: row.fecha,
       valor: parseFloat(row.valor) || 0,
       aseguradora: row.aseguradora || '',
@@ -997,7 +997,7 @@ router.get('/eventos/resumen', async (req: RequestWithIO, res: Response) => {
     // SQL optimizado para resumen completo sin paginación
     const sqlResumen = `
       SELECT 
-        e.id, e.numero_factura as "numeroFactura", e.fecha, e.valor,
+        e.id, e.numeroFactura as numero_factura, e.fecha, e.valor,
         e.aseguradora, e.paciente, e.documento, e.periodo, e.ambito,
         s.nombre as sede_nombre, s.id as sede_id
       FROM facturacion_evento e
