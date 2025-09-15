@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useAuth } from '../auth'
 import { useNavigate } from 'react-router-dom'
+import bgImage from '../assets/bg.jpg'
 
 export default function Login() {
   const { login } = useAuth()
@@ -33,7 +34,7 @@ export default function Login() {
   }
 
   return (
-  <div className="h-screen overflow-hidden flex items-center justify-center bg-cover bg-center relative" style={{ backgroundImage: 'url("/bg.jpg")' }}>
+  <div className="h-screen overflow-hidden flex items-center justify-center bg-cover bg-center relative" style={{ backgroundImage: `url(${bgImage})` }}>
       {/* overlay para mejorar contraste sin bloquear interacciones */}
       <div className="absolute inset-0 bg-black/30 dark:bg-black/50 pointer-events-none" />
       <form
