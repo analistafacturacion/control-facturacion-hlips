@@ -847,6 +847,7 @@ router.get('/eventos', async (req: RequestWithIO, res: Response) => {
       .leftJoinAndSelect('evento.sede', 'sede')
       .orderBy('evento.fecha', 'DESC')
       .addOrderBy('evento.id', 'DESC');
+    console.log('[EVENTOS] Parámetros recibidos:', req.query);
     
     // Aplicar filtros WHERE con índices optimizados
     if (fechaInicial && fechaFinal) {
@@ -868,6 +869,12 @@ router.get('/eventos', async (req: RequestWithIO, res: Response) => {
       );
     }
     
+    // Mostrar SQL y parámetros para debugging
+    try {
+      console.log('[EVENTOS] SQL (preview):', queryBuilder.getSql());
+      console.log('[EVENTOS] SQL params:', queryBuilder.getParameters());
+    } catch (e) {}
+
     // Obtener total de registros para metadatos de paginación
     const total = await queryBuilder.getCount();
     
@@ -917,6 +924,7 @@ router.get('/eventos/resumen', async (req: RequestWithIO, res: Response) => {
       .where('evento.fecha BETWEEN :fechaInicial AND :fechaFinal', { fechaInicial, fechaFinal })
       .orderBy('evento.fecha', 'DESC')
       .addOrderBy('evento.id', 'DESC');
+    console.log('[RESUMEN] Parámetros recibidos:', req.query);
 
     // Aplicar filtros adicionales
     if (sede) {
@@ -995,6 +1003,12 @@ router.get('/eventos/totales', async (req: RequestWithIO, res: Response) => {
       const s = `%${String(search).toLowerCase()}%`;
       qb.andWhere('(LOWER(evento.numeroFactura) LIKE :s OR LOWER(evento.documento) LIKE :s OR LOWER(evento.paciente) LIKE :s)', { s });
     }
+
+    try {
+      console.log('[TOTALES] Parámetros recibidos:', req.query);
+      console.log('[TOTALES] SQL (preview):', qb.getSql());
+      console.log('[TOTALES] SQL params:', qb.getParameters());
+    } catch (e) {}
 
     const resultado = await qb.getRawOne();
     
