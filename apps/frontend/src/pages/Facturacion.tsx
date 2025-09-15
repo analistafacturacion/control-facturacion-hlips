@@ -525,6 +525,10 @@ export default function Facturacion() {
       const params = new URLSearchParams({
         fechaInicial: fechaFiltroInicial,
         fechaFinal: fechaFiltroFinal
+        , ...(sedeFiltro && { sede: sedeFiltro })
+        , ...(aseguradoraFiltro && { aseguradora: aseguradoraFiltro })
+        , ...(filtroBusqueda && { search: filtroBusqueda })
+        , ...(periodoFiltro && { periodo: periodoFiltro })
       });
 
   const res = await fetch(`${API_CONFIG.BASE_URL}/facturacion/eventos/totales?${params}`, { signal: controller.signal });
@@ -603,6 +607,10 @@ export default function Facturacion() {
           fechaFinal: fechaFiltroFinal,
           page: String(pagina),
           limit: '500' // Máximo permitido
+          , ...(sedeFiltro && { sede: sedeFiltro })
+          , ...(aseguradoraFiltro && { aseguradora: aseguradoraFiltro })
+          , ...(filtroBusqueda && { search: filtroBusqueda })
+          , ...(periodoFiltro && { periodo: periodoFiltro })
         });
         res = await fetch(`${API_CONFIG.BASE_URL}/facturacion/eventos?${params}`, { signal: controller.signal });
         data = await res.json();
@@ -745,6 +753,7 @@ export default function Facturacion() {
         ...(fechaFiltroFinal && { fechaFinal: fechaFiltroFinal }),
         ...(sedeFiltro && { sede: sedeFiltro }),
         ...(aseguradoraFiltro && { aseguradora: aseguradoraFiltro }),
+        ...(periodoFiltro && { periodo: periodoFiltro }),
         ...(busqueda && { search: busqueda })
       });
       const res = await fetch(`${API_CONFIG.BASE_URL}/facturacion/eventos?${params}`, { signal: controller.signal });
