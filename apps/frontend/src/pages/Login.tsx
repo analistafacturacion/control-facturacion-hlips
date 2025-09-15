@@ -33,7 +33,7 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-white via-gray-100 to-gray-200 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+    <div className="h-screen flex items-center justify-center bg-gradient-to-br from-white via-gray-100 to-gray-200 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <form
         key={errorCount}
         onSubmit={handleSubmit}
@@ -53,11 +53,11 @@ export default function Login() {
         }
       `}</style>
   <div className={`absolute left-0 top-0 h-full w-2 rounded-l-xl transition-colors duration-300 ${success ? 'bg-green-600' : error ? 'bg-red-600' : 'bg-black'}`} />
-        <div className="flex flex-col gap-1 pl-4">
-          <h2 className="text-2xl font-bold text-black dark:text-white tracking-tight text-center">Control Facturación</h2>
-          <p className="text-gray-500 text-sm text-center">Accede con tus credenciales de Pergamo</p>
+        <div className="flex flex-col gap-1 items-center px-6">
+          <h2 className="text-2xl font-bold text-black dark:text-white tracking-tight text-center">Prisma Analytics</h2>
+          <p className="text-gray-500 text-sm text-center">Accede con tus credenciales</p>
         </div>
-        <div className="flex flex-col gap-3 pl-4 pr-2">
+        <div className="flex flex-col gap-3 px-6">
             <div className="flex flex-col gap-1 mb-1">
             <label className="text-xs text-gray-600 dark:text-gray-400 font-medium" htmlFor="username">Usuario</label>
             <input
