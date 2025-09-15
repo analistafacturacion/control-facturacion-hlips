@@ -15,11 +15,56 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
   const [aseguradora, setAseguradora] = useState(aseguradoras[0] || '');
   const [año, setAño] = useState(años[años.length-1] || new Date().getFullYear());
 
+  // Debug: Log inicial de datos recibidos
+  console.log('🎯 GraficoComparativo - Datos recibidos:', {
+    totalEventos: data.length,
+    sedes: sedes,
+    aseguradoras: aseguradoras,
+    años: años,
+    selectedSede: sede,
+    selectedAseguradora: aseguradora,
+    selectedAño: año
+  });
+
+  // Debug: Mostrar estructura de algunos eventos
+  if (data.length > 0) {
+    console.log('🔍 Estructura de los primeros 3 eventos:', data.slice(0, 3));
+  }
+
   // Generar datos para el gráfico: total facturado por mes
   const datosGrafico = meses.map((mes, idx) => {
     // Filtrar todos los eventos del mes actual, sede, aseguradora y año
-    const eventosMes = data.filter(d => d.sede === sede && d.aseguradora === aseguradora && d.año === año && d.mes === idx+1);
-    const totalMes = eventosMes.reduce((acc, ev) => acc + (Number(ev.valor) || 0), 0);
+    const eventosMes = data.filter(d => {
+      const coincideSede = d.sede === sede;
+      const coincideAseguradora = d.aseguradora === aseguradora;
+      const coincideAño = d.año === año;
+      const coincideMes = d.mes === idx+1;
+      
+      // Debug para el primer mes
+      if (idx === 0) {
+        console.log(`🔍 Filtrado ${mes} - Evento ejemplo:`, {
+          evento: d,
+          coincideSede,
+          coincideAseguradora,
+          coincideAño,
+          coincideMes,
+          filtroCompleto: coincideSede && coincideAseguradora && coincideAño && coincideMes
+        });
+      }
+      
+      return coincideSede && coincideAseguradora && coincideAño && coincideMes;
+    });
+    
+    const totalMes = eventosMes.reduce((acc, ev) => {
+      const valor = Number(ev.valor) || 0;
+      if (idx === 0 && valor > 0) {
+        console.log(`💰 Sumando valor en ${mes}:`, valor, 'del evento:', ev);
+      }
+      return acc + valor;
+    }, 0);
+    
+    console.log(`📅 ${mes} (${idx+1}): ${eventosMes.length} eventos, total: $${totalMes.toLocaleString()}`);
+    
     return {
       mes: mes.slice(0,3),
       valor: totalMes > 0 ? totalMes : null
