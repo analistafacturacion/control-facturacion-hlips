@@ -366,7 +366,7 @@ export default function Facturacion() {
   // Función para actualizar periodo en el backend
   async function actualizarPeriodo(id: number, nuevoPeriodo: string) {
     try {
-      const res = await fetch(`/api/facturacion/evento/${id}/periodo`, {
+      const res = await fetch(`${API_CONFIG.BASE_URL}/facturacion/evento/${id}/periodo`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ periodo: nuevoPeriodo })
