@@ -1022,13 +1022,25 @@ router.post('/ultima-actualizacion', async (req: RequestWithIO, res: Response) =
     // Intentar persistir en DB
     try {
       const repo = getRepository(require('../entity/UltimaActualizacion').UltimaActualizacion);
+      // Asegurar que la tabla exista (defensa en profundidad si no se aplicaron migraciones)
+      try {
+        await repo.query(`CREATE TABLE IF NOT EXISTS ultima_actualizacion (
+          id SERIAL PRIMARY KEY,
+          fecha text NOT NULL,
+          updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+        )`);
+      } catch (ensureErr) {
+        const _e: any = ensureErr;
+        console.log('[ULTIMA-ACTUALIZACION] Advertencia al crear tabla (posible falta de permisos):', _e.message || _e);
+      }
       // Insertar nuevo registro para mantener histórico y ordenar por updatedAt
       const nuevo = repo.create({ fecha });
       await repo.save(nuevo);
       console.log('[ULTIMA-ACTUALIZACION] Guardada en DB:', fecha);
       return res.json({ ok: true, mensaje: 'Fecha actualizada en DB' });
     } catch (dbErr) {
-      console.log('[ULTIMA-ACTUALIZACION] No se pudo guardar en DB, usando archivo. Error:', dbErr.message || dbErr);
+      const _dbErr: any = dbErr;
+      console.log('[ULTIMA-ACTUALIZACION] No se pudo guardar en DB, usando archivo. Error:', _dbErr && _dbErr.message ? _dbErr.message : _dbErr);
     }
 
     // Fallback: guardar en archivo temporal
