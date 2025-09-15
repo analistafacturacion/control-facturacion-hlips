@@ -1382,31 +1382,67 @@ export default function Facturacion() {
   <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-6">
     {/* Tarjeta: Total facturas */}
   <div className="relative bg-white rounded-2xl shadow-md px-7 py-6 flex flex-col items-center justify-center min-w-[180px] min-h-[110px]">
-  <span className="text-2xl font-bold mb-2 mt-2" style={{fontFamily: 'Segoe UI, Arial, sans-serif', color: '#1f1200'}}> 
-    {totalesTarjetas.totalFacturas.toLocaleString()}
-  </span>
+  {isLoadingDatos ? (
+    <div className="animate-pulse flex flex-col items-center">
+      <div className="h-8 bg-gray-200 rounded w-16 mb-2"></div>
+      <div className="h-3 bg-gray-200 rounded w-20"></div>
+    </div>
+  ) : (
+    <>
+      <span className="text-2xl font-bold mb-2 mt-2" style={{fontFamily: 'Segoe UI, Arial, sans-serif', color: '#1f1200'}}> 
+        {totalesTarjetas.totalFacturas.toLocaleString()}
+      </span>
       <span className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Total facturas</span>
+    </>
+  )}
     </div>
     {/* Tarjeta: Total Facturado */}
   <div className="relative bg-white rounded-2xl shadow-md px-7 py-6 flex flex-col items-center justify-center min-w-[180px] min-h-[110px]">
-  <span className="text-2xl font-bold mb-2 mt-2" style={{fontFamily: 'Segoe UI, Arial, sans-serif', color: '#103800'}}> 
-    {totalesTarjetas.totalFacturado.toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-  </span>
+  {isLoadingDatos ? (
+    <div className="animate-pulse flex flex-col items-center">
+      <div className="h-8 bg-gray-200 rounded w-24 mb-2"></div>
+      <div className="h-3 bg-gray-200 rounded w-20"></div>
+    </div>
+  ) : (
+    <>
+      <span className="text-2xl font-bold mb-2 mt-2" style={{fontFamily: 'Segoe UI, Arial, sans-serif', color: '#103800'}}> 
+        {totalesTarjetas.totalFacturado.toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+      </span>
       <span className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Total Facturado</span>
+    </>
+  )}
     </div>
     {/* Tarjeta: Facturado Corriente */}
   <div className="relative bg-white rounded-2xl shadow-md px-7 py-6 flex flex-col items-center justify-center min-w-[180px] min-h-[110px]">
-  <span className="text-2xl font-bold mb-2 mt-2" style={{fontFamily: 'Segoe UI, Arial, sans-serif', color: '#103800'}}> 
-    {totalesTarjetas.facturadoCorriente.toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-  </span>
+  {isLoadingDatos ? (
+    <div className="animate-pulse flex flex-col items-center">
+      <div className="h-8 bg-gray-200 rounded w-24 mb-2"></div>
+      <div className="h-3 bg-gray-200 rounded w-24"></div>
+    </div>
+  ) : (
+    <>
+      <span className="text-2xl font-bold mb-2 mt-2" style={{fontFamily: 'Segoe UI, Arial, sans-serif', color: '#103800'}}> 
+        {totalesTarjetas.facturadoCorriente.toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+      </span>
       <span className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Facturado Corriente</span>
+    </>
+  )}
     </div>
     {/* Tarjeta: Facturado Remanente */}
   <div className="relative bg-white rounded-2xl shadow-md px-7 py-6 flex flex-col items-center justify-center min-w-[180px] min-h-[110px]">
-  <span className="text-2xl font-bold mb-2 mt-2" style={{fontFamily: 'Segoe UI, Arial, sans-serif', color: '#103800'}}> 
-    {totalesTarjetas.facturadoRemanente.toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-  </span>
+  {isLoadingDatos ? (
+    <div className="animate-pulse flex flex-col items-center">
+      <div className="h-8 bg-gray-200 rounded w-24 mb-2"></div>
+      <div className="h-3 bg-gray-200 rounded w-24"></div>
+    </div>
+  ) : (
+    <>
+      <span className="text-2xl font-bold mb-2 mt-2" style={{fontFamily: 'Segoe UI, Arial, sans-serif', color: '#103800'}}> 
+        {totalesTarjetas.facturadoRemanente.toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+      </span>
       <span className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Facturado Remanente</span>
+    </>
+  )}
     </div>
     {/* Tarjeta: Última actualización */}
   <div className="relative bg-white rounded-2xl shadow-md px-7 py-6 flex flex-col items-center justify-center min-w-[180px] min-h-[110px]">
@@ -1421,7 +1457,7 @@ export default function Facturacion() {
   <div className="grid grid-cols-1 md:grid-cols-6 gap-2 mb-6 w-full">
         {/* 1. Filtro texto */}
         <input
-          className="border px-2 py-1 w-full text-xs"
+          className={`border px-2 py-1 w-full text-xs ${isLoadingDatos ? 'opacity-50' : ''}`}
           placeholder="Factura, Documento o Paciente"
           value={filtroBusqueda}
           onChange={e => {
@@ -1450,7 +1486,7 @@ export default function Facturacion() {
         />
         {/* 3. Sede */}
         <select
-          className="border px-2 py-1 w-full text-xs"
+          className={`border px-2 py-1 w-full text-xs ${isLoadingDatos ? 'opacity-50' : ''}`}
           value={sedeFiltro}
           onChange={e => setSedeFiltro(e.target.value)}
           disabled={isLoadingDatos}
@@ -1462,7 +1498,7 @@ export default function Facturacion() {
         </select>
         {/* 4. Aseguradora */}
         <select
-          className="border px-2 py-1 w-full text-xs"
+          className={`border px-2 py-1 w-full text-xs ${isLoadingDatos ? 'opacity-50' : ''}`}
           value={aseguradoraFiltro}
           onChange={e => setAseguradoraFiltro(e.target.value)}
           disabled={isLoadingDatos}
@@ -1474,7 +1510,7 @@ export default function Facturacion() {
         </select>
         {/* 5. Periodo */}
         <select
-          className="border px-2 py-1 w-full text-xs"
+          className={`border px-2 py-1 w-full text-xs ${isLoadingDatos ? 'opacity-50' : ''}`}
           value={periodoFiltro}
           onChange={e => setPeriodoFiltro(e.target.value)}
           disabled={isLoadingDatos}

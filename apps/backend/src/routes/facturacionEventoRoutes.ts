@@ -854,10 +854,10 @@ router.get('/eventos', async (req: RequestWithIO, res: Response) => {
       queryBuilder.andWhere('evento.fecha BETWEEN :fechaInicial AND :fechaFinal', { fechaInicial, fechaFinal });
     }
     if (sede) {
-      queryBuilder.andWhere('sede.nombre ILIKE :sede', { sede: `%${sede}%` });
+      queryBuilder.andWhere('sede.nombre = :sede', { sede });
     }
     if (aseguradora) {
-      queryBuilder.andWhere('evento.aseguradora ILIKE :aseguradora', { aseguradora: `%${aseguradora}%` });
+      queryBuilder.andWhere('evento.aseguradora = :aseguradora', { aseguradora });
     }
     if (periodo) {
       queryBuilder.andWhere("UPPER(TRIM(COALESCE(evento.periodo, ''))) = UPPER(TRIM(:periodo))", { periodo });
@@ -975,54 +975,71 @@ router.get('/eventos/totales', async (req: RequestWithIO, res: Response) => {
     }
     
     console.log(`[TOTALES] Calculando totales entre ${fechaInicial} y ${fechaFinal}`);
+    console.log('[TOTALES] Parámetros recibidos:', req.query);
     
-    // Consulta SQL simple para totales de FACTURACIÓN
-    const qb = facturacionRepo
-      .createQueryBuilder('evento')
-      .leftJoin('evento.sede', 'sede')
-      .select([
-        'COUNT(*) as total_facturas',
-        'SUM(COALESCE(evento.valor, 0)) as total_facturado',
-        `SUM(CASE 
-          WHEN UPPER(TRIM(COALESCE(evento.periodo, ''))) = 'CORRIENTE' 
-          THEN COALESCE(evento.valor, 0) 
+    // Usar SQL directo para máxima velocidad
+    let sqlBase = `
+      SELECT 
+        COUNT(*)::int as total_facturas,
+        SUM(COALESCE(valor, 0))::numeric as total_facturado,
+        SUM(CASE 
+          WHEN UPPER(TRIM(COALESCE(periodo, ''))) = 'CORRIENTE' 
+          THEN COALESCE(valor, 0) 
           ELSE 0 
-        END) as facturado_corriente`,
-        `SUM(CASE 
-          WHEN UPPER(TRIM(COALESCE(evento.periodo, ''))) = 'REMANENTE' 
-          THEN COALESCE(evento.valor, 0) 
+        END)::numeric as facturado_corriente,
+        SUM(CASE 
+          WHEN UPPER(TRIM(COALESCE(periodo, ''))) = 'REMANENTE' 
+          THEN COALESCE(valor, 0) 
           ELSE 0 
-        END) as facturado_remanente`
-      ])
-      .where('evento.fecha BETWEEN :fechaInicial AND :fechaFinal', { fechaInicial, fechaFinal });
-
+        END)::numeric as facturado_remanente
+      FROM facturacion_evento e
+      LEFT JOIN sede s ON e.sede_id = s.id
+      WHERE e.fecha BETWEEN $1 AND $2
+    `;
+    
+    const params: any[] = [fechaInicial, fechaFinal];
+    let paramIndex = 3;
+    
     if (sede) {
-      qb.andWhere('sede.nombre = :sede', { sede });
+      sqlBase += ` AND s.nombre = $${paramIndex}`;
+      params.push(sede);
+      paramIndex++;
     }
+    
     if (aseguradora) {
-      qb.andWhere('evento.aseguradora = :aseguradora', { aseguradora });
+      sqlBase += ` AND e.aseguradora = $${paramIndex}`;
+      params.push(aseguradora);
+      paramIndex++;
     }
+    
     if (periodo) {
-      qb.andWhere("UPPER(TRIM(COALESCE(evento.periodo, ''))) = UPPER(TRIM(:periodo))", { periodo });
+      sqlBase += ` AND UPPER(TRIM(COALESCE(e.periodo, ''))) = UPPER(TRIM($${paramIndex}))`;
+      params.push(periodo);
+      paramIndex++;
     }
+    
     if (search) {
-      const s = `%${String(search).toLowerCase()}%`;
-      qb.andWhere('(LOWER(evento.numeroFactura) LIKE :s OR LOWER(evento.documento) LIKE :s OR LOWER(evento.paciente) LIKE :s)', { s });
+      const searchPattern = `%${String(search).toLowerCase()}%`;
+      sqlBase += ` AND (
+        LOWER(e.numero_factura) LIKE $${paramIndex} OR 
+        LOWER(e.documento) LIKE $${paramIndex} OR 
+        LOWER(e.paciente) LIKE $${paramIndex}
+      )`;
+      params.push(searchPattern);
+      paramIndex++;
     }
-
-    try {
-      console.log('[TOTALES] Parámetros recibidos:', req.query);
-      console.log('[TOTALES] SQL (preview):', qb.getSql());
-      console.log('[TOTALES] SQL params:', qb.getParameters());
-    } catch (e) {}
-
-    const resultado = await qb.getRawOne();
+    
+    console.log('[TOTALES] SQL directo:', sqlBase);
+    console.log('[TOTALES] Parámetros:', params);
+    
+    const resultado = await facturacionRepo.query(sqlBase, params);
+    const row = resultado[0];
     
     const totales = {
-      totalFacturas: parseInt(resultado.total_facturas) || 0,
-      totalFacturado: parseFloat(resultado.total_facturado) || 0,
-      facturadoCorriente: parseFloat(resultado.facturado_corriente) || 0,
-      facturadoRemanente: parseFloat(resultado.facturado_remanente) || 0
+      totalFacturas: parseInt(row.total_facturas) || 0,
+      totalFacturado: parseFloat(row.total_facturado) || 0,
+      facturadoCorriente: parseFloat(row.facturado_corriente) || 0,
+      facturadoRemanente: parseFloat(row.facturado_remanente) || 0
     };
     
     console.log(`[TOTALES] Calculados:`, totales);
