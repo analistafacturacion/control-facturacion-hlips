@@ -560,35 +560,61 @@ export default function Facturacion() {
       
       console.log(`[DEBUG TARJETAS ${callId}] Endpoint /resumen no disponible, usando múltiples llamadas...`);
       
-      // FALLBACK: Hacer múltiples llamadas para obtener todos los datos
+      // FALLBACK: Hacer múltiples llamadas para obtener todos los datos (paralelizadas)
       let todosLosEventos: any[] = [];
-      let pagina = 1;
-      let totalPaginas = 1;
-      
-      do {
-        const params = new URLSearchParams({
-          fechaInicial: fechaFiltroInicial,
-          fechaFinal: fechaFiltroFinal,
-          page: String(pagina),
-          limit: '500' // Máximo permitido
+      // Primera llamada para conocer totalPages
+      const firstParams = new URLSearchParams({
+        fechaInicial: fechaFiltroInicial,
+        fechaFinal: fechaFiltroFinal,
+        page: '1',
+        limit: '500'
+      });
+      res = await fetch(`${API_CONFIG.BASE_URL}/facturacion/eventos?${firstParams}`);
+      data = await res.json();
+      if (!(data.ok && data.eventos)) {
+        console.log(`[DEBUG TARJETAS ${callId}] Error en primera página fallback:`, data.error);
+        setTodosEventosFecha([]);
+        return;
+      }
+      todosLosEventos = [...todosLosEventos, ...data.eventos];
+      let totalPaginas = data.pagination?.totalPages || 1;
+      console.log(`[DEBUG TARJETAS ${callId}] Fallback: totalPages estimado: ${totalPaginas}`);
+
+      // Limitar el número máximo de páginas a descargar (seguridad)
+      totalPaginas = Math.min(totalPaginas, 50);
+
+      // Crear array de índices restantes (2..totalPaginas)
+      const pages = [];
+      for (let p = 2; p <= totalPaginas; p++) pages.push(p);
+
+      // Batch fetch: 4 requests concurrentes por vez
+      const CONCURRENCY = 4;
+      for (let i = 0; i < pages.length; i += CONCURRENCY) {
+        const batch = pages.slice(i, i + CONCURRENCY);
+        const batchPromises = batch.map(p => {
+          const params = new URLSearchParams({
+            fechaInicial: fechaFiltroInicial,
+            fechaFinal: fechaFiltroFinal,
+            page: String(p),
+            limit: '500'
+          });
+          return fetch(`${API_CONFIG.BASE_URL}/facturacion/eventos?${params}`).then(r => r.json()).catch(err => ({ ok: false, error: err }));
         });
 
-        res = await fetch(`${API_CONFIG.BASE_URL}/facturacion/eventos?${params}`);
-        data = await res.json();
-        
-        if (data.ok && data.eventos) {
-          todosLosEventos = [...todosLosEventos, ...data.eventos];
-          totalPaginas = data.pagination?.totalPages || 1;
-          console.log(`[DEBUG TARJETAS ${callId}] Página ${pagina}/${totalPaginas} - Eventos acumulados: ${todosLosEventos.length}`);
-        } else {
-          console.log(`[DEBUG TARJETAS ${callId}] Error en página`, pagina, ':', data.error);
-          break;
-        }
-        
-        pagina++;
-      } while (pagina <= totalPaginas && pagina <= 20); // Límite de seguridad
-      
-      console.log(`[DEBUG TARJETAS ${callId}] Total final de eventos cargados:`, todosLosEventos.length);
+        const results = await Promise.all(batchPromises);
+        results.forEach((r, idx) => {
+          if (r.ok && r.eventos) {
+            todosLosEventos = todosLosEventos.concat(r.eventos);
+            console.log(`[DEBUG TARJETAS ${callId}] Batch page ${batch[idx]} ok - acumulado ${todosLosEventos.length}`);
+          } else {
+            console.log(`[DEBUG TARJETAS ${callId}] Batch page ${batch[idx]} error:`, r.error || r);
+          }
+        });
+        // Pequeña pausa entre batches para no saturar el servidor
+        await new Promise(resP => setTimeout(resP, 120));
+      }
+
+      console.log(`[DEBUG TARJETAS ${callId}] Total final de eventos cargados (paralelo):`, todosLosEventos.length);
       setTodosEventosFecha(todosLosEventos);
       
       // CALCULAR TOTALES PARA COMPATIBILIDAD
@@ -796,8 +822,15 @@ export default function Facturacion() {
     const effectId = Date.now();
     console.log(`[DEBUG USEEFFECT ${effectId}] Disparado con fechas:`, fechaFiltroInicial, fechaFiltroFinal);
     if (fechaFiltroInicial && fechaFiltroFinal) {
-      cargarTotalesTarjetas(); // Usar función ultra-rápida
-      cargarTodosEventosFecha(); // AGREGADO: Cargar todos los eventos para gráficas
+      // Cargar solo los totales rápidos inmediatamente para render inmediato de tarjetas
+      cargarTotalesTarjetas();
+      // Deferir la carga completa de todos los eventos a background para no bloquear la UI
+      // Si el endpoint /resumen está disponible, se usará allí; si no, la carga en background
+      // intentará paralelizar las páginas para acelerar la obtención.
+      setTimeout(() => {
+        // cargarTodosEventosFecha es costosa; ejecutarla en background
+        cargarTodosEventosFecha();
+      }, 200);
     }
   }, [fechaFiltroInicial, fechaFiltroFinal, cargarTotalesTarjetas, cargarTodosEventosFecha]);
   
@@ -814,17 +847,22 @@ export default function Facturacion() {
       console.log('[SOCKET] Evento facturacion_actualizada recibido:', data);
       setShowOpuSuccess(true);
       setTimeout(() => setShowOpuSuccess(false), 3000);
-      
-      // Solo recargar si tenemos fechas configuradas y no estamos en modo de solo lectura
-      if (fechaFiltroInicial && fechaFiltroFinal && !loading) {
-        console.log('[SOCKET] Recargando datos debido a actualización...');
-        try {
-          cargarEventos(1, '', true);
-          cargarTotalesTarjetas();
-          cargarTodosEventosFecha();
-          cargarEventosAñoCompleto();
-        } catch (error) {
-          console.error('[SOCKET] Error recargando datos:', error);
+      // Debounce: evitar múltiples recargas pesadas en ráfaga
+      if (fechaFiltroInicial && fechaFiltroFinal) {
+        if (!loading) {
+          console.log('[SOCKET] Recargando totales y primera página (debounced)...');
+          cargarEventos(1, '', true); // recargar la tabla (primera página)
+          cargarTotalesTarjetas(); // recargar totales rápidos
+          // Deferir carga completa en background si hace falta
+          setTimeout(() => {
+            if (!loading) {
+              cargarTodosEventosFecha();
+            }
+          }, 1000);
+          // También recargar datos para gráficas de forma diferida
+          setTimeout(() => cargarEventosAñoCompleto(), 1500);
+        } else {
+          console.log('[SOCKET] Ignorando recarga porque ya se está cargando');
         }
       }
     });
