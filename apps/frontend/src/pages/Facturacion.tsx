@@ -341,6 +341,7 @@ export default function Facturacion() {
   const [fechaFinal, setFechaFinal] = useState('');
   const [loadingCargar, setLoadingCargar] = useState(false);
   const [loadingUltimosDias, setLoadingUltimosDias] = useState(false);
+  const [isLoadingDatos, setIsLoadingDatos] = useState(false);
   const [mensaje, setMensaje] = useState<string|null>(null);
   const [actualizar, setActualizar] = useState(0); // Para forzar refresco
   const [ultimaActualizacion, setUltimaActualizacion] = useState<string>(() => {
@@ -372,7 +373,7 @@ export default function Facturacion() {
   // ...existing code...
   // Paginación
   const [paginaActual, setPaginaActual] = useState(1);
-  const registrosPorPagina = 100;
+  const registrosPorPagina = 50;
   // Mostrar/ocultar filtros avanzados
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   // Filtro unificado
@@ -502,6 +503,7 @@ export default function Facturacion() {
 
   // Función ULTRA-RÁPIDA para cargar solo totales (no todos los datos)
   const cargarTotalesTarjetas = useCallback(async () => {
+    setIsLoadingDatos(true);
     if (!fechaFiltroInicial || !fechaFiltroFinal) return;
     
     const callId = Date.now();
@@ -532,10 +534,14 @@ export default function Facturacion() {
       // Fallback: usar el método anterior
       await cargarTodosEventosFecha();
     }
+    finally {
+      setIsLoadingDatos(false);
+    }
   }, [fechaFiltroInicial, fechaFiltroFinal]);
 
   // Función para cargar TODOS los eventos del rango de fechas (para tarjetas)
   const cargarTodosEventosFecha = useCallback(async () => {
+    setIsLoadingDatos(true);
     if (!fechaFiltroInicial || !fechaFiltroFinal) return;
     
     const callId = Date.now(); // ID único para esta llamada
@@ -622,6 +628,9 @@ export default function Facturacion() {
       console.error(`[DEBUG TARJETAS ${callId}] Error cargando todos los eventos:`, error);
       setTodosEventosFecha([]);
     }
+      finally {
+        setIsLoadingDatos(false);
+      }
   }, [fechaFiltroInicial, fechaFiltroFinal]);
 
   // Función para cargar TODOS los eventos del AÑO COMPLETO (solo para gráficas)
@@ -691,6 +700,7 @@ export default function Facturacion() {
   // Función optimizada para cargar eventos con paginación
   const cargarEventos = useCallback(async (pagina = 1, busqueda = '', resetPagina = false) => {
     setLoading(true);
+    setIsLoadingDatos(true);
     try {
       const params = new URLSearchParams({
         page: String(resetPagina ? 1 : pagina),
@@ -723,6 +733,7 @@ export default function Facturacion() {
       setTotalPaginas(0);
     } finally {
       setLoading(false);
+      setIsLoadingDatos(false);
     }
   }, [fechaFiltroInicial, fechaFiltroFinal, sedeFiltro, aseguradoraFiltro, registrosPorPagina]);
 
@@ -963,6 +974,7 @@ export default function Facturacion() {
                   onChange={e => setFechaInicial(e.target.value)}
                   placeholder="Fecha inicial"
                   min="2025-01-01"
+                  disabled={isLoadingDatos}
                 />
                 <input
                   type="date"
@@ -971,13 +983,14 @@ export default function Facturacion() {
                   onChange={e => setFechaFinal(e.target.value)}
                   placeholder="Fecha final"
                   min="2025-01-01"
+                  disabled={isLoadingDatos}
                 />
                 {/* Botón cargar/actualizar facturación SOLO cuando mostrarFiltros */}
                 <button
                   className={`p-0 m-0 bg-transparent border-none outline-none flex items-center ml-2 group ${loadingCargar ? 'animate-spin' : ''}`}
                   title="Cargar o actualizar facturación"
                   onClick={handleCargar}
-                  disabled={loadingCargar}
+                  disabled={loadingCargar || isLoadingDatos}
                   style={{ boxShadow: 'none', borderRadius: '50%' }}
                 >
                   {loadingCargar ? (
@@ -1078,13 +1091,13 @@ export default function Facturacion() {
               `}</style>
             </button>
             {/* Botón actualizar rápido */}
-            <button
-              className={`p-0 m-0 bg-transparent border-none outline-none flex items-center transition-colors duration-200 ${loadingUltimosDias ? 'animate-spin' : ''} group`}
-              title="Actualizar últimos 2 días"
-              onClick={handleActualizarRapido}
-              disabled={loadingUltimosDias}
-              style={{ boxShadow: 'none', borderRadius: '50%' }}
-            >
+                <button
+                  className={`p-0 m-0 bg-transparent border-none outline-none flex items-center transition-colors duration-200 ${loadingUltimosDias ? 'animate-spin' : ''} group`}
+                  title="Actualizar últimos 2 días"
+                  onClick={handleActualizarRapido}
+                  disabled={loadingUltimosDias || isLoadingDatos}
+                  style={{ boxShadow: 'none', borderRadius: '50%' }}
+                >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 className="h-5 w-5 transition-all duration-200"
@@ -1360,6 +1373,7 @@ export default function Facturacion() {
             setFiltroBusqueda(e.target.value);
             setSearchQuery(e.target.value);
           }}
+          disabled={isLoadingDatos}
         />
         {/* 2. Fechas */}
         <input
@@ -1368,6 +1382,7 @@ export default function Facturacion() {
           value={fechaFiltroInicial}
           max={fechaFiltroFinal}
           onChange={e => setFechasFiltro(f => ({ ...f, inicial: e.target.value }))}
+          disabled={isLoadingDatos}
         />
         <input
           className="border px-2 py-1 w-full text-xs"
@@ -1376,12 +1391,14 @@ export default function Facturacion() {
           min={fechaFiltroInicial}
           max={getDefaultFechas().final}
           onChange={e => setFechasFiltro(f => ({ ...f, final: e.target.value }))}
+          disabled={isLoadingDatos}
         />
         {/* 3. Sede */}
         <select
           className="border px-2 py-1 w-full text-xs"
           value={sedeFiltro}
           onChange={e => setSedeFiltro(e.target.value)}
+          disabled={isLoadingDatos}
         >
           <option value="">Todas las sedes</option>
           {sedes.map(s => (
@@ -1393,6 +1410,7 @@ export default function Facturacion() {
           className="border px-2 py-1 w-full text-xs"
           value={aseguradoraFiltro}
           onChange={e => setAseguradoraFiltro(e.target.value)}
+          disabled={isLoadingDatos}
         >
           <option value="">Todas las aseguradoras</option>
           {aseguradoras.map(a => (
@@ -1404,6 +1422,7 @@ export default function Facturacion() {
           className="border px-2 py-1 w-full text-xs"
           value={periodoFiltro}
           onChange={e => setPeriodoFiltro(e.target.value)}
+          disabled={isLoadingDatos}
         >
           <option value="">Todos los periodos</option>
           <option value="CORRIENTE">CORRIENTE</option>
