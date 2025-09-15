@@ -53,7 +53,7 @@ export default function Login() {
       <form
         key={errorCount}
         onSubmit={handleSubmit}
-  className={`relative z-20 bg-white dark:bg-gray-900/90 border border-gray-200 dark:border-gray-800 rounded-xl shadow-2xl px-8 py-6 w-full max-w-md flex flex-col gap-6 overflow-hidden transition-all duration-300 transform md:-translate-y-12 lg:-translate-y-20 ${error ? 'animate-shake' : ''}`}
+  className={`relative z-20 bg-white/60 dark:bg-gray-900/50 backdrop-blur-md border border-white/20 dark:border-black/30 rounded-xl shadow-2xl px-6 py-5 w-full max-w-md flex flex-col gap-5 overflow-hidden transition-all duration-300 transform md:-translate-y-12 lg:-translate-y-20 ${error ? 'animate-shake' : ''}`}
         style={{ boxShadow: '0 6px 32px 0 rgba(0,0,0,0.13)' }}
       >
       {/* Animación shake personalizada para Tailwind */}
