@@ -941,6 +941,12 @@ router.get('/eventos/resumen', async (req: RequestWithIO, res: Response) => {
       queryBuilder.andWhere('(LOWER(evento.numeroFactura) LIKE :s OR LOWER(evento.documento) LIKE :s OR LOWER(evento.paciente) LIKE :s)', { s });
     }
     
+    // Mostrar SQL y parámetros para debugging
+    try {
+      console.log('[RESUMEN] SQL (preview):', queryBuilder.getSql());
+      console.log('[RESUMEN] SQL params:', queryBuilder.getParameters());
+    } catch (e) {}
+    
     const eventos = await queryBuilder.getMany();
     
     console.log(`[RESUMEN] Encontrados ${eventos.length} eventos entre ${fechaInicial} y ${fechaFinal}`);

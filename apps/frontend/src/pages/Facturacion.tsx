@@ -561,7 +561,7 @@ export default function Facturacion() {
         setIsLoadingDatos(false);
       }
     }
-  }, [fechaFiltroInicial, fechaFiltroFinal]);
+  }, [fechaFiltroInicial, fechaFiltroFinal, sedeFiltro, aseguradoraFiltro, filtroBusqueda, periodoFiltro]);
 
   // Función para cargar TODOS los eventos del rango de fechas (para tarjetas)
   const cargarTodosEventosFecha = useCallback(async () => {
@@ -582,6 +582,10 @@ export default function Facturacion() {
       const paramsResumen = new URLSearchParams({
         fechaInicial: fechaFiltroInicial,
         fechaFinal: fechaFiltroFinal
+        , ...(sedeFiltro && { sede: sedeFiltro })
+        , ...(aseguradoraFiltro && { aseguradora: aseguradoraFiltro })
+        , ...(filtroBusqueda && { search: filtroBusqueda })
+        , ...(periodoFiltro && { periodo: periodoFiltro })
       });
 
   let res = await fetch(`${API_CONFIG.BASE_URL}/facturacion/eventos/resumen?${paramsResumen}`, { signal: controller.signal });
@@ -671,7 +675,7 @@ export default function Facturacion() {
           setIsLoadingDatos(false);
         }
       }
-  }, [fechaFiltroInicial, fechaFiltroFinal]);
+  }, [fechaFiltroInicial, fechaFiltroFinal, sedeFiltro, aseguradoraFiltro, filtroBusqueda, periodoFiltro]);
 
   // Función para cargar TODOS los eventos del AÑO COMPLETO (solo para gráficas)
   const cargarEventosAñoCompleto = useCallback(async () => {
