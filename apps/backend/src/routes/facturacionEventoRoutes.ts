@@ -819,70 +819,123 @@ router.post('/cargar', async (req: RequestWithIO, res: Response) => {
 
 export default router;
 // Endpoint para obtener eventos de facturación
+// Función helper para construir filtros SQL reutilizable
+function buildFilterSQL(filters: any): { whereClause: string, params: any[] } {
+  const { fechaInicial, fechaFinal, sede, aseguradora, search, periodo } = filters;
+  let whereClause = '1=1';
+  const params: any[] = [];
+  let paramIndex = 1;
+  
+  // Filtro de fechas (obligatorio para rendimiento)
+  if (fechaInicial && fechaFinal) {
+    whereClause += ` AND e.fecha BETWEEN $${paramIndex} AND $${paramIndex + 1}`;
+    params.push(fechaInicial, fechaFinal);
+    paramIndex += 2;
+  }
+  
+  // Filtro de sede
+  if (sede && sede.trim()) {
+    whereClause += ` AND s.nombre = $${paramIndex}`;
+    params.push(sede.trim());
+    paramIndex++;
+  }
+  
+  // Filtro de aseguradora (exacto para máximo rendimiento)
+  if (aseguradora && aseguradora.trim()) {
+    whereClause += ` AND e.aseguradora = $${paramIndex}`;
+    params.push(aseguradora.trim());
+    paramIndex++;
+  }
+  
+  // Filtro de periodo (normalizado)
+  if (periodo && periodo.trim()) {
+    whereClause += ` AND UPPER(TRIM(COALESCE(e.periodo, ''))) = $${paramIndex}`;
+    params.push(periodo.trim().toUpperCase());
+    paramIndex++;
+  }
+  
+  // Búsqueda de texto (optimizada)
+  if (search && search.trim()) {
+    const searchTerm = `%${search.trim().toLowerCase()}%`;
+    whereClause += ` AND (
+      LOWER(e.numero_factura) LIKE $${paramIndex} OR 
+      LOWER(e.documento) LIKE $${paramIndex} OR 
+      LOWER(e.paciente) LIKE $${paramIndex} OR
+      LOWER(e.aseguradora) LIKE $${paramIndex}
+    )`;
+    params.push(searchTerm);
+    paramIndex++;
+  }
+  
+  return { whereClause, params };
+}
+
 router.get('/eventos', async (req: RequestWithIO, res: Response) => {
   try {
     const facturacionRepo = getRepository(FacturacionEvento);
     
-    // Permitir filtros opcionales por fecha, sede, aseguradora, etc.
-  const { fechaInicial, fechaFinal, sede, aseguradora, page, limit, search, periodo } = req.query;
+    const { fechaInicial, fechaFinal, sede, aseguradora, page, limit, search, periodo } = req.query;
     
-    // Parámetros de paginación
-    const pageNumber = parseInt(String(page)) || 1;
-    const limitNumber = Math.min(parseInt(String(limit)) || 100, 500); // Máximo 500 por página
-    const offset = (pageNumber - 1) * limitNumber;
-    
-    const where: any = {};
-    if (fechaInicial && fechaFinal) {
-      where.fecha = Between(fechaInicial, fechaFinal);
-    }
-    if (sede) {
-      where.sede = sede;
-    }
-    if (aseguradora) {
-      where.aseguradora = aseguradora;
-    }
-    
-    // Consulta con paginación y conteo total
-    const queryBuilder = facturacionRepo.createQueryBuilder('evento')
-      .leftJoinAndSelect('evento.sede', 'sede')
-      .orderBy('evento.fecha', 'DESC')
-      .addOrderBy('evento.id', 'DESC');
     console.log('[EVENTOS] Parámetros recibidos:', req.query);
     
-    // Aplicar filtros WHERE con índices optimizados
-    if (fechaInicial && fechaFinal) {
-      queryBuilder.andWhere('evento.fecha BETWEEN :fechaInicial AND :fechaFinal', { fechaInicial, fechaFinal });
-    }
-    if (sede) {
-      queryBuilder.andWhere('sede.nombre = :sede', { sede });
-    }
-    if (aseguradora) {
-      queryBuilder.andWhere('evento.aseguradora = :aseguradora', { aseguradora });
-    }
-    if (periodo) {
-      queryBuilder.andWhere("UPPER(TRIM(COALESCE(evento.periodo, ''))) = UPPER(TRIM(:periodo))", { periodo });
-    }
-    if (search) {
-      queryBuilder.andWhere(
-        '(evento.numeroFactura ILIKE :search OR evento.aseguradora ILIKE :search OR evento.paciente ILIKE :search OR evento.documento ILIKE :search)',
-        { search: `%${search}%` }
-      );
+    // Validar fechas obligatorias
+    if (!fechaInicial || !fechaFinal) {
+      return res.status(400).json({ 
+        ok: false, 
+        error: 'fechaInicial y fechaFinal son obligatorios para el rendimiento' 
+      });
     }
     
-    // Mostrar SQL y parámetros para debugging
-    try {
-      console.log('[EVENTOS] SQL (preview):', queryBuilder.getSql());
-      console.log('[EVENTOS] SQL params:', queryBuilder.getParameters());
-    } catch (e) {}
-
-    // Obtener total de registros para metadatos de paginación
-    const total = await queryBuilder.getCount();
+    // Parámetros de paginación
+    const pageNumber = Math.max(1, parseInt(String(page)) || 1);
+    const limitNumber = Math.min(parseInt(String(limit)) || 100, 500);
+    const offset = (pageNumber - 1) * limitNumber;
     
-    // Aplicar paginación
-    const eventos = await queryBuilder
-      .skip(offset)
-      .take(limitNumber)
-      .getMany();
+    // Construir filtros SQL optimizados
+    const { whereClause, params } = buildFilterSQL(req.query);
+    
+    // Consulta SQL directa para máximo rendimiento
+    const sqlCount = `
+      SELECT COUNT(*)::int as total
+      FROM facturacion_evento e
+      LEFT JOIN sede s ON e.sede_id = s.id
+      WHERE ${whereClause}
+    `;
+    
+    const sqlData = `
+      SELECT 
+        e.id, e.numero_factura as "numeroFactura", e.fecha, e.valor,
+        e.aseguradora, e.paciente, e.documento, e.periodo, e.ambito,
+        s.nombre as sede_nombre, s.id as sede_id
+      FROM facturacion_evento e
+      LEFT JOIN sede s ON e.sede_id = s.id
+      WHERE ${whereClause}
+      ORDER BY e.fecha DESC, e.id DESC
+      LIMIT $${params.length + 1} OFFSET $${params.length + 2}
+    `;
+    
+    console.log('[EVENTOS] SQL optimizado:', sqlData);
+    console.log('[EVENTOS] Parámetros:', [...params, limitNumber, offset]);
+    
+    // Ejecutar consultas en paralelo para máxima velocidad
+    const [countResult, dataResult] = await Promise.all([
+      facturacionRepo.query(sqlCount, params),
+      facturacionRepo.query(sqlData, [...params, limitNumber, offset])
+    ]);
+    
+    const total = countResult[0]?.total || 0;
+    const eventos = dataResult.map((row: any) => ({
+      id: row.id,
+      numeroFactura: row.numeroFactura,
+      fecha: row.fecha,
+      valor: parseFloat(row.valor) || 0,
+      aseguradora: row.aseguradora || '',
+      paciente: row.paciente || '',
+      documento: row.documento || '',
+      periodo: row.periodo || '',
+      ambito: row.ambito || '',
+      sede: row.sede_nombre ? { id: row.sede_id, nombre: row.sede_nombre } : null
+    }));
     
     // Metadatos de paginación
     const totalPages = Math.ceil(total / limitNumber);
@@ -911,55 +964,66 @@ router.get('/eventos/resumen', async (req: RequestWithIO, res: Response) => {
   try {
     const facturacionRepo = getRepository(FacturacionEvento);
     
-    // Filtros posibles (fecha, sede, aseguradora, search, periodo)
     const { fechaInicial, fechaFinal, sede, aseguradora, search, periodo } = req.query;
     
-    if (!fechaInicial || !fechaFinal) {
-      return res.status(400).json({ error: 'fechaInicial y fechaFinal son requeridos' });
-    }
-    
-    // Consulta SIN LÍMITE para obtener TODOS los eventos del período
-    const queryBuilder = facturacionRepo.createQueryBuilder('evento')
-      .leftJoinAndSelect('evento.sede', 'sede')
-      .where('evento.fecha BETWEEN :fechaInicial AND :fechaFinal', { fechaInicial, fechaFinal })
-      .orderBy('evento.fecha', 'DESC')
-      .addOrderBy('evento.id', 'DESC');
     console.log('[RESUMEN] Parámetros recibidos:', req.query);
-
-    // Aplicar filtros adicionales
-    if (sede) {
-      queryBuilder.andWhere('sede.nombre = :sede', { sede });
-    }
-    if (aseguradora) {
-      queryBuilder.andWhere('evento.aseguradora = :aseguradora', { aseguradora });
-    }
-    if (periodo) {
-      queryBuilder.andWhere("UPPER(TRIM(COALESCE(evento.periodo, ''))) = UPPER(TRIM(:periodo))", { periodo });
-    }
-    if (search) {
-      const s = `%${String(search).toLowerCase()}%`;
-      queryBuilder.andWhere('(LOWER(evento.numeroFactura) LIKE :s OR LOWER(evento.documento) LIKE :s OR LOWER(evento.paciente) LIKE :s)', { s });
+    
+    // Validar fechas obligatorias
+    if (!fechaInicial || !fechaFinal) {
+      return res.status(400).json({ 
+        ok: false, 
+        error: 'fechaInicial y fechaFinal son obligatorios' 
+      });
     }
     
-    // Mostrar SQL y parámetros para debugging
-    try {
-      console.log('[RESUMEN] SQL (preview):', queryBuilder.getSql());
-      console.log('[RESUMEN] SQL params:', queryBuilder.getParameters());
-    } catch (e) {}
+    // Construir filtros SQL usando la misma función helper
+    const { whereClause, params } = buildFilterSQL(req.query);
     
-    const eventos = await queryBuilder.getMany();
+    // SQL optimizado para resumen completo sin paginación
+    const sqlResumen = `
+      SELECT 
+        e.id, e.numero_factura as "numeroFactura", e.fecha, e.valor,
+        e.aseguradora, e.paciente, e.documento, e.periodo, e.ambito,
+        s.nombre as sede_nombre, s.id as sede_id
+      FROM facturacion_evento e
+      LEFT JOIN sede s ON e.sede_id = s.id
+      WHERE ${whereClause}
+      ORDER BY e.fecha DESC, e.id DESC
+    `;
     
-    console.log(`[RESUMEN] Encontrados ${eventos.length} eventos entre ${fechaInicial} y ${fechaFinal}`);
+    console.log('[RESUMEN] SQL optimizado:', sqlResumen);
+    console.log('[RESUMEN] Parámetros:', params);
+    
+    const resultado = await facturacionRepo.query(sqlResumen, params);
+    
+    const eventos = resultado.map((row: any) => ({
+      id: row.id,
+      numeroFactura: row.numeroFactura,
+      fecha: row.fecha,
+      valor: parseFloat(row.valor) || 0,
+      aseguradora: row.aseguradora || '',
+      paciente: row.paciente || '',
+      documento: row.documento || '',
+      periodo: row.periodo || '',
+      ambito: row.ambito || '',
+      sede: row.sede_nombre ? { id: row.sede_id, nombre: row.sede_nombre } : null
+    }));
+    
+    console.log(`[RESUMEN] Encontrados ${eventos.length} eventos`);
     
     res.json({ 
       ok: true, 
       eventos,
       total: eventos.length
     });
-    } catch (err) {
+  } catch (err) {
     const _err: any = err;
     console.error('[RESUMEN] Error:', _err);
-    res.status(500).json({ error: 'Error al obtener resumen de eventos', details: _err });
+    res.status(500).json({ 
+      ok: false, 
+      error: 'Error al obtener resumen de eventos', 
+      details: _err 
+    });
   }
 });
 
@@ -970,69 +1034,43 @@ router.get('/eventos/totales', async (req: RequestWithIO, res: Response) => {
     
     const { fechaInicial, fechaFinal, sede, aseguradora, search, periodo } = req.query;
     
-    if (!fechaInicial || !fechaFinal) {
-      return res.status(400).json({ error: 'fechaInicial y fechaFinal son requeridos' });
-    }
-    
-    console.log(`[TOTALES] Calculando totales entre ${fechaInicial} y ${fechaFinal}`);
     console.log('[TOTALES] Parámetros recibidos:', req.query);
     
-    // Usar SQL directo para máxima velocidad
-    let sqlBase = `
+    // Validar fechas obligatorias
+    if (!fechaInicial || !fechaFinal) {
+      return res.status(400).json({ 
+        ok: false, 
+        error: 'fechaInicial y fechaFinal son obligatorios' 
+      });
+    }
+    
+    // Construir filtros SQL usando la misma función helper
+    const { whereClause, params } = buildFilterSQL(req.query);
+    
+    // SQL optimizado para totales con máximo rendimiento
+    const sqlTotales = `
       SELECT 
         COUNT(*)::int as total_facturas,
-        SUM(COALESCE(valor, 0))::numeric as total_facturado,
+        SUM(COALESCE(e.valor, 0))::numeric as total_facturado,
         SUM(CASE 
-          WHEN UPPER(TRIM(COALESCE(periodo, ''))) = 'CORRIENTE' 
-          THEN COALESCE(valor, 0) 
+          WHEN UPPER(TRIM(COALESCE(e.periodo, ''))) = 'CORRIENTE' 
+          THEN COALESCE(e.valor, 0) 
           ELSE 0 
         END)::numeric as facturado_corriente,
         SUM(CASE 
-          WHEN UPPER(TRIM(COALESCE(periodo, ''))) = 'REMANENTE' 
-          THEN COALESCE(valor, 0) 
+          WHEN UPPER(TRIM(COALESCE(e.periodo, ''))) = 'REMANENTE' 
+          THEN COALESCE(e.valor, 0) 
           ELSE 0 
         END)::numeric as facturado_remanente
       FROM facturacion_evento e
       LEFT JOIN sede s ON e.sede_id = s.id
-      WHERE e.fecha BETWEEN $1 AND $2
+      WHERE ${whereClause}
     `;
     
-    const params: any[] = [fechaInicial, fechaFinal];
-    let paramIndex = 3;
-    
-    if (sede) {
-      sqlBase += ` AND s.nombre = $${paramIndex}`;
-      params.push(sede);
-      paramIndex++;
-    }
-    
-    if (aseguradora) {
-      sqlBase += ` AND e.aseguradora = $${paramIndex}`;
-      params.push(aseguradora);
-      paramIndex++;
-    }
-    
-    if (periodo) {
-      sqlBase += ` AND UPPER(TRIM(COALESCE(e.periodo, ''))) = UPPER(TRIM($${paramIndex}))`;
-      params.push(periodo);
-      paramIndex++;
-    }
-    
-    if (search) {
-      const searchPattern = `%${String(search).toLowerCase()}%`;
-      sqlBase += ` AND (
-        LOWER(e.numero_factura) LIKE $${paramIndex} OR 
-        LOWER(e.documento) LIKE $${paramIndex} OR 
-        LOWER(e.paciente) LIKE $${paramIndex}
-      )`;
-      params.push(searchPattern);
-      paramIndex++;
-    }
-    
-    console.log('[TOTALES] SQL directo:', sqlBase);
+    console.log('[TOTALES] SQL optimizado:', sqlTotales);
     console.log('[TOTALES] Parámetros:', params);
     
-    const resultado = await facturacionRepo.query(sqlBase, params);
+    const resultado = await facturacionRepo.query(sqlTotales, params);
     const row = resultado[0];
     
     const totales = {
@@ -1042,16 +1080,20 @@ router.get('/eventos/totales', async (req: RequestWithIO, res: Response) => {
       facturadoRemanente: parseFloat(row.facturado_remanente) || 0
     };
     
-    console.log(`[TOTALES] Calculados:`, totales);
+    console.log('[TOTALES] Resultado calculado:', totales);
     
-    res.json({ 
-      ok: true, 
+    res.json({
+      ok: true,
       totales
     });
   } catch (err) {
     const _err: any = err;
     console.error('[TOTALES] Error:', _err);
-    res.status(500).json({ error: 'Error al calcular totales', details: _err });
+    res.status(500).json({ 
+      ok: false, 
+      error: 'Error al calcular totales', 
+      details: _err 
+    });
   }
 });
 

@@ -5,6 +5,9 @@ declare global {
   }
 }
 import { exportInformeGeneralExcel } from '../utils/exportInformeGeneralExcel';
+
+// ========== FIN FUNCIONES CENTRALIZADAS ==========
+
 // --- Componente ComparativaTabla ---
 type ComparativaTablaProps = {
   eventos: any[];
@@ -272,6 +275,58 @@ type FacturacionEvento = {
 };
 
 export default function Facturacion() {
+  
+  // ========== FUNCIONES HELPER CENTRALIZADAS ==========
+  
+  // Función centralizada para construir parámetros de consulta
+  const buildQueryParams = useCallback((filters: {
+    fechaInicial?: string;
+    fechaFinal?: string;
+    sede?: string;
+    aseguradora?: string;
+    periodo?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }): URLSearchParams => {
+    const params = new URLSearchParams();
+    
+    // Solo agregar parámetros que tienen valor
+    if (filters.fechaInicial?.trim()) params.set('fechaInicial', filters.fechaInicial.trim());
+    if (filters.fechaFinal?.trim()) params.set('fechaFinal', filters.fechaFinal.trim());
+    if (filters.sede?.trim()) params.set('sede', filters.sede.trim());
+    if (filters.aseguradora?.trim()) params.set('aseguradora', filters.aseguradora.trim());
+    if (filters.periodo?.trim()) params.set('periodo', filters.periodo.trim());
+    if (filters.search?.trim()) params.set('search', filters.search.trim());
+    if (filters.page) params.set('page', String(filters.page));
+    if (filters.limit) params.set('limit', String(filters.limit));
+    
+    return params;
+  }, []);
+
+  // Función centralizada para hacer fetch con filtros
+  const fetchWithFilters = useCallback(async (
+    endpoint: string, 
+    filters: Parameters<typeof buildQueryParams>[0],
+    abortSignal?: AbortSignal
+  ): Promise<any> => {
+    const params = buildQueryParams(filters);
+    const url = `${API_CONFIG.BASE_URL}${endpoint}?${params}`;
+    
+    console.log(`[FETCH OPTIMIZADO] ${endpoint}:`, filters);
+    console.log(`[FETCH OPTIMIZADO] URL:`, url);
+    
+    const response = await fetch(url, { signal: abortSignal });
+    
+    if (!response.ok) {
+      throw new Error(`Error ${response.status}: ${response.statusText}`);
+    }
+    
+    return await response.json();
+  }, [buildQueryParams]);
+  
+  // ========== FIN FUNCIONES HELPER ==========
+  
   // Estado para comparativa
   const [mesComparativa, setMesComparativa] = useState('');
   const [diasComparativa, setDiasComparativa] = useState<string[]>([]);
@@ -514,54 +569,59 @@ export default function Facturacion() {
     const controller = new AbortController();
     abortControllersRef.current.totales = controller;
     setIsLoadingDatos(true);
+    
     if (!fechaFiltroInicial || !fechaFiltroFinal) {
       setIsLoadingDatos(false);
       return;
     }
+    
     const callId = Date.now();
-    console.log(`[TOTALES RÁPIDOS ${callId}] Iniciando cálculo para fechas:`, fechaFiltroInicial, 'hasta', fechaFiltroFinal);
+    console.log(`[TOTALES OPTIMIZADO ${callId}] Iniciando cálculo:`, {
+      fechaInicial: fechaFiltroInicial,
+      fechaFinal: fechaFiltroFinal,
+      sede: sedeFiltro,
+      aseguradora: aseguradoraFiltro,
+      search: filtroBusqueda,
+      periodo: periodoFiltro
+    });
     
     try {
-      const params = new URLSearchParams({
+      // Usar función centralizada
+      const data = await fetchWithFilters('/facturacion/eventos/totales', {
         fechaInicial: fechaFiltroInicial,
-        fechaFinal: fechaFiltroFinal
-        , ...(sedeFiltro && { sede: sedeFiltro })
-        , ...(aseguradoraFiltro && { aseguradora: aseguradoraFiltro })
-        , ...(filtroBusqueda && { search: filtroBusqueda })
-        , ...(periodoFiltro && { periodo: periodoFiltro })
-      });
-
-  const res = await fetch(`${API_CONFIG.BASE_URL}/facturacion/eventos/totales?${params}`, { signal: controller.signal });
-      const data = await res.json();
+        fechaFinal: fechaFiltroFinal,
+        sede: sedeFiltro,
+        aseguradora: aseguradoraFiltro,
+        search: filtroBusqueda,
+        periodo: periodoFiltro
+      }, controller.signal);
       
       if (data.ok && data.totales) {
-        console.log(`[TOTALES RÁPIDOS ${callId}] ✅ Totales recibidos:`, data.totales);
+        console.log(`[TOTALES OPTIMIZADO ${callId}] ✅ Totales recibidos:`, data.totales);
         setTotalesTarjetas(data.totales);
-        // NO actualizar fecha aquí - solo cuando se usen botones de actualizar
         return;
       }
       
-      console.log(`[TOTALES RÁPIDOS ${callId}] ❌ Endpoint /totales no disponible, usando fallback...`);
+      console.log(`[TOTALES OPTIMIZADO ${callId}] ❌ Formato inesperado:`, data);
       // Fallback: usar el método anterior
       await cargarTodosEventosFecha();
       
     } catch (error: any) {
       if (error.name === 'AbortError') {
-        console.log(`[TOTALES RÁPIDOS ${callId}] Llamada abortada`);
+        console.log(`[TOTALES OPTIMIZADO ${callId}] Llamada abortada`);
         return;
       }
-      console.error(`[TOTALES RÁPIDOS ${callId}] Error:`, error);
+      console.error(`[TOTALES OPTIMIZADO ${callId}] Error:`, error);
       // Fallback: usar el método anterior
       await cargarTodosEventosFecha();
-    }
-    finally {
+    } finally {
       // Solo limpiar isLoading si el controller actual es el nuestro
       if (abortControllersRef.current.totales === controller) {
         abortControllersRef.current.totales = null;
         setIsLoadingDatos(false);
       }
     }
-  }, [fechaFiltroInicial, fechaFiltroFinal, sedeFiltro, aseguradoraFiltro, filtroBusqueda, periodoFiltro]);
+  }, [fechaFiltroInicial, fechaFiltroFinal, sedeFiltro, aseguradoraFiltro, filtroBusqueda, periodoFiltro, fetchWithFilters]);
 
   // Función para cargar TODOS los eventos del rango de fechas (para tarjetas)
   const cargarTodosEventosFecha = useCallback(async () => {
@@ -570,71 +630,98 @@ export default function Facturacion() {
     const controller = new AbortController();
     abortControllersRef.current.tarjetas = controller;
     setIsLoadingDatos(true);
+    
     if (!fechaFiltroInicial || !fechaFiltroFinal) {
       setIsLoadingDatos(false);
       return;
     }
-    const callId = Date.now(); // ID único para esta llamada
-    console.log(`[DEBUG TARJETAS ${callId}] cargarTodosEventosFecha iniciado con fechas:`, fechaFiltroInicial, 'hasta', fechaFiltroFinal);
+    
+    const callId = Date.now();
+    console.log(`[RESUMEN OPTIMIZADO ${callId}] Iniciando carga con filtros:`, {
+      fechaInicial: fechaFiltroInicial,
+      fechaFinal: fechaFiltroFinal,
+      sede: sedeFiltro,
+      aseguradora: aseguradoraFiltro,
+      search: filtroBusqueda,
+      periodo: periodoFiltro
+    });
     
     try {
-      // SOLUCIÓN TEMPORAL: Intentar primero el nuevo endpoint
-      const paramsResumen = new URLSearchParams({
+      // Usar función centralizada para endpoint /resumen
+      const data = await fetchWithFilters('/facturacion/eventos/resumen', {
         fechaInicial: fechaFiltroInicial,
-        fechaFinal: fechaFiltroFinal
-        , ...(sedeFiltro && { sede: sedeFiltro })
-        , ...(aseguradoraFiltro && { aseguradora: aseguradoraFiltro })
-        , ...(filtroBusqueda && { search: filtroBusqueda })
-        , ...(periodoFiltro && { periodo: periodoFiltro })
-      });
-
-  let res = await fetch(`${API_CONFIG.BASE_URL}/facturacion/eventos/resumen?${paramsResumen}`, { signal: controller.signal });
-      let data = await res.json();
+        fechaFinal: fechaFiltroFinal,
+        sede: sedeFiltro,
+        aseguradora: aseguradoraFiltro,
+        search: filtroBusqueda,
+        periodo: periodoFiltro
+      }, controller.signal);
       
-      // Si el nuevo endpoint funciona, usarlo
-      if (res.ok && data.ok) {
-        console.log(`[DEBUG TARJETAS ${callId}] Usando endpoint /resumen - Eventos:`, data.eventos?.length || 0);
+      if (data.ok) {
+        console.log(`[RESUMEN OPTIMIZADO ${callId}] ✅ ${data.eventos?.length || 0} eventos cargados`);
         setTodosEventosFecha(data.eventos || []);
+        
+        // Calcular totales para compatibilidad
+        const todosLosEventos = data.eventos || [];
+        const totalFacturas = todosLosEventos.length;
+        const totalFacturado = todosLosEventos.reduce((acc: number, ev: any) => acc + (Number(ev.valor) || 0), 0);
+        
+        const facturadoCorriente = todosLosEventos.filter((ev: any) => {
+          const periodoEv = (ev.periodo || '').trim().toUpperCase();
+          return periodoEv === 'CORRIENTE';
+        }).reduce((acc: number, ev: any) => acc + (Number(ev.valor) || 0), 0);
+        
+        const facturadoRemanente = todosLosEventos.filter((ev: any) => {
+          const periodoEv = (ev.periodo || '').trim().toUpperCase();
+          return periodoEv === 'REMANENTE';
+        }).reduce((acc: number, ev: any) => acc + (Number(ev.valor) || 0), 0);
+        
+        setTotalesTarjetas({
+          totalFacturas,
+          totalFacturado,
+          facturadoCorriente,
+          facturadoRemanente
+        });
+        
+        console.log(`[RESUMEN OPTIMIZADO ${callId}] Totales calculados:`, {
+          totalFacturas, totalFacturado, facturadoCorriente, facturadoRemanente
+        });
         return;
       }
       
-      console.log(`[DEBUG TARJETAS ${callId}] Endpoint /resumen no disponible, usando múltiples llamadas...`);
+      console.log(`[RESUMEN OPTIMIZADO ${callId}] ❌ Endpoint /resumen falló, usando paginación múltiple...`);
       
-      // FALLBACK: Hacer múltiples llamadas para obtener todos los datos
+      // FALLBACK: Hacer múltiples llamadas paginadas
       let todosLosEventos: any[] = [];
       let pagina = 1;
       let totalPaginas = 1;
       
       do {
-        const params = new URLSearchParams({
+        const paginatedData = await fetchWithFilters('/facturacion/eventos', {
           fechaInicial: fechaFiltroInicial,
           fechaFinal: fechaFiltroFinal,
-          page: String(pagina),
-          limit: '500' // Máximo permitido
-          , ...(sedeFiltro && { sede: sedeFiltro })
-          , ...(aseguradoraFiltro && { aseguradora: aseguradoraFiltro })
-          , ...(filtroBusqueda && { search: filtroBusqueda })
-          , ...(periodoFiltro && { periodo: periodoFiltro })
-        });
-        res = await fetch(`${API_CONFIG.BASE_URL}/facturacion/eventos?${params}`, { signal: controller.signal });
-        data = await res.json();
+          sede: sedeFiltro,
+          aseguradora: aseguradoraFiltro,
+          search: filtroBusqueda,
+          periodo: periodoFiltro,
+          page: pagina,
+          limit: 500
+        }, controller.signal);
         
-        if (data.ok && data.eventos) {
-          todosLosEventos = [...todosLosEventos, ...data.eventos];
-          totalPaginas = data.pagination?.totalPages || 1;
-          console.log(`[DEBUG TARJETAS ${callId}] Página ${pagina}/${totalPaginas} - Eventos acumulados: ${todosLosEventos.length}`);
+        if (paginatedData.ok) {
+          todosLosEventos = [...todosLosEventos, ...(paginatedData.eventos || [])];
+          totalPaginas = paginatedData.pagination?.totalPages || 1;
+          console.log(`[RESUMEN OPTIMIZADO ${callId}] Página ${pagina}/${totalPaginas} cargada`);
+          pagina++;
         } else {
-          console.log(`[DEBUG TARJETAS ${callId}] Error en página`, pagina, ':', data.error);
           break;
         }
-        
-        pagina++;
       } while (pagina <= totalPaginas && pagina <= 20); // Límite de seguridad
       
-      console.log(`[DEBUG TARJETAS ${callId}] Total final de eventos cargados:`, todosLosEventos.length);
+      console.log(`[RESUMEN OPTIMIZADO ${callId}] ✅ Total eventos fallback: ${todosLosEventos.length}`);
       setTodosEventosFecha(todosLosEventos);
       
-      // CALCULAR TOTALES PARA COMPATIBILIDAD
+      // Calcular totales para compatibilidad
       const totalFacturas = todosLosEventos.length;
       const totalFacturado = todosLosEventos.reduce((acc, ev) => acc + (Number(ev.valor) || 0), 0);
       
@@ -655,27 +742,20 @@ export default function Facturacion() {
         facturadoRemanente
       });
       
-      // NO actualizar fecha aquí - solo cuando se usen botones de actualizar
-      
-      console.log(`[DEBUG TARJETAS ${callId}] Totales calculados localmente:`, {
-        totalFacturas, totalFacturado, facturadoCorriente, facturadoRemanente
-      });
-      
     } catch (error: any) {
       if (error.name === 'AbortError') {
-        console.log(`[DEBUG TARJETAS ${callId}] Llamada abortada`);
+        console.log(`[RESUMEN OPTIMIZADO ${callId}] Llamada abortada`);
         return;
       }
-      console.error(`[DEBUG TARJETAS ${callId}] Error cargando todos los eventos:`, error);
+      console.error(`[RESUMEN OPTIMIZADO ${callId}] Error:`, error);
       setTodosEventosFecha([]);
-    }
-      finally {
-        if (abortControllersRef.current.tarjetas === controller) {
-          abortControllersRef.current.tarjetas = null;
-          setIsLoadingDatos(false);
-        }
+    } finally {
+      if (abortControllersRef.current.tarjetas === controller) {
+        abortControllersRef.current.tarjetas = null;
+        setIsLoadingDatos(false);
       }
-  }, [fechaFiltroInicial, fechaFiltroFinal, sedeFiltro, aseguradoraFiltro, filtroBusqueda, periodoFiltro]);
+    }
+  }, [fechaFiltroInicial, fechaFiltroFinal, sedeFiltro, aseguradoraFiltro, filtroBusqueda, periodoFiltro, fetchWithFilters]);
 
   // Función para cargar TODOS los eventos del AÑO COMPLETO (solo para gráficas)
   const cargarEventosAñoCompleto = useCallback(async () => {
@@ -749,37 +829,48 @@ export default function Facturacion() {
     abortControllersRef.current.eventos = controller;
     setLoading(true);
     setIsLoadingDatos(true);
+    
+    const callId = Date.now();
+    console.log(`[EVENTOS OPTIMIZADO ${callId}] Cargando página ${resetPagina ? 1 : pagina}:`, {
+      fechaInicial: fechaFiltroInicial,
+      fechaFinal: fechaFiltroFinal,
+      sede: sedeFiltro,
+      aseguradora: aseguradoraFiltro,
+      periodo: periodoFiltro,
+      search: busqueda
+    });
+    
     try {
-      const params = new URLSearchParams({
-        page: String(resetPagina ? 1 : pagina),
-        limit: String(registrosPorPagina),
-        ...(fechaFiltroInicial && { fechaInicial: fechaFiltroInicial }),
-        ...(fechaFiltroFinal && { fechaFinal: fechaFiltroFinal }),
-        ...(sedeFiltro && { sede: sedeFiltro }),
-        ...(aseguradoraFiltro && { aseguradora: aseguradoraFiltro }),
-        ...(periodoFiltro && { periodo: periodoFiltro }),
-        ...(busqueda && { search: busqueda })
-      });
-      const res = await fetch(`${API_CONFIG.BASE_URL}/facturacion/eventos?${params}`, { signal: controller.signal });
-      const data = await res.json();
+      // Usar función centralizada
+      const data = await fetchWithFilters('/facturacion/eventos', {
+        page: resetPagina ? 1 : pagina,
+        limit: registrosPorPagina,
+        fechaInicial: fechaFiltroInicial || undefined,
+        fechaFinal: fechaFiltroFinal || undefined,
+        sede: sedeFiltro || undefined,
+        aseguradora: aseguradoraFiltro || undefined,
+        periodo: periodoFiltro || undefined,
+        search: busqueda || undefined
+      }, controller.signal);
       
       if (data.ok) {
+        console.log(`[EVENTOS OPTIMIZADO ${callId}] ✅ ${data.eventos?.length || 0} eventos cargados`);
         setEventos(data.eventos || []);
         setTotalRegistros(data.pagination?.totalRecords || 0);
         setTotalPaginas(data.pagination?.totalPages || 0);
-        // Actualizar página actual siempre, no solo cuando resetPagina
         setPaginaActual(resetPagina ? 1 : pagina);
       } else {
+        console.log(`[EVENTOS OPTIMIZADO ${callId}] ❌ Error en respuesta:`, data);
         setEventos([]);
         setTotalRegistros(0);
         setTotalPaginas(0);
       }
     } catch (error) {
       if ((error as any).name === 'AbortError') {
-        console.log('[CARGA EVENTOS] Llamada abortada');
+        console.log(`[EVENTOS OPTIMIZADO ${callId}] Llamada abortada`);
         return;
       }
-      console.error('Error cargando eventos:', error);
+      console.error(`[EVENTOS OPTIMIZADO ${callId}] Error:`, error);
       setEventos([]);
       setTotalRegistros(0);
       setTotalPaginas(0);
@@ -790,7 +881,7 @@ export default function Facturacion() {
         setIsLoadingDatos(false);
       }
     }
-  }, [fechaFiltroInicial, fechaFiltroFinal, sedeFiltro, aseguradoraFiltro, registrosPorPagina]);
+  }, [fechaFiltroInicial, fechaFiltroFinal, sedeFiltro, aseguradoraFiltro, registrosPorPagina, fetchWithFilters]);
 
   // Debounce para búsqueda
   const debouncedSearch = useCallback(
