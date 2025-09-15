@@ -916,6 +916,7 @@ router.get('/eventos', async (req: RequestWithIO, res: Response) => {
       SELECT 
         e.id, e."numeroFactura" as numero_factura, e.fecha, e.valor,
         e.aseguradora, e.paciente, e.documento, e.periodo, e.ambito,
+        e."fechaInicial" as fecha_inicial, e."fechaFinal" as fecha_final,
         s.nombre as sede_nombre, s.id as sede_id
       FROM facturacion_evento e
       LEFT JOIN sede s ON e.sede_id = s.id
@@ -944,6 +945,8 @@ router.get('/eventos', async (req: RequestWithIO, res: Response) => {
       documento: row.documento || '',
       periodo: row.periodo || '',
       ambito: row.ambito || '',
+      fechaInicial: row.fecha_inicial || null,
+      fechaFinal: row.fecha_final || null,
       sede: row.sede_nombre ? { id: row.sede_id, nombre: row.sede_nombre } : null
     }));
     
@@ -999,6 +1002,7 @@ router.get('/eventos/resumen', async (req: RequestWithIO, res: Response) => {
       SELECT 
         e.id, e."numeroFactura" as numero_factura, e.fecha, e.valor,
         e.aseguradora, e.paciente, e.documento, e.periodo, e.ambito,
+        e."fechaInicial" as fecha_inicial, e."fechaFinal" as fecha_final,
         s.nombre as sede_nombre, s.id as sede_id
       FROM facturacion_evento e
       LEFT JOIN sede s ON e.sede_id = s.id
@@ -1013,7 +1017,7 @@ router.get('/eventos/resumen', async (req: RequestWithIO, res: Response) => {
     
     const eventos = resultado.map((row: any) => ({
       id: row.id,
-      numeroFactura: row.numeroFactura,
+      numeroFactura: row.numero_factura,
       fecha: row.fecha,
       valor: parseFloat(row.valor) || 0,
       aseguradora: row.aseguradora || '',
@@ -1021,6 +1025,8 @@ router.get('/eventos/resumen', async (req: RequestWithIO, res: Response) => {
       documento: row.documento || '',
       periodo: row.periodo || '',
       ambito: row.ambito || '',
+      fechaInicial: row.fecha_inicial || null,
+      fechaFinal: row.fecha_final || null,
       sede: row.sede_nombre ? { id: row.sede_id, nombre: row.sede_nombre } : null
     }));
     

@@ -396,6 +396,27 @@ export default function Facturacion() {
   const [fechaFinal, setFechaFinal] = useState('');
   const [loadingCargar, setLoadingCargar] = useState(false);
   const [loadingUltimosDias, setLoadingUltimosDias] = useState(false);
+  // Función para formatear fechas de ISO a YYYY-MM-DD
+  const formatearFecha = (fechaISO: string): string => {
+    if (!fechaISO) return '';
+    try {
+      return fechaISO.split('T')[0]; // Convierte "2025-09-12T00:00:00.000Z" a "2025-09-12"
+    } catch {
+      return fechaISO;
+    }
+  };
+
+  // Función para formatear valor sin centavos
+  const formatearValor = (valor: number): string => {
+    if (valor === undefined || valor === null) return '';
+    return Number(valor).toLocaleString('es-CO', { 
+      style: 'currency', 
+      currency: 'COP', 
+      minimumFractionDigits: 0, 
+      maximumFractionDigits: 0 
+    });
+  };
+
   const [isLoadingDatos, setIsLoadingDatos] = useState(false);
   const [mensaje, setMensaje] = useState<string|null>(null);
   const [actualizar, setActualizar] = useState(0); // Para forzar refresco
@@ -1650,15 +1671,15 @@ export default function Facturacion() {
               eventos.map((ev, i) => (
                   <tr key={ev.id} className="border-b hover:bg-blue-50">
                     <td className="px-1 py-1 text-center whitespace-nowrap overflow-hidden text-ellipsis" style={{width:'8%'}}>{ev.numeroFactura || ''}</td>
-                    <td className="px-1 py-1 text-center whitespace-nowrap overflow-hidden text-ellipsis" style={{width:'8%'}}>{ev.fecha || ''}</td>
-                    <td className="px-1 py-1 text-center whitespace-nowrap overflow-hidden text-ellipsis" style={{width:'4%'}}>{ev.tipoDocumento || ''}</td>
+                    <td className="px-1 py-1 text-center whitespace-nowrap overflow-hidden text-ellipsis" style={{width:'8%'}}>{formatearFecha(ev.fecha)}</td>
+                    <td className="px-1 py-1 text-center whitespace-nowrap overflow-hidden text-ellipsis" style={{width:'4%'}}>{ev.ambito || ''}</td>
                     <td className="px-1 py-1 text-center whitespace-nowrap overflow-hidden text-ellipsis" style={{width:'10%'}}>{ev.documento || ''}</td>
                     <td className="px-1 py-1 whitespace-nowrap overflow-hidden text-ellipsis" style={{width:'16%'}}>{ev.paciente || ''}</td>
                     <td className="px-1 py-1 text-center whitespace-nowrap overflow-hidden text-ellipsis" style={{width:'10%'}}>{ev.sede?.nombre || ''}</td>
                     <td className="px-1 py-1 text-center whitespace-nowrap overflow-hidden text-ellipsis" style={{width:'10%'}}>{ev.aseguradora || ''}</td>
-                    <td className="px-1 py-1 text-center whitespace-nowrap overflow-hidden text-ellipsis" style={{width:'8%'}}>{ev.fechaInicial || ''}</td>
-                    <td className="px-1 py-1 text-center whitespace-nowrap overflow-hidden text-ellipsis" style={{width:'8%'}}>{ev.fechaFinal || ''}</td>
-                    <td className="px-1 py-1 text-center whitespace-nowrap overflow-hidden text-ellipsis" style={{width:'10%'}}>{ev.valor !== undefined ? Number(ev.valor).toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) : ''}</td>
+                    <td className="px-1 py-1 text-center whitespace-nowrap overflow-hidden text-ellipsis" style={{width:'8%'}}>{formatearFecha(ev.fechaInicial || ev.fecha)}</td>
+                    <td className="px-1 py-1 text-center whitespace-nowrap overflow-hidden text-ellipsis" style={{width:'8%'}}>{formatearFecha(ev.fechaFinal || ev.fecha)}</td>
+                    <td className="px-1 py-1 text-center whitespace-nowrap overflow-hidden text-ellipsis" style={{width:'10%'}}>{formatearValor(ev.valor)}</td>
                     <td className="px-1 py-1 text-center whitespace-nowrap overflow-hidden text-ellipsis" style={{width:'8%'}}>
                       {editandoPeriodoId === ev.id ? (
                         <select
