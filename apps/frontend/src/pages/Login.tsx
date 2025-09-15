@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { useAuth } from '../auth'
 import { useNavigate } from 'react-router-dom'
 import bgImage from '../assets/bg.jpg'
@@ -33,27 +33,14 @@ export default function Login() {
     }
   }
 
-  useEffect(() => {
-    const prevHtml = document.documentElement.style.overflow
-    const prevBody = document.body.style.overflow
-    document.documentElement.style.overflow = 'hidden'
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.documentElement.style.overflow = prevHtml
-      document.body.style.overflow = prevBody
-    }
-  }, [])
-
   return (
-  <div className="h-screen overflow-hidden flex items-center justify-center relative">
-      {/* fondo como capa separada para poder aplicar blur/scale */}
-      <div className="absolute inset-0 bg-cover bg-center filter blur-md scale-105 z-0" style={{ backgroundImage: `url(${bgImage})` }} />
+  <div className="h-screen overflow-hidden flex items-center justify-center bg-cover bg-center relative" style={{ backgroundImage: `url(${bgImage})` }}>
       {/* overlay para mejorar contraste sin bloquear interacciones */}
-      <div className="absolute inset-0 bg-black/30 dark:bg-black/50 pointer-events-none z-10" />
+      <div className="absolute inset-0 bg-black/30 dark:bg-black/50 pointer-events-none" />
       <form
         key={errorCount}
         onSubmit={handleSubmit}
-  className={`relative z-20 bg-white/60 dark:bg-gray-900/50 backdrop-blur-md border border-white/20 dark:border-black/30 rounded-xl shadow-2xl px-6 py-5 w-full max-w-md flex flex-col gap-5 overflow-hidden transition-all duration-300 transform md:-translate-y-12 lg:-translate-y-20 ${error ? 'animate-shake' : ''}`}
+  className={`relative z-10 bg-white dark:bg-gray-900/90 border border-gray-200 dark:border-gray-800 rounded-xl shadow-2xl px-8 py-6 w-full max-w-md flex flex-col gap-6 overflow-hidden transition-all duration-300 transform md:-translate-y-12 lg:-translate-y-20 ${error ? 'animate-shake' : ''}`}
         style={{ boxShadow: '0 6px 32px 0 rgba(0,0,0,0.13)' }}
       >
       {/* Animación shake personalizada para Tailwind */}
