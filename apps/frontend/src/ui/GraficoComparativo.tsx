@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { LineChart, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, /*Area,*/ XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Customized } from 'recharts';
 
 interface Props {
   data: any[];
@@ -115,6 +115,52 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
       return () => clearTimeout(timer);
     }, [datosGrafico, sede, aseguradora, año]);
 
+    // Customized renderer: dibuja el área bajo la línea usando las escalas internas del chart.
+    const CustomArea = (props: any) => {
+      try {
+        const { width, height, xAxisMap, yAxisMap, data } = props;
+        if (!xAxisMap || !yAxisMap || !data) return null;
+        const xAxis: any = Object.values(xAxisMap)[0];
+        const yAxis: any = Object.values(yAxisMap)[0];
+        if (!xAxis || !yAxis || !xAxis.scale || !yAxis.scale) return null;
+        const xScale: any = xAxis.scale;
+        const yScale: any = yAxis.scale;
+
+        const baseline = yScale(0);
+
+        // Crear segmentos contiguos (saltarnos nulls)
+        const segments: Array<Array<[number, number]>> = [];
+        let seg: Array<[number, number]> = [];
+        data.forEach((d: any) => {
+          if (d && d.valor != null) {
+            const x = xScale(d.mes);
+            const y = yScale(d.valor);
+            seg.push([x, y]);
+          } else {
+            if (seg.length) {
+              segments.push(seg);
+              seg = [];
+            }
+          }
+        });
+        if (seg.length) segments.push(seg);
+
+        return (
+          <g>
+            {segments.map((s, i) => {
+              const firstX = s[0][0];
+              const lastX = s[s.length - 1][0];
+              const topPath = s.map(p => `${p[0]},${p[1]}`).join(' L ');
+              const d = `M ${firstX} ${baseline} L ${topPath} L ${lastX} ${baseline} Z`;
+              return <path key={i} d={d} fill="url(#gradArea)" stroke="none" opacity={1} />;
+            })}
+          </g>
+        );
+      } catch (err) {
+        return null;
+      }
+    };
+
     // Tooltip minimal con indicador de variación respecto al mes anterior
     const CustomTooltip = ({ active, payload, label }: any) => {
       if (!active || !payload || payload.length === 0) return null;
@@ -215,19 +261,8 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
                 return (v as number).toLocaleString('es-CO');
               }} />
               <Tooltip content={<CustomTooltip />} />
-              {/* Área visible y con sombra debajo de la línea para dar el desvanecido azul pedido */}
-              <Area
-                type="monotone"
-                dataKey="valor"
-                stroke="none"
-                fill="url(#gradArea)"
-                isAnimationActive={false}
-                connectNulls={false}
-                baseValue={0}
-                fillOpacity={1}
-                // Aplica el filtro SVG para dar leve sombra y volumen
-                filter="url(#softShadow)"
-              />
+              {/* Customized area: dibujamos manualmente el área bajo la línea para garantizar visibilidad */}
+              <Customized component={CustomArea} />
 
               {/* Línea sobre el área */}
               <Line type="monotone" dataKey="valor" stroke="#0369a1" strokeWidth={2} dot={renderDot} activeDot={{ r: 5 }} connectNulls={false} />
