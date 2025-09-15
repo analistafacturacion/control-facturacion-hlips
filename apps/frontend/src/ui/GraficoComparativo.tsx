@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface Props {
   data: any[];
@@ -74,42 +74,24 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
     };
   });
 
-    // Custom dot para mostrar flechas de tendencia
+    // Minimal custom dot: muestra punto cuando hay valor, gris cuando no
     const renderDot = (props: any) => {
-      const { cx, cy, index, value } = props;
+      const { cx, cy, value } = props;
       if (value == null) {
-        return (
-          <g>
-            <circle cx={cx} cy={cy} r={5} fill="#ccc" stroke="#fff" strokeWidth={2} />
-          </g>
-        );
+        return <circle cx={cx} cy={cy} r={4} fill="#e6e6e6" stroke="#fff" strokeWidth={1} />;
       }
-      // Comparar con el valor anterior y dibujar anotaciones sin salirse del área del SVG
-      const prev = index > 0 ? datosGrafico[index-1].valor : null;
-      let flecha = null;
-      let textoDiferencia = null;
-      if (prev != null) {
-        const diferencia = value - prev;
-        // Posicionar la flecha/texto de forma relativa al punto y limitar dentro del viewBox
-        const offset = 14; // desplazamiento base
-        const yFlechaUp = Math.max(cy - offset, 12);
-        const yTextoUp = Math.max(cy - offset - 14, 10);
-        const yFlechaDown = Math.min(cy + offset, 9999);
-        const yTextoDown = Math.min(cy + offset + 14, 9999);
-        if (value > prev) {
-          flecha = <text x={cx} y={yFlechaUp} textAnchor="middle" fontSize={14} fill="#2ecc40">▲</text>;
-          textoDiferencia = <text x={cx} y={yTextoUp} textAnchor="middle" fontSize={10} fill="#2ecc40">+{diferencia.toLocaleString('es-CO')}</text>;
-        } else if (value < prev) {
-          flecha = <text x={cx} y={yFlechaDown} textAnchor="middle" fontSize={14} fill="#e74c3c">▼</text>;
-          textoDiferencia = <text x={cx} y={yTextoDown} textAnchor="middle" fontSize={10} fill="#e74c3c">{diferencia.toLocaleString('es-CO')}</text>;
-        }
-      }
+      return <circle cx={cx} cy={cy} r={4} fill="#1F497D" stroke="#fff" strokeWidth={1} />;
+    };
+
+    // Tooltip minimal
+    const CustomTooltip = ({ active, payload, label }: any) => {
+      if (!active || !payload || payload.length === 0) return null;
+      const val = payload[0].value;
       return (
-        <g style={{ pointerEvents: 'none' }}>
-          <circle cx={cx} cy={cy} r={5} fill="#1F497D" stroke="#fff" strokeWidth={2} />
-          {flecha}
-          {textoDiferencia}
-        </g>
+        <div style={{ background: 'rgba(255,255,255,0.95)', padding: 8, borderRadius: 6, boxShadow: '0 1px 6px rgba(0,0,0,0.12)', fontSize: 12 }}>
+          <div style={{ fontWeight: 600 }}>{label}</div>
+          <div style={{ color: '#1F497D' }}>{val == null ? 'Sin datos' : `$ ${Number(val).toLocaleString('es-CO')}`}</div>
+        </div>
       );
     };
 
@@ -129,23 +111,25 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
       <div style={{height: 'calc(100% - 48px)', minHeight: 0, flex: 1, overflow: 'hidden', position: 'relative'}}>
         <div style={{width: '100%', height: '100%', overflow: 'visible'}} aria-hidden>
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={datosGrafico} margin={{ top: 40, right: 10, left: 10, bottom: 30 }}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="mes" />
-            <YAxis tickFormatter={v => {
-              // Mostrar tick solo si el valor es distinto de null/undefined
-              if (v == null) return '';
-              if (Math.abs(v) >= 1000000) {
-                return `${Math.round(v/1000000)}M`;
-              }
-              if (Math.abs(v) >= 1000) {
-                return `${Math.round(v/1000)}K`;
-              }
-              return (v as number).toLocaleString('es-CO');
-            }} />
-            <Tooltip formatter={(v: any) => v == null ? 'Sin datos' : `$ ${Number(v).toLocaleString('es-CO')}`} />
-            <Legend />
-            <Line type="monotone" dataKey="valor" stroke="#1F497D" strokeWidth={3} dot={renderDot} activeDot={{ r: 7 }} />
+            <LineChart data={datosGrafico} margin={{ top: 24, right: 8, left: 8, bottom: 24 }}>
+              <defs>
+                <linearGradient id="gradArea" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#1F497D" stopOpacity={0.14} />
+                  <stop offset="100%" stopColor="#1F497D" stopOpacity={0.02} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+              <XAxis dataKey="mes" axisLine={false} tickLine={false} />
+              <YAxis axisLine={false} tickLine={false} tickFormatter={v => {
+                if (v == null) return '';
+                if (Math.abs(v) >= 1000000) return `${Math.round(v/1000000)}M`;
+                if (Math.abs(v) >= 1000) return `${Math.round(v/1000)}K`;
+                return (v as number).toLocaleString('es-CO');
+              }} />
+              <Tooltip content={<CustomTooltip />} />
+              {/* Área sutil debajo de la línea para dar profundidad */}
+              <Area type="monotone" dataKey="valor" stroke="none" fill="url(#gradArea)" isAnimationActive={false} connectNulls />
+              <Line type="monotone" dataKey="valor" stroke="#1F497D" strokeWidth={2} dot={renderDot} activeDot={{ r: 5 }} connectNulls />
             </LineChart>
           </ResponsiveContainer>
         </div>
