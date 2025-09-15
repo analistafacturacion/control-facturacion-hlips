@@ -83,14 +83,36 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
       return <circle cx={cx} cy={cy} r={4} fill="#1F497D" stroke="#fff" strokeWidth={1} />;
     };
 
-    // Tooltip minimal
+    // Tooltip minimal con indicador de variación respecto al mes anterior
     const CustomTooltip = ({ active, payload, label }: any) => {
       if (!active || !payload || payload.length === 0) return null;
       const val = payload[0].value;
+      // Encontrar índice del mes en datosGrafico (mes es ej. 'Ene')
+      const idx = datosGrafico.findIndex(d => d.mes === label);
+      const prev = idx > 0 ? datosGrafico[idx - 1].valor : null;
+      let variation = null;
+      let pct = null;
+      if (prev != null && val != null) {
+        variation = Number(val) - Number(prev);
+        pct = prev !== 0 ? (variation / Number(prev)) * 100 : null;
+      }
+
+      const variationColor = variation == null ? '#6b7280' : (variation > 0 ? '#16a34a' : (variation < 0 ? '#dc2626' : '#6b7280'));
+      const variationSign = variation == null ? '' : (variation > 0 ? '▲' : (variation < 0 ? '▼' : ''));
+
       return (
-        <div style={{ background: 'rgba(255,255,255,0.95)', padding: 8, borderRadius: 6, boxShadow: '0 1px 6px rgba(0,0,0,0.12)', fontSize: 12 }}>
-          <div style={{ fontWeight: 600 }}>{label}</div>
-          <div style={{ color: '#1F497D' }}>{val == null ? 'Sin datos' : `$ ${Number(val).toLocaleString('es-CO')}`}</div>
+        <div style={{ background: 'rgba(255,255,255,0.98)', padding: 8, borderRadius: 8, boxShadow: '0 4px 14px rgba(2,6,23,0.12)', fontSize: 13, minWidth: 120 }}>
+          <div style={{ fontWeight: 700, marginBottom: 6 }}>{label}</div>
+          <div style={{ color: '#1F497D', fontWeight: 600, marginBottom: 6 }}>{val == null ? 'Sin datos' : `$ ${Number(val).toLocaleString('es-CO')}`}</div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <div style={{ width: 10, height: 10, borderRadius: 3, background: variationColor }} />
+            <div style={{ color: variationColor, fontWeight: 600 }}>
+              {variation == null ? 'Sin comparación' : `${variationSign} $ ${Math.abs(Number(variation)).toLocaleString('es-CO')}`}
+            </div>
+            {pct != null && (
+              <div style={{ color: variationColor, opacity: 0.9 }}>{`(${pct > 0 ? '+' : ''}${pct.toFixed(1)}%)`}</div>
+            )}
+          </div>
         </div>
       );
     };
@@ -128,8 +150,8 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
               }} />
               <Tooltip content={<CustomTooltip />} />
               {/* Área sutil debajo de la línea para dar profundidad */}
-              <Area type="monotone" dataKey="valor" stroke="none" fill="url(#gradArea)" isAnimationActive={false} connectNulls />
-              <Line type="monotone" dataKey="valor" stroke="#1F497D" strokeWidth={2} dot={renderDot} activeDot={{ r: 5 }} connectNulls />
+              <Area type="monotone" dataKey="valor" stroke="none" fill="url(#gradArea)" isAnimationActive={false} connectNulls={false} />
+              <Line type="monotone" dataKey="valor" stroke="#1F497D" strokeWidth={2} dot={renderDot} activeDot={{ r: 5 }} connectNulls={false} />
             </LineChart>
           </ResponsiveContainer>
         </div>
