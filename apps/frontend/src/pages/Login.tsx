@@ -33,11 +33,13 @@ export default function Login() {
   }
 
   return (
-  <div className="h-screen overflow-hidden flex items-center justify-center bg-gradient-to-br from-white via-gray-100 to-gray-200 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+  <div className="h-screen overflow-hidden flex items-center justify-center bg-cover bg-center relative" style={{ backgroundImage: 'url("/bg.jpg")' }}>
+      {/* overlay para mejorar contraste sin bloquear interacciones */}
+      <div className="absolute inset-0 bg-black/30 dark:bg-black/50 pointer-events-none" />
       <form
         key={errorCount}
         onSubmit={handleSubmit}
-  className={`relative bg-white dark:bg-gray-900/90 border border-gray-200 dark:border-gray-800 rounded-xl shadow-2xl px-8 py-6 w-full max-w-md max-h-[calc(100vh-4rem)] flex flex-col gap-6 overflow-auto transition-all duration-300 transform md:-translate-y-12 lg:-translate-y-20 ${error ? 'animate-shake' : ''}`}
+  className={`relative z-10 bg-white dark:bg-gray-900/90 border border-gray-200 dark:border-gray-800 rounded-xl shadow-2xl px-8 py-6 w-full max-w-md flex flex-col gap-6 overflow-hidden transition-all duration-300 transform md:-translate-y-12 lg:-translate-y-20 ${error ? 'animate-shake' : ''}`}
         style={{ boxShadow: '0 6px 32px 0 rgba(0,0,0,0.13)' }}
       >
       {/* Animación shake personalizada para Tailwind */}
