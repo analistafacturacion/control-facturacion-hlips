@@ -324,6 +324,20 @@ export default function Facturacion() {
     
     return await response.json();
   }, [buildQueryParams]);
+
+  // Helper: convertir valores posibles a número real (limpia comas, símbolos de moneda)
+  const parseNumericValue = (v: any): number => {
+    if (v == null) return 0;
+    // Si ya es número
+    if (typeof v === 'number') return isNaN(v) ? 0 : v;
+    // Convertir a string y eliminar cualquier caracter que no sea dígito, punto o signo
+    const s = String(v).replace(/[^0-9.,-]/g, '');
+    // Reemplazar comas por punto decimal solo si parece decimal, si hay miles como "1,234" dejamos sin comas
+    // Simplificación: eliminar comas (miles) y luego parsear
+    const normalized = s.replace(/,/g, '');
+    const n = Number(normalized);
+    return isNaN(n) ? 0 : n;
+  };
   
   // ========== FIN FUNCIONES HELPER ==========
   
@@ -1400,7 +1414,7 @@ export default function Facturacion() {
                     aseguradora: ev.aseguradora || '',
                     año: Number(ev.fecha?.slice(0,4)),
                     mes: Number(ev.fecha?.slice(5,7)),
-                    valor: Number(ev.total) || 0
+                    valor: parseNumericValue(ev.total) || parseNumericValue(ev.valor) || parseNumericValue(ev.copago)
                   }))}
                   aseguradoras={[...new Set(eventosAñoCompleto.map(ev => ev.aseguradora).filter((x): x is string => Boolean(x)))]}
                   sedes={[...new Set(eventosAñoCompleto.map(ev => ev.sede?.nombre).filter((x): x is string => Boolean(x)))]}
@@ -1464,7 +1478,7 @@ export default function Facturacion() {
                       sede: ev.sede?.nombre || '',
                       año: Number(ev.fecha?.slice(0,4)),
                       mes: Number(ev.fecha?.slice(5,7)),
-                      valor: Number(ev.total) || 0
+                      valor: parseNumericValue(ev.total) || parseNumericValue(ev.valor) || parseNumericValue(ev.copago)
                     }))}
                     sedes={[...new Set(eventosAñoCompleto.map(ev => ev.sede?.nombre).filter((x): x is string => Boolean(x)))]}
                     años={[...new Set(eventosAñoCompleto.map(ev => Number(ev.fecha?.slice(0,4))).filter(Boolean))].sort()}
@@ -1478,7 +1492,7 @@ export default function Facturacion() {
                       aseguradora: ev.aseguradora || '',
                       año: Number(ev.fecha?.slice(0,4)),
                       mes: Number(ev.fecha?.slice(5,7)),
-                      valor: Number(ev.total) || 0
+                      valor: parseNumericValue(ev.total) || parseNumericValue(ev.valor) || parseNumericValue(ev.copago)
                     }))}
                     aseguradoras={[...new Set(eventosAñoCompleto.map(ev => ev.aseguradora).filter((x): x is string => Boolean(x)))]}
                     años={[...new Set(eventosAñoCompleto.map(ev => Number(ev.fecha?.slice(0,4))).filter(Boolean))].sort()}
