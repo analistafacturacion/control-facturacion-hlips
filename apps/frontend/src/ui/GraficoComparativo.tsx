@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { LineChart, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface Props {
@@ -91,6 +91,30 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
       return <circle cx={cx} cy={cy} r={4} fill="#1F497D" stroke="#fff" strokeWidth={1} />;
     };
 
+    // Estado y ref para el overlay SVG que copiará el path del Area generado por Recharts
+    const containerRef = useRef<HTMLDivElement | null>(null);
+    const [areaPathD, setAreaPathD] = useState<string | null>(null);
+
+    // Después de cada render intentamos leer el path que Recharts generó para el Area
+    useEffect(() => {
+      // Delay corto para que Recharts haya generado el DOM
+      const timer = setTimeout(() => {
+        try {
+          if (!containerRef.current) return;
+          // Buscar el primer path de área dentro del contenedor del gráfico
+          const areaPath = containerRef.current.querySelector('.recharts-area .recharts-area-area, .recharts-area-area') as SVGPathElement | null;
+          if (areaPath) {
+            const d = areaPath.getAttribute('d');
+            if (d) setAreaPathD(d);
+          }
+        } catch (err) {
+          // no critical
+        }
+      }, 50);
+
+      return () => clearTimeout(timer);
+    }, [datosGrafico, sede, aseguradora, año]);
+
     // Tooltip minimal con indicador de variación respecto al mes anterior
     const CustomTooltip = ({ active, payload, label }: any) => {
       if (!active || !payload || payload.length === 0) return null;
@@ -138,8 +162,29 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
           {años.map(a => <option key={a} value={a}>{a}</option>)}
         </select>
       </div>
-      <div style={{height: 'calc(100% - 48px)', minHeight: 0, flex: 1, overflow: 'hidden', position: 'relative'}}>
+      <div ref={containerRef} style={{height: 'calc(100% - 48px)', minHeight: 0, flex: 1, overflow: 'hidden', position: 'relative'}}>
         <div style={{width: '100%', height: '100%', overflow: 'visible'}} aria-hidden>
+
+          {/* Overlay SVG: si logramos capturar el path del Area de Recharts, lo usamos como máscara
+              y pintamos un rect con gradiente más visible debajo de la línea. Esto fuerza el
+              desvanecido azul aunque el Area original no se vea por CSS o rendering issues. */}
+          <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 1 }} preserveAspectRatio="none" viewBox="0 0 100 100">
+            <defs>
+              <linearGradient id="forcedGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#0369a1" stopOpacity={0.95} />
+                <stop offset="30%" stopColor="#0369a1" stopOpacity={0.6} />
+                <stop offset="70%" stopColor="#0369a1" stopOpacity={0.18} />
+                <stop offset="100%" stopColor="#0369a1" stopOpacity={0.02} />
+              </linearGradient>
+            </defs>
+
+            {areaPathD ? (
+              <g>
+                <path d={areaPathD} fill="url(#forcedGrad)" opacity={1} transform="scale(1,1)" />
+              </g>
+            ) : null}
+          </svg>
+
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={datosGrafico} margin={{ top: 12, right: 8, left: 8, bottom: 12 }}>
               {/* Fondo blanco para mayor contraste del área */}
