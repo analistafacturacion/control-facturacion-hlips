@@ -824,7 +824,7 @@ router.get('/eventos', async (req: RequestWithIO, res: Response) => {
     const facturacionRepo = getRepository(FacturacionEvento);
     
     // Permitir filtros opcionales por fecha, sede, aseguradora, etc.
-    const { fechaInicial, fechaFinal, sede, aseguradora, page, limit, search } = req.query;
+  const { fechaInicial, fechaFinal, sede, aseguradora, page, limit, search, periodo } = req.query;
     
     // Parámetros de paginación
     const pageNumber = parseInt(String(page)) || 1;
@@ -857,6 +857,9 @@ router.get('/eventos', async (req: RequestWithIO, res: Response) => {
     }
     if (aseguradora) {
       queryBuilder.andWhere('evento.aseguradora ILIKE :aseguradora', { aseguradora: `%${aseguradora}%` });
+    }
+    if (periodo) {
+      queryBuilder.andWhere("UPPER(TRIM(COALESCE(evento.periodo, ''))) = UPPER(TRIM(:periodo))", { periodo });
     }
     if (search) {
       queryBuilder.andWhere(
