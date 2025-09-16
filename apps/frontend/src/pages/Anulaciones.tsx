@@ -715,8 +715,30 @@ const handleArchivoPlano = async (file: File) => {
       const primeraCol = Array.isArray(fila) ? fila[0] : Object.values(fila)[0];
       return primeraCol !== undefined && primeraCol !== null && String(primeraCol).trim() !== '';
     });
-    setDatosPlano(datosFiltrados);
-    // NO validar aquí contra anulaciones, solo mostrar datos
+		setDatosPlano(datosFiltrados);
+		// Al cargar un archivo plano, bloquear automáticamente las filas correspondientes
+		try {
+			const idsABloquear = new Set<number>();
+			// Recorrer filas (omitimos header) y buscar coincidencias en `anulaciones` por numeroAnulacion
+			for (let i = 1; i < datosFiltrados.length; i++) {
+				const fila = datosFiltrados[i];
+				const numero = Array.isArray(fila) ? String(fila[0] || '').trim() : String(Object.values(fila)[0] || '').trim();
+				if (!numero) continue;
+				const encontrada = anulaciones.find(a => (a.numeroAnulacion || '').toString().trim() === numero || (a.factura || '').toString().trim() === numero);
+				if (encontrada && encontrada.id) idsABloquear.add(encontrada.id);
+			}
+			if (idsABloquear.size > 0) {
+				setFilasBloqueadas(prev => {
+					const nuevas = new Set([...prev]);
+					idsABloquear.forEach(id => nuevas.add(id));
+					localStorage.setItem('anulaciones_filas_bloqueadas', JSON.stringify([...nuevas]));
+					return nuevas;
+				});
+			}
+		} catch (e) {
+			console.warn('No se pudo bloquear filas automáticamente al cargar el plano', e);
+		}
+		// NO validar aquí contra anulaciones, solo mostrar datos
   } catch (e) {
     setMensajePlano('Error al procesar el archivo.');
     setDatosPlano([]);
