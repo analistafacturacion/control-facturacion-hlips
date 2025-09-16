@@ -17,6 +17,7 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
   const [aseguradora, setAseguradora] = useState(initialAseguradora ?? '');
   const [año, setAño] = useState<number>(initialAño ?? (años[años.length-1] || new Date().getFullYear()));
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const svgRef = useRef<SVGSVGElement | null>(null);
 
   // Generar datos por mes (12 meses siempre)
   const currentDate = new Date();
@@ -186,12 +187,29 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
   }, [datosGrafico, sede, aseguradora, año]);
 
   const onEnterPoint = (evt: React.MouseEvent, p: any) => {
-    // Anchor tooltip to the actual rendered circle using its bounding rect
-    const target = evt.currentTarget as Element;
+    // Compute position using SVG coordinates scaled to rendered size for pixel-perfect anchoring
     const containerRect = containerRef.current?.getBoundingClientRect();
-    const tRect = target.getBoundingClientRect();
-    const centerX = (tRect.left + tRect.right) / 2 - (containerRect ? containerRect.left : 0);
-    const centerY = (tRect.top + tRect.bottom) / 2 - (containerRect ? containerRect.top : 0);
+    const svgEl = svgRef.current;
+    let centerX = 0;
+    let centerY = 0;
+    if (svgEl && containerRect) {
+      const svgRect = svgEl.getBoundingClientRect();
+      const scaleX = svgRect.width / width;
+      const scaleY = svgRect.height / height;
+      const svgX = xForIndex(p.index);
+      const svgY = yForValue(Number(p.y));
+      const screenX = svgRect.left + svgX * scaleX;
+      const screenY = svgRect.top + svgY * scaleY;
+      centerX = screenX - containerRect.left;
+      centerY = screenY - containerRect.top;
+    } else {
+      // fallback to mouse position
+      const rect = containerRef.current?.getBoundingClientRect();
+      const clientX = evt.clientX;
+      const clientY = evt.clientY;
+      centerX = rect ? clientX - rect.left : evt.nativeEvent.offsetX;
+      centerY = rect ? clientY - rect.top : evt.nativeEvent.offsetY;
+    }
 
     // compute difference with previous month and percent
     const idx = p.index;
@@ -215,7 +233,7 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
 
     // position tooltip to the right of the point by default, clamp inside container
     const cardW = 150;
-    const cardH = 74;
+    const cardH = 84; // enough height for stacked lines
     const offset = 10;
     let x = centerX + offset;
     // if overflowing to the right, place to the left
@@ -258,7 +276,7 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
       </div>
 
       <div ref={containerRef} style={{height: 'calc(100% - 48px)', minHeight: 0, flex: 1, overflow: 'hidden', position: 'relative'}}>
-        <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
+  <svg ref={el => svgRef.current = el} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
           <defs>
             <linearGradient id="gradArea" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#0369a1" stopOpacity={0.9} />
@@ -306,43 +324,63 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
 
         {/* Tooltip / tarjeta minimalista anclada al punto */}
         {tooltip.visible && (
-          <div style={{ position: 'absolute', left: tooltip.x, top: tooltip.y, width: 150, background: 'rgba(255,255,255,0.98)', padding: '10px 12px', borderRadius: 10, boxShadow: '0 10px 30px rgba(2,6,23,0.10)', fontSize: 13, transform: `translateY(${cardAnimate ? 0 : 6}px)`, opacity: cardAnimate ? 1 : 0, transition: 'transform 260ms cubic-bezier(.2,.8,.2,1), opacity 220ms' }}>
+          <div
+            style={{
+              position: 'absolute',
+              left: tooltip.x,
+              top: tooltip.y,
+              width: 150,
+              background: 'rgba(255,255,255,0.98)',
+              padding: '10px 12px',
+              borderRadius: 10,
+              boxShadow: '0 10px 30px rgba(2,6,23,0.10)',
+              fontSize: 13,
+              transform: 'translateY(' + (cardAnimate ? 0 : 6) + 'px)',
+              opacity: cardAnimate ? 1 : 0,
+              transition: 'transform 260ms cubic-bezier(.2,.8,.2,1), opacity 220ms'
+            }}
+          >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
               <div style={{ fontWeight: 700 }}>{tooltip.label}</div>
-              <div style={{ fontSize: 12, color: '#6b7280' }}></div>
+              <div style={{ fontSize: 12, color: '#6b7280' }} />
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <div style={{ fontWeight: 700, color: '#0f172a' }}>{tooltip.value == null ? 'Sin datos' : `$ ${Number(tooltip.value).toLocaleString('es-CO')}`}</div>
-                {tooltip.diffPercent != null && (
-                  <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>{`${tooltip.diffPercent!.toFixed(1)}% vs mes anterior`}</div>
-                )}
-              </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+              <div style={{ fontWeight: 700, color: '#0f172a', fontSize: 14 }}>{tooltip.value == null ? 'Sin datos' : `$ ${Number(tooltip.value).toLocaleString('es-CO')}`}</div>
 
-              {/* indicador SVG */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                {tooltip.diff == null || tooltip.trend === 'nodata' ? (
-                  <div style={{ color: '#6b7280', fontSize: 12 }}>—</div>
-                ) : tooltip.trend === 'up' ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M12 19V6" stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M5 12l7-7 7 7" stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    <div style={{ color: '#059669', fontSize: 12, fontWeight: 700 }}>{`+ $${Math.abs(tooltip.diff!).toLocaleString('es-CO')}`}</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ fontSize: 12, color: '#6b7280' }}>
+                    {tooltip.diff == null ? 'Sin comparación' : `${tooltip.trend === 'up' ? '+' : tooltip.trend === 'down' ? '-' : ''} $${Math.abs(tooltip.diff ?? 0).toLocaleString('es-CO')}`}
                   </div>
-                ) : tooltip.trend === 'down' ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M12 5v13" stroke="#b91c1c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M19 12l-7 7-7-7" stroke="#b91c1c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    <div style={{ color: '#b91c1c', fontSize: 12, fontWeight: 700 }}>{`- $${Math.abs(tooltip.diff!).toLocaleString('es-CO')}`}</div>
-                  </div>
-                ) : (
-                  <div style={{ color: '#6b7280', fontSize: 12 }}>0</div>
-                )}
+                  {tooltip.diffPercent != null && (
+                    <div style={{ fontSize: 12, color: '#6b7280' }}>{`${tooltip.diffPercent!.toFixed(1)}% vs mes anterior`}</div>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {tooltip.diff == null || tooltip.trend === 'nodata' ? (
+                    <div style={{ color: '#6b7280', fontSize: 12 }}>—</div>
+                  ) : tooltip.trend === 'up' ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 19V6" stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d="M5 12l7-7 7 7" stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      <div style={{ color: '#059669', fontSize: 12, fontWeight: 700 }}>{`+ $${Math.abs(tooltip.diff!).toLocaleString('es-CO')}`}</div>
+                    </div>
+                  ) : tooltip.trend === 'down' ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 5v13" stroke="#b91c1c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d="M19 12l-7 7-7-7" stroke="#b91c1c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      <div style={{ color: '#b91c1c', fontSize: 12, fontWeight: 700 }}>{`- $${Math.abs(tooltip.diff!).toLocaleString('es-CO')}`}</div>
+                    </div>
+                  ) : (
+                    <div style={{ color: '#6b7280', fontSize: 12 }}>0</div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
