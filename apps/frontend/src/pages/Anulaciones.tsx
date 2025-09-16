@@ -933,46 +933,64 @@ const handleArchivoPlano = async (file: File) => {
 						}
 					}
 					
-					const resultados = datosPlano.slice(1).map((fila: any, idx: number) => {
+					// Procesar secuencialmente para permitir llamadas de fallback a la API cuando no encontremos facturas en eventosFull
+					const filas = datosPlano.slice(1);
+					const resultados: any[] = [];
+					for (let idx = 0; idx < filas.length; idx++) {
+						const fila = filas[idx];
 						const valorCol1 = Array.isArray(fila) ? fila[0] : Object.values(fila)[0];
 						let valorCol2 = Array.isArray(fila) ? fila[1] : Object.values(fila)[1];
 						const valorCol3 = Array.isArray(fila) ? fila[2] : Object.values(fila)[2]; // motivo
 						const valorCol4 = Array.isArray(fila) ? fila[3] : Object.values(fila)[3]; // estado
-						
+
 						// Las fechas y valores se auto-completan internamente para validación
-						let fechasAutoCompletadas = [];
-						let valoresAutoCompletados = [];
+						let fechasAutoCompletadas: string[] = [];
+						let valoresAutoCompletados: any[] = [];
 
 						// Verificar si es una factura múltiple (contiene '/' o ',' como separadores)
-						const facturasCol1 = String(valorCol1 || '').includes('/') ? 
-							String(valorCol1).split('/').map(f => f.trim()) : 
+						const facturasCol1 = String(valorCol1 || '').includes('/') ?
+							String(valorCol1).split('/').map((f: string) => f.trim()) :
 							String(valorCol1 || '').includes(',') ?
-							String(valorCol1).split(',').map(f => f.trim()) :
+							String(valorCol1).split(',').map((f: string) => f.trim()) :
 							[String(valorCol1 || '').trim()];
 
 						// AUTO-COMPLETADO: Siempre buscar fechas y valores para las facturas de col2
 						let facturasCol2: string[] = [];
 						let autoCompletado = false;
-						
+
 						if (String(valorCol2 || '').trim()) {
 							// Hay datos en col2, parsear facturas
-							facturasCol2 = String(valorCol2 || '').includes('/') ? 
-								String(valorCol2).split('/').map(f => f.trim()) : 
+							facturasCol2 = String(valorCol2 || '').includes('/') ?
+								String(valorCol2).split('/').map((f: string) => f.trim()) :
 								String(valorCol2 || '').includes(',') ?
-								String(valorCol2).split(',').map(f => f.trim()) :
+								String(valorCol2).split(',').map((f: string) => f.trim()) :
 								[String(valorCol2 || '').trim()];
-							
-							// AUTO-COMPLETADO: Siempre buscar fechas y valores para validación interna
+
+							// AUTO-COMPLETADO: Buscar fechas y valores en eventosFull o por fallback a la API
 							for (const facturaCol2 of facturasCol2) {
-								const eventoEncontrado = eventosFull.find(ev => 
-									// Usar la misma normalización que en otras comparaciones
-									normalizar(String(ev.numeroFactura)) === normalizar(facturaCol2)
-								);
-								
+								let eventoEncontrado = eventosFull.find(ev => normalizar(String(ev.numeroFactura)) === normalizar(facturaCol2));
+								// Si no está en eventosFull, intentar buscar puntualmente en el backend con un search reducido
+								if (!eventoEncontrado) {
+									try {
+										const fechaHoy = new Date().toISOString().slice(0, 10);
+										const params = new URLSearchParams({ fechaInicial: '2000-01-01', fechaFinal: fechaHoy, search: facturaCol2, page: '1', limit: '1' });
+										const resp = await fetch(`${API_CONFIG.BASE_URL}/facturacion/eventos?${params.toString()}`);
+										const jd = await resp.json();
+										if (resp.ok && jd && Array.isArray(jd.eventos) && jd.eventos.length > 0) {
+											eventoEncontrado = jd.eventos[0];
+											console.log(`[VALIDACION][Fila ${idx+1}] Col2: factura='${facturaCol2}' -> encontrada via API fallback`);
+										} else {
+											console.log(`[VALIDACION][Fila ${idx+1}] Col2: factura='${facturaCol2}' -> NO_ENCONTRADA (fallback)`);
+										}
+									} catch (e) {
+										console.warn(`[VALIDACION][Fila ${idx+1}] Error fallback fetch para factura ${facturaCol2}:`, e);
+									}
+								}
+
 								if (eventoEncontrado) {
 									// Formatear la fecha autocompletada a YYYY-MM-DD
 									fechasAutoCompletadas.push(formatDateShort(String(eventoEncontrado.fecha).trim()));
-									let valor = String(eventoEncontrado.valor);
+									let valor = String(eventoEncontrado.valor ?? '');
 									// Eliminar .00 del final para mejor comparación
 									if (valor.endsWith('.00')) {
 										valor = valor.slice(0, -3);
@@ -984,7 +1002,7 @@ const handleArchivoPlano = async (file: File) => {
 									valoresAutoCompletados.push('');
 								}
 							}
-							
+
 							if (fechasAutoCompletadas.some(f => f !== '') && valoresAutoCompletados.some(v => v !== '')) {
 								autoCompletado = true;
 								console.log(`[AUTO-COMPLETADO][Fila ${idx+1}] INTERNO - Col2: ${facturasCol2.join(', ')} | Fechas: ${fechasAutoCompletadas.join(', ')} | Valores: ${valoresAutoCompletados.join(', ')}`);
@@ -1008,8 +1026,8 @@ const handleArchivoPlano = async (file: File) => {
 						// Validación columna 1 (anulaciones) - soporte para múltiples facturas
 						let existeCol1 = false;
 						let mensajeCol1 = '';
-						const facturasCol1Validas = [];
-						const facturasCol1Invalidas = [];
+						const facturasCol1Validas: string[] = [];
+						const facturasCol1Invalidas: string[] = [];
 
 						for (const factura of facturasCol1) {
 							const normFactura = normalizar(factura);
@@ -1041,9 +1059,9 @@ const handleArchivoPlano = async (file: File) => {
 						// Validación columna 2 (eventos) - soporte para múltiples facturas MANTENIENDO ORDEN
 						let existeCol2 = false;
 						let mensajeCol2 = '';
-						const facturasCol2Validas = [];
-						const facturasCol2Invalidas = [];
-						const eventosEncontrados = [];
+						const facturasCol2Validas: string[] = [];
+						const facturasCol2Invalidas: string[] = [];
+						const eventosEncontrados: any[] = [];
 
 						// Mantener el orden exacto de facturasCol2
 						for (let i = 0; i < facturasCol2.length; i++) {
@@ -1055,16 +1073,26 @@ const handleArchivoPlano = async (file: File) => {
 								existeCol2 = true;
 								console.log(`[VALIDACION][Fila ${idx+1}] Col2: factura='${factura}' normalizada='${normalizar(factura)}' -> ENCONTRADA`);
 							} else {
-								facturasCol2Invalidas.push(factura);
-								// Agregar null para mantener posición en eventosEncontrados
-								eventosEncontrados.push(null);
-								console.log(`[VALIDACION][Fila ${idx+1}] Col2: factura='${factura}' normalizada='${normalizar(factura)}' -> NO_ENCONTRADA`);
+								// Si no fue encontrada en eventosFull, ya intentamos antes el auto-completado con fallback; verificar si fechasCol3Internal tiene dato en esa posición
+								// Decidir validez según auto-completado previo
+								const idxAuto = i;
+								const fechaAuto = fechasCol3Internal[idxAuto] || '';
+								if (fechaAuto) {
+									facturasCol2Validas.push(factura);
+									eventosEncontrados.push({ numeroFactura: factura, fecha: fechaAuto, valor: valoresCol4Internal[idxAuto] || 0 });
+									existeCol2 = true;
+									console.log(`[VALIDACION][Fila ${idx+1}] Col2: factura='${factura}' -> considerada válida por auto-completado`);
+								} else {
+									facturasCol2Invalidas.push(factura);
+									eventosEncontrados.push(null);
+									console.log(`[VALIDACION][Fila ${idx+1}] Col2: factura='${factura}' normalizada='${normalizar(factura)}' -> NO_ENCONTRADA`);
+								}
 							}
 						}
 
 						if (facturasCol2.length > 1) {
 							if (facturasCol2Validas.length === facturasCol2.length) {
-								mensajeCol2 = autoCompletado ? 
+								mensajeCol2 = autoCompletado ?
 									`🔄 Fechas/Valores AUTO-COMPLETADOS | Todas válidas: ${facturasCol2Validas.join(', ')}` :
 									`Todas las facturas válidas: ${facturasCol2Validas.join(', ')}`;
 							} else if (facturasCol2Validas.length > 0) {
@@ -1074,10 +1102,10 @@ const handleArchivoPlano = async (file: File) => {
 								mensajeCol2 = `Ninguna factura válida: ${facturasCol2Invalidas.join(', ')}`;
 							}
 						} else {
-							mensajeCol2 = existeCol2 ? 
-								(autoCompletado ? 
+							mensajeCol2 = existeCol2 ?
+								(autoCompletado ?
 									`🔄 Fechas/Valores AUTO-COMPLETADOS | Válida: ${facturasCol2[0]}` :
-									`Factura válida: ${facturasCol2[0]}`) : 
+									`Factura válida: ${facturasCol2[0]}`) :
 								`Factura no encontrada: ${facturasCol2[0]}`;
 						}
 
@@ -1264,7 +1292,7 @@ const handleArchivoPlano = async (file: File) => {
 							mensajeCol6 = 'Estado debe ser FACTURADO o NO FACTURADO';
 						}
 
-						return {
+						resultados.push({
 							resultadoCol1: existeCol1 ? 'CORRECTO' : 'NO ENCONTRADO',
 							colorCol1: existeCol1 ? '#008000' : '#FF0000',
 							mensajeCol1: mensajeCol1,
@@ -1292,8 +1320,8 @@ const handleArchivoPlano = async (file: File) => {
 							// Agregar las fechas y valores autocompletados para mostrar en la tabla
 							fechasAutocompletadas: fechasCol3Internal || [],
 							valoresAutocompletados: valoresCol4Internal || []
-						};
-					});
+						});
+					}
 					setResultadosValidacionPlano(resultados);
 					
 					// Actualizar datosPlano con los valores auto-completados
