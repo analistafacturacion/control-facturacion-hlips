@@ -6,15 +6,23 @@ interface Props {
   aseguradoras: string[];
   sedes: string[];
   años: number[];
+  initialSede?: string;
+  initialAseguradora?: string;
+  initialAño?: number;
 }
 
 const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
-export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes, años }) => {
+export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes, años, initialSede, initialAseguradora, initialAño }) => {
   // Por defecto mostramos "Todas" las sedes/aseguradoras para que el gráfico agregue datos
-  const [sede, setSede] = useState('');
-  const [aseguradora, setAseguradora] = useState('');
-  const [año, setAño] = useState(años[años.length-1] || new Date().getFullYear());
+  const [sede, setSede] = useState(initialSede ?? '');
+  const [aseguradora, setAseguradora] = useState(initialAseguradora ?? '');
+  const [año, setAño] = useState<number>(initialAño ?? (años[años.length-1] || new Date().getFullYear()));
+
+  // fecha actual para determinar meses futuros
+  const currentDate = new Date();
+  const currentMonth = currentDate.getMonth() + 1;
+  const currentYear = currentDate.getFullYear();
 
   // Debug: Log inicial de datos recibidos
   console.log('🎯 GraficoComparativo - Datos recibidos:', {
@@ -67,11 +75,11 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
     
   console.log(`📅 ${mes} (${idx+1}): ${eventosMes.length} eventos, total: $${totalMes.toLocaleString()}`);
     
-    return {
-      mes: mes.slice(0,3),
-      // Igual que en los gráficos por sede/aseguradora: usar null cuando no hay datos para que no se dibuje punto/valor
-      valor: totalMes > 0 ? totalMes : null
-    };
+    const mesNum = idx + 1;
+    const isFuture = (año === currentYear && mesNum > currentMonth) || (año > currentYear);
+    // Si es mes futuro, dejar null (sin datos todavía). Si hay datos (aunque 0), mostrar 0.
+    const valor = isFuture ? null : (eventosMes.length > 0 ? totalMes : 0);
+    return { mes: mes.slice(0,3), valor };
   });
 
     // Minimal custom dot: muestra punto cuando hay valor, gris cuando no
@@ -87,10 +95,36 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
     const CustomTooltip = ({ active, payload, label }: any) => {
       if (!active || !payload || payload.length === 0) return null;
       const val = payload[0].value;
+      // compute previous month value to display diff and percent
+      const idx = datosGrafico.findIndex(d => d.mes === label);
+      const prev = idx > 0 ? datosGrafico[idx-1].valor : null;
+      let diff = null as number|null;
+      let diffPct = null as number|null;
+      if (val != null && prev != null) {
+        diff = Number(val) - Number(prev);
+        if (Number(prev) !== 0) diffPct = (diff / Number(prev)) * 100;
+      }
+
       return (
-        <div style={{ background: 'rgba(255,255,255,0.95)', padding: 8, borderRadius: 6, boxShadow: '0 1px 6px rgba(0,0,0,0.12)', fontSize: 12 }}>
-          <div style={{ fontWeight: 600 }}>{label}</div>
-          <div style={{ color: '#1F497D' }}>{val == null ? 'Sin datos' : `$ ${Number(val).toLocaleString('es-CO')}`}</div>
+        <div style={{ background: 'rgba(255,255,255,0.98)', padding: 10, borderRadius: 8, boxShadow: '0 6px 20px rgba(2,6,23,0.08)', fontSize: 13, minWidth: 160 }}>
+          <div style={{ fontWeight: 700, marginBottom: 6 }}>{label}</div>
+          <div style={{ fontWeight: 700, color: '#0f172a' }}>{val == null ? 'Sin datos' : `$ ${Number(val).toLocaleString('es-CO')}`}</div>
+          <div style={{ marginTop: 8, display: 'flex', gap: 10, alignItems: 'center' }}>
+            {diff == null ? (
+              <div style={{ color: '#6b7280', fontSize: 12 }}>Sin comparación</div>
+            ) : (
+              <>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    {diff > 0 ? <path d="M12 19V6" stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/> : <path d="M12 5v13" stroke="#b91c1c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>}
+                    {diff > 0 ? <path d="M5 12l7-7 7 7" stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/> : <path d="M19 12l-7 7-7-7" stroke="#b91c1c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>}
+                  </svg>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: diff > 0 ? '#059669' : '#b91c1c' }}>{`${diff > 0 ? '+' : ''}$ ${Math.abs(diff).toLocaleString('es-CO')}`}</div>
+                </div>
+                {diffPct != null && (<div style={{ fontSize: 12, color: diff > 0 ? '#059669' : '#b91c1c' }}>{`${diffPct!.toFixed(1)}%`}</div>)}
+              </>
+            )}
+          </div>
         </div>
       );
     };
@@ -128,7 +162,8 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
               }} />
               <Tooltip content={<CustomTooltip />} />
               {/* Área sutil debajo de la línea para dar profundidad */}
-              <Area type="monotone" dataKey="valor" stroke="none" fill="url(#gradArea)" isAnimationActive={false} connectNulls />
+              {/* Area visible y más definida entre la línea y la base */}
+              <Area type="monotone" dataKey="valor" stroke="#1F497D" strokeWidth={1} fill="url(#gradArea)" isAnimationActive={false} connectNulls />
               <Line type="monotone" dataKey="valor" stroke="#1F497D" strokeWidth={2} dot={renderDot} activeDot={{ r: 5 }} connectNulls />
             </LineChart>
           </ResponsiveContainer>
