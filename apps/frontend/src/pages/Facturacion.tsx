@@ -39,12 +39,24 @@ const ComparativaTabla: React.FC<ComparativaTablaProps> = React.memo(({ eventos 
   }, [mes2]);
 
   // Función para filtrar eventos por rango de fechas
-  function filtrarPorMesYDias(eventos: any[], mes: string, diaInicio: string, diaFin: string) {
-    if (!mes || !diaInicio || !diaFin) return [];
-    const desde = `${mes}-${diaInicio.padStart(2, '0')}`;
-    const hasta = `${mes}-${diaFin.padStart(2, '0')}`;
+  // - mes: 'YYYY-MM'
+  // - diaInicio/diaFin son opcionales; si no se proporcionan se usa el mes completo
+  function filtrarPorMesYDias(eventos: any[], mes: string, diaInicio?: string, diaFin?: string) {
+    if (!mes) return [];
+    // Calcular rango completo del mes si faltan días
+    const [anioStr, mesStr] = mes.split('-');
+    const anio = Number(anioStr || new Date().getFullYear());
+    const mesNum = Number(mesStr || (new Date().getMonth() + 1));
+    // Último día del mes
+    const ultimoDia = new Date(anio, mesNum, 0).getDate();
+    const inicio = (diaInicio ? Number(diaInicio) : 1);
+    const fin = (diaFin ? Number(diaFin) : ultimoDia);
+    const desde = `${mes}-${String(inicio).padStart(2, '0')}`;
+    const hasta = `${mes}-${String(fin).padStart(2, '0')}`;
     return eventos.filter(ev => {
-      const fecha = ev.fecha || '';
+      const rawFecha = ev.fecha || '';
+      // comparar solo YYYY-MM-DD para evitar fallos por timestamps (ej. 2025-08-01T00:00:00.000Z)
+      const fecha = rawFecha.slice(0, 10);
       return fecha >= desde && fecha <= hasta;
     });
   }
