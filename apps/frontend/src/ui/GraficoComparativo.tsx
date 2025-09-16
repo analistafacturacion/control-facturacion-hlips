@@ -68,16 +68,31 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
     return d;
   };
 
-  const segments: Array<Array<{x:number,y:number,index:number}>> = [];
-  let seg: Array<{x:number,y:number,index:number}> = [];
+  // Build per-pair segments so we can animate segment-by-segment from left to right
+  const contiguousPoints: Array<{x:number,y:number,index:number}> = [];
   visiblePoints.forEach(p => {
-    if (p.y != null) {
-      seg.push({ x: xForIndex(p.index), y: yForValue(Number(p.y)), index: p.index });
-    } else {
-      if (seg.length) { segments.push(seg); seg = []; }
-    }
+    if (p.y != null) contiguousPoints.push({ x: xForIndex(p.index), y: yForValue(Number(p.y)), index: p.index });
   });
-  if (seg.length) segments.push(seg);
+
+  type PairSegment = { p0: {x:number,y:number}, p1:{x:number,y:number}, p2:{x:number,y:number}, p3:{x:number,y:number}, topPath:string, areaD:string };
+  const pairSegments: PairSegment[] = [];
+  for (let i = 0; i < contiguousPoints.length - 1; i++) {
+    const p1 = contiguousPoints[i];
+    const p2 = contiguousPoints[i + 1];
+    const p0 = contiguousPoints[i - 1] || p1;
+    const p3 = contiguousPoints[i + 2] || p2;
+
+    // control points for cubic bezier approximating Catmull-Rom between p1 and p2
+    const cp1x = p1.x + (p2.x - p0.x) / 6;
+    const cp1y = p1.y + (p2.y - p0.y) / 6;
+    const cp2x = p2.x - (p3.x - p1.x) / 6;
+    const cp2y = p2.y - (p3.y - p1.y) / 6;
+
+    const topPath = `M ${p1.x} ${p1.y} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
+    const baseline = yForValue(0);
+    const areaD = `M ${p1.x} ${baseline} L ${topPath.replace(/^M /, '')} L ${p2.x} ${baseline} Z`;
+    pairSegments.push({ p0, p1, p2, p3, topPath, areaD });
+  }
 
   const yTicks = [0, Math.round(maxVal / 2), Math.round(maxVal)];
 
@@ -87,43 +102,70 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
   // refs for animated paths and areas
   const lineRefs = useRef<Array<SVGPathElement | null>>([]);
   const areaRefs = useRef<Array<SVGPathElement | null>>([]);
+  const timersRef = useRef<number[]>([]);
 
-  // run animation on data change
+  // run progressive segment animation on data change
   useEffect(() => {
-    // reset styles
-    lineRefs.current.forEach(p => {
-      if (p) {
-        try {
-          const len = p.getTotalLength();
-          p.style.strokeDasharray = `${len}`;
-          p.style.strokeDashoffset = `${len}`;
-          // más lento y ligeramente más elástico
-          p.style.transition = 'stroke-dashoffset 1600ms cubic-bezier(.2,.8,.2,1)';
-        } catch (e) { /* ignore */ }
-      }
-    });
-    areaRefs.current.forEach(a => {
-      if (a) {
-        a.style.opacity = '0';
-        a.style.transition = 'opacity 1200ms ease';
-      }
+    // clear previous timers
+    timersRef.current.forEach(t => clearTimeout(t));
+    timersRef.current = [];
+
+    const segmentStagger = 260; // ms between segments
+    const strokeDuration = 900; // per-segment draw duration
+    const areaFade = 800;
+
+    // prepare each path
+    lineRefs.current.forEach((p, idx) => {
+      if (!p) return;
+      try {
+        const len = p.getTotalLength();
+        p.style.strokeDasharray = `${len}`;
+        p.style.strokeDashoffset = `${len}`;
+        p.style.transition = `stroke-dashoffset ${strokeDuration}ms cubic-bezier(.2,.8,.2,1)`;
+      } catch (e) { /* ignore */ }
     });
 
-    // trigger animation slightly after paint
-    const t = setTimeout(() => {
-      lineRefs.current.forEach(p => { if (p) p.style.strokeDashoffset = '0'; });
-      areaRefs.current.forEach(a => { if (a) a.style.opacity = '1'; });
-      // animate dots with stagger (más lento)
-      const dots = containerRef.current?.querySelectorAll('.cf-dot');
-      dots?.forEach((dot, idx) => {
-        const el = dot as HTMLElement;
+    areaRefs.current.forEach(a => {
+      if (!a) return;
+      a.style.opacity = '0';
+      a.style.transition = `opacity ${areaFade}ms ease`;
+    });
+
+    // sequentially animate each segment and its area
+    lineRefs.current.forEach((p, idx) => {
+      const delay = idx * segmentStagger + 120; // small initial delay
+      const t1 = window.setTimeout(() => {
+        if (p) p.style.strokeDashoffset = '0';
+      }, delay);
+      timersRef.current.push(t1 as unknown as number);
+
+      const a = areaRefs.current[idx];
+      const t2 = window.setTimeout(() => {
+        if (a) a.style.opacity = '1';
+      }, delay + Math.min(200, strokeDuration / 2));
+      timersRef.current.push(t2 as unknown as number);
+    });
+
+    // animate dots staggered to appear after their incoming segment
+    const dots = containerRef.current?.querySelectorAll('.cf-dot');
+    dots?.forEach((dot, idx) => {
+      const el = dot as HTMLElement;
+      // reset
+      el.style.transform = 'scale(0.6)';
+      el.style.opacity = '0';
+      const delay = idx * segmentStagger + strokeDuration;
+      const t = window.setTimeout(() => {
+        el.style.transition = `transform 520ms cubic-bezier(.2,.8,.2,1), opacity 420ms`;
         el.style.transform = 'scale(1)';
         el.style.opacity = '1';
-        el.style.transition = `transform 600ms cubic-bezier(.2,.8,.2,1) ${idx * 140}ms, opacity 450ms ${idx * 140}ms`;
-      });
-    }, 120);
+      }, delay);
+      timersRef.current.push(t as unknown as number);
+    });
 
-    return () => clearTimeout(t);
+    return () => {
+      timersRef.current.forEach(t => clearTimeout(t));
+      timersRef.current = [];
+    };
   }, [datosGrafico, sede, aseguradora, año]);
 
   const onEnterPoint = (evt: React.MouseEvent, p: any) => {
@@ -171,21 +213,13 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
             </g>
           ))}
 
-          {/* Segments: area under curve */}
-          {segments.map((s, i) => {
-            const pts = s.map(p => ({ x: p.x, y: p.y }));
-            const topPath = buildSmoothPath(pts);
-            const firstX = pts[0].x;
-            const lastX = pts[pts.length - 1].x;
-            const baseline = yForValue(0);
-            const areaD = `M ${firstX} ${baseline} L ${topPath.replace(/^M /, '')} L ${lastX} ${baseline} Z`;
-            return (
-              <g key={i}>
-                <path ref={el => areaRefs.current[i] = el} d={areaD} fill="url(#gradArea)" stroke="none" filter="url(#softShadow)" style={{ opacity: 0 }} />
-                <path ref={el => lineRefs.current[i] = el} d={topPath} fill="none" stroke="#0369a1" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-              </g>
-            );
-          })}
+          {/* Segments: area under curve (pairwise) */}
+          {pairSegments.map((segm, i) => (
+            <g key={i}>
+              <path ref={el => areaRefs.current[i] = el} d={segm.areaD} fill="url(#gradArea)" stroke="none" filter="url(#softShadow)" style={{ opacity: 0 }} />
+              <path ref={el => lineRefs.current[i] = el} d={segm.topPath} fill="none" stroke="#0369a1" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+            </g>
+          ))}
 
           {/* Dots */}
           {visiblePoints.map((p, i) => {
