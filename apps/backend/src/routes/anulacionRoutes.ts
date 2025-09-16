@@ -6,168 +6,148 @@ import { Sede } from '../entity/Sede';
 
 const router = Router();
 
-// Endpoint para cargar anulaciones de los últimos dos días
+// Endpoint para cargar anulaciones de los últimos días (rango automático)
 router.post('/cargar-ultimos-dias', async (req: Request, res: Response) => {
     try {
         const { token, userId } = req.body;
-    const hoy = new Date();
-    const cuatroDiasAtras = new Date(hoy);
-    cuatroDiasAtras.setDate(hoy.getDate() - 4);
-    const fechaFinal = hoy.toISOString().slice(0, 10);
-    const fechaInicial = cuatroDiasAtras.toISOString().slice(0, 10);
+        const hoy = new Date();
+        const cuatroDiasAtras = new Date(hoy);
+        cuatroDiasAtras.setDate(hoy.getDate() - 4);
+        const fechaFinal = hoy.toISOString().slice(0, 10);
+        const fechaInicial = cuatroDiasAtras.toISOString().slice(0, 10);
         if (!fechaInicial || !fechaFinal || !token || !userId) {
             return res.status(400).json({ error: 'Faltan parámetros' });
         }
+
         const sedeRepo = getRepository(Sede);
         const anulacionRepo = getRepository(Anulacion);
         const sedes = await sedeRepo.find();
-        function getMonthlyRanges(start: string, end: string) {
-            const ranges: { inicial: string; final: string }[] = [];
-            const startDate = new Date(start);
-            const endDate = new Date(end);
-            if (isNaN(startDate.getTime()) || isNaN(endDate.getTime()) || endDate < startDate) return ranges;
-            let current = new Date(startDate);
-            while (current <= endDate) {
-                const year = current.getFullYear();
-                const month = current.getMonth();
-                const firstDay = new Date(year, month, 1);
-                const lastDay = new Date(year, month + 1, 0);
-                // Asegurar que el rango generado no sea invertido
-                const rangeStart = firstDay < startDate ? startDate : firstDay;
-                const rangeEnd = lastDay > endDate ? endDate : lastDay;
-                if (rangeStart > rangeEnd) {
-                    current = new Date(year, month + 1, 1);
-                    continue;
-                }
-                ranges.push({
-                    inicial: rangeStart.toISOString().slice(0, 10),
-                    final: rangeEnd.toISOString().slice(0, 10)
+
+        const url = `https://backpergamo.hlips.com.co/api/report_billingGeneral?billing_type=evento&initial_report=${fechaInicial}&final_report=${fechaFinal}`;
+        let pergamoData: any = null;
+        const TIMEOUT_MS = 60000;
+        let exito = false;
+        for (let intento = 1; intento <= 3 && !exito; intento++) {
+            const inicioIntento = Date.now();
+            try {
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+                const pergamoRes = await fetch(url, {
+                    headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
+                    signal: controller.signal
                 });
-                current = new Date(year, month + 1, 1);
-            }
-            return ranges;
-        }
-        const monthlyRanges = getMonthlyRanges(fechaInicial, fechaFinal);
-        let insertados = 0, yaExistentes = 0, ignoradosSede = 0;
-        const existentes = await anulacionRepo.find({ select: ['numeroAnulacion'] });
-    const existentesSet = new Set(existentes.map((a: { numeroAnulacion: string }) => a.numeroAnulacion));
-    const procesarMes = async (rango: { inicial: string; final: string }) => {
-            let intento = 0;
-            let pergamoData = null;
-            let exito = false;
-            const TIMEOUT_MS = 60000;
-            while (intento < 3 && !exito) {
-                intento++;
-                const inicioIntento = Date.now();
-                try {
-                    const url = `https://backpergamo.hlips.com.co/api/report_billingGeneral?billing_type=evento&initial_report=${rango.inicial}&final_report=${rango.final}`;
-                    const controller = new AbortController();
-                    const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
-                    const pergamoRes = await fetch(url, {
-                        headers: {
-                            'Accept': 'application/json',
-                            'Authorization': `Bearer ${token}`
-                        },
-                        signal: controller.signal
-                    });
-                    clearTimeout(timeout);
-                    pergamoData = await pergamoRes.json();
-                    const duracion = ((Date.now() - inicioIntento) / 1000).toFixed(1);
-                    console.log('[DEBUG Pergamo] Respuesta completa:', JSON.stringify(pergamoData));
-                    if (Array.isArray(pergamoData?.data?.h3)) {
-                        exito = true;
-                        console.log(`🟢 [Anulaciones] ${rango.inicial} a ${rango.final}: Pergamo OK en ${duracion}s. Intento ${intento}`);
-                    } else {
-                        console.log(`🟡 [Anulaciones] ${rango.inicial} a ${rango.final}: Datos inválidos de Pergamo. Intento ${intento} (${duracion}s)`);
-                    }
-                } catch (err) {
-                    const duracion = ((Date.now() - inicioIntento) / 1000).toFixed(1);
-                    console.log(`🔴 [Anulaciones] ${rango.inicial} a ${rango.final}: Error o timeout en Pergamo. Intento ${intento} (${duracion}s)`);
-                }
-            }
-            if (!exito) {
-                console.log(`❌ [Anulaciones] ${rango.inicial} a ${rango.final}: Falló tras 3 intentos. Se omite este mes.`);
-                return { insertados: 0, yaExistentes: 0, ignoradosSede: 0 };
-            }
-            const anulaciones = pergamoData.data.h3;
-            // Procesar solo h2 y clasificar por Observacion
-            const anulacionesH2 = pergamoData.data.h2;
-            const nuevasAnulaciones = [];
-            let insertadosMes = 0, yaExistentesMes = 0, ignoradosSedeMes = 0;
-            for (const a of anulacionesH2) {
-                const numeroAnulacion = (a.Factura || '').replace(/-/g, '').trim();
-                const notaCredito = a.Nota_Credito ? String(a.Nota_Credito).replace(/-/g, '').trim() : undefined;
-                const fecha = a.Fecha_Factura ? a.Fecha_Factura.split(' ')[0] : undefined;
-                const fechaNotaCredito = a.Fecha_Nota_Credito ? a.Fecha_Nota_Credito.split(' ')[0] : undefined;
-                const sedeNombre = (a.Sede || '').trim().toUpperCase();
-                const sede = sedes.find((s: { nombre: string }) => s.nombre.trim().toUpperCase() === sedeNombre);
-                if (!sede) { ignoradosSedeMes++; continue; }
-                if (existentesSet.has(numeroAnulacion)) { yaExistentesMes++; continue; }
-                // Si Observacion es null, es ANULACION
-                if (a.Observacion === null) {
-                    nuevasAnulaciones.push({
-                        numeroAnulacion,
-                        fecha,
-                        notaCredito,
-                        fechaNotaCredito,
-                        tipoDocumento: a.Tipo_Documento,
-                        documento: a.Documento,
-                        paciente: a.Paciente,
-                        aseguradora: a.Aseguradora,
-                        sede,
-                        facturador: a.Facturador,
-                        totalAnulado: a.Total_Nota_Credito,
-                        motivo: null,
-                        estado: null,
-                        observaciones: null,
-                        tipoRegistro: 'Anulación',
-                        facturaRemplazo: undefined,
-                        fechaRemplazo: undefined,
-                        valorRemplazo: undefined,
-                        sedeRemplazo: undefined
-                    });
+                clearTimeout(timeout);
+                pergamoData = await pergamoRes.json();
+                const duracion = ((Date.now() - inicioIntento) / 1000).toFixed(1);
+                if (Array.isArray(pergamoData?.data?.h2)) {
+                    exito = true;
+                    console.log(`🟢 [Anulaciones] ${fechaInicial} a ${fechaFinal}: Pergamo OK en ${duracion}s. Intento ${intento}`);
                 } else {
-                    // Si Observacion tiene valor, es NOTA CREDITO
-                    nuevasAnulaciones.push({
-                        numeroAnulacion,
-                        fecha,
-                        notaCredito,
-                        fechaNotaCredito,
-                        tipoDocumento: a.Tipo_Documento,
-                        documento: a.Documento,
-                        paciente: a.Paciente,
-                        aseguradora: a.Aseguradora,
-                        sede,
-                        facturador: a.Facturador,
-                        totalAnulado: a.Total_Nota_Credito,
-                        motivo: 'ACEPTACIÓN DE GLOSA',
-                        estado: 'NO FACTURADO',
-                        observaciones: 'ACEPTACIÓN DE GLOSA',
-                        tipoRegistro: 'Nota Crédito',
-                        facturaRemplazo: '-',
-                        fechaRemplazo: '-',
-                        valorRemplazo: (a.Total_Nota_Credito || a.Total_Anulado) == 0 ? '$0' : String(a.Total_Nota_Credito || a.Total_Anulado),
-                        sedeRemplazo: '-'
-                    });
+                    console.log(`🟡 [Anulaciones] ${fechaInicial} a ${fechaFinal}: Datos inválidos de Pergamo. Intento ${intento} (${duracion}s)`);
                 }
-                insertadosMes++;
+            } catch (err) {
+                const duracion = ((Date.now() - inicioIntento) / 1000).toFixed(1);
+                console.log(`🔴 [Anulaciones] ${fechaInicial} a ${fechaFinal}: Error o timeout en Pergamo. Intento ${intento} (${duracion}s)`);
             }
-            if (nuevasAnulaciones.length > 0) {
-                await anulacionRepo.save(nuevasAnulaciones);
+        }
+        if (!exito) {
+            console.log(`❌ [Anulaciones] ${fechaInicial} a ${fechaFinal}: Falló tras 3 intentos.`);
+            return res.status(500).json({ error: 'Error al obtener datos de Pergamo' });
+        }
+
+        const h2 = Array.isArray(pergamoData.data?.h2) ? pergamoData.data.h2 : [];
+        const existentes = await anulacionRepo.find({ select: ['numeroAnulacion'] });
+        const existentesSet = new Set(existentes.map((a: { numeroAnulacion: string }) => a.numeroAnulacion));
+        const nuevasAnulaciones: any[] = [];
+        let insertados = 0, yaExistentes = 0, ignoradosSede = 0;
+        const detallesCruce: any[] = [];
+        const detallesNotasCredito: any[] = [];
+        const detallesIgnorados: any[] = [];
+
+        for (const a of h2) {
+            const numeroAnulacion = (a.Factura || '').replace(/-/g, '').trim();
+            const notaCredito = a.Nota_Credito ? String(a.Nota_Credito).replace(/-/g, '').trim() : undefined;
+            // Intentar múltiples fuentes de fecha antes de omitir
+            let fecha: string | undefined = undefined;
+            const posibles = [
+                a.Fecha_Factura,
+                a.Fecha_Facturacion,
+                a.Fecha_Nota_Credito,
+                a.Fecha,
+                a.fechaR,
+                a.fechaPlano
+            ];
+            for (const p of posibles) {
+                if (p) {
+                    const s = String(p).split(' ')[0];
+                    if (s && s !== '0000-00-00') { fecha = s; break; }
+                }
             }
-            console.log(`✅ [Anulaciones] ${rango.inicial} a ${rango.final}: Insertados: ${insertadosMes}, Existentes: ${yaExistentesMes}, Ignorados por sede: ${ignoradosSedeMes}`);
-            return { insertados: insertadosMes, yaExistentes: yaExistentesMes, ignoradosSede: ignoradosSedeMes };
-        };
-        const resultados = await Promise.allSettled(monthlyRanges.map(rango => procesarMes(rango)));
-        resultados.forEach(r => {
-            if (r.status === 'fulfilled') {
-                insertados += r.value.insertados;
-                yaExistentes += r.value.yaExistentes;
-                ignoradosSede += r.value.ignoradosSede;
+            const fechaNotaCredito = a.Fecha_Nota_Credito ? a.Fecha_Nota_Credito.split(' ')[0] : undefined;
+            const sedeNombre = (a.Sede || '').trim().toUpperCase();
+            const sede = sedes.find((s: { nombre: string }) => s.nombre.trim().toUpperCase() === sedeNombre);
+            if (!sede) { ignoradosSede++; detallesIgnorados.push({ motivo: 'Sede no encontrada', registro: a }); continue; }
+            if (existentesSet.has(numeroAnulacion)) { yaExistentes++; detallesIgnorados.push({ motivo: 'Ya existente', registro: a }); continue; }
+            if (!fecha) { detallesIgnorados.push({ motivo: 'Sin fecha', registro: a }); continue; }
+
+            if (a.Observacion === null) {
+                // Anulación: dejar motivo/estado/observaciones y valorRemplazo en NULL
+                nuevasAnulaciones.push({
+                    numeroAnulacion,
+                    fecha,
+                    notaCredito,
+                    fechaNotaCredito,
+                    tipoDocumento: a.Tipo_Documento,
+                    documento: a.Documento,
+                    paciente: a.Paciente,
+                    aseguradora: a.Aseguradora,
+                    sede,
+                    facturador: a.Facturador,
+                    totalAnulado: a.Total_Nota_Credito || a.Total_Anulado,
+                    motivo: null,
+                    estado: null,
+                    observaciones: null,
+                    tipoRegistro: 'Anulación',
+                    facturaRemplazo: undefined,
+                    fechaRemplazo: undefined,
+                    valorRemplazo: undefined,
+                    sedeRemplazo: undefined
+                });
+                detallesCruce.push({ registro: a });
+            } else {
+                // Nota crédito
+                nuevasAnulaciones.push({
+                    numeroAnulacion,
+                    fecha,
+                    notaCredito,
+                    fechaNotaCredito,
+                    tipoDocumento: a.Tipo_Documento,
+                    documento: a.Documento,
+                    paciente: a.Paciente,
+                    aseguradora: a.Aseguradora,
+                    sede,
+                    facturador: a.Facturador,
+                    totalAnulado: a.Total_Nota_Credito || a.Total_Anulado,
+                    motivo: 'ACEPTACIÓN DE GLOSA',
+                    estado: 'NO FACTURADO',
+                    observaciones: 'ACEPTACIÓN DE GLOSA',
+                    tipoRegistro: 'Nota Crédito',
+                    facturaRemplazo: '-',
+                    fechaRemplazo: '-',
+                    valorRemplazo: 0,
+                    sedeRemplazo: '-'
+                });
+                detallesNotasCredito.push({ registro: a });
             }
-        });
-        console.log(`🏁 [Anulaciones] Resumen total: Insertados: ${insertados}, Existentes: ${yaExistentes}, Ignorados por sede: ${ignoradosSede}`);
-        res.json({ ok: true, insertados, yaExistentes, ignoradosSede });
+            insertados++;
+        }
+
+        if (nuevasAnulaciones.length > 0) {
+            await anulacionRepo.save(nuevasAnulaciones);
+        }
+
+        console.log(`✅ [Anulaciones] ${fechaInicial} a ${fechaFinal}: Insertados: ${insertados}, Existentes: ${yaExistentes}, Ignorados por sede: ${ignoradosSede}`);
+        res.json({ ok: true, insertados, yaExistentes, ignoradosSede, detallesCruce, detallesNotasCredito, detallesIgnorados });
     } catch (err) {
         console.error('[ANULACIONES] Error al cargar anulaciones rápidas:', err);
         res.status(500).json({ error: 'Error al cargar anulaciones rápidas', details: err });
@@ -296,6 +276,8 @@ router.post('/cargar', async (req: Request, res: Response) => {
                 if (existentesSet.has(numeroAnulacion)) { yaExistentes++; yaExistentesMes++; detallesIgnorados.push({ motivo: 'Ya existente', registro: a }); continue; }
                 if (!fecha) { detallesIgnorados.push({ motivo: 'Sin fecha', registro: a }); continue; }
                 if (a.Observacion === null) {
+                    // Si es Anulación queremos dejar motivo/estado/observaciones en NULL
+                    // y no prellenar valorRemplazo (lo debe completar el usuario)
                     nuevasAnulaciones.push({
                         numeroAnulacion,
                         fecha,
@@ -308,8 +290,9 @@ router.post('/cargar', async (req: Request, res: Response) => {
                         sede,
                         facturador: a.Facturador,
                         totalAnulado: a.Total_Nota_Credito || a.Total_Anulado,
-                        motivo: 'ANULACION',
-                        estado: 'NO FACTURADO',
+                        motivo: null,
+                        estado: null,
+                        observaciones: null,
                         tipoRegistro: 'Anulación',
                         facturaRemplazo: undefined,
                         fechaRemplazo: undefined,
