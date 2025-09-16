@@ -186,21 +186,28 @@ const [eventosFull, setEventosFull] = useState<any[]>([]);
 				 setAseguradoras(Array.isArray(data) ? data : []);
 			 });
 		 // Obtener facturas de eventos para validación segunda columna
-		 fetch(`${API_CONFIG.BASE_URL}/facturacion/eventos`)
-			 .then(res => res.json())
-			 .then(data => {
-				 console.log('[DEBUG][FacturasEvento] Respuesta del backend:', data);
-				 if (Array.isArray(data.eventos)) {
-					 const facturas = data.eventos.map((ev: any) => String(ev.numeroFactura).trim());
-					 console.log('[DEBUG][FacturasEvento] Array de facturas extraído:', facturas);
-					 setFacturasEvento(facturas);
-					 setEventosFull(data.eventos);
-				 } else {
-					 setFacturasEvento([]);
-					 setEventosFull([]);
-				 }
-			 })
-			 .catch(() => { setFacturasEvento([]); setEventosFull([]); });
+			 // Usar endpoint resumen y pasar rango de fechas (obligatorio en backend)
+			 const params = new URLSearchParams({ fechaInicial: fechaFiltroInicial, fechaFinal: fechaFiltroFinal });
+			 fetch(`${API_CONFIG.BASE_URL}/facturacion/eventos/resumen?${params.toString()}`)
+				 .then(res => res.json())
+				 .then(data => {
+					 console.log('[DEBUG][FacturasEvento] Respuesta del backend:', data);
+					 if (data && Array.isArray(data.eventos)) {
+						 const facturas = data.eventos.map((ev: any) => String(ev.numeroFactura).trim());
+						 console.log('[DEBUG][FacturasEvento] Array de facturas extraído:', facturas);
+						 setFacturasEvento(facturas);
+						 setEventosFull(data.eventos);
+					 } else if (data && Array.isArray(data)) {
+						 // Compatibilidad por si el backend devolviera el arreglo directamente
+						 const facturas = data.map((ev: any) => String(ev.numeroFactura).trim());
+						 setFacturasEvento(facturas);
+						 setEventosFull(data);
+					 } else {
+						 setFacturasEvento([]);
+						 setEventosFull([]);
+					 }
+				 })
+				 .catch((err) => { console.error('[DEBUG][FacturasEvento] fetch error:', err); setFacturasEvento([]); setEventosFull([]); });
 	 }, []);
 
 	useEffect(() => {
