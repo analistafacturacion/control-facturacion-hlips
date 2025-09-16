@@ -103,7 +103,7 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
   const yTicks = [0, Math.round(maxVal / 2), Math.round(maxVal)];
 
   // tooltip
-  const [tooltip, setTooltip] = useState<{visible:boolean,x:number,y:number,value:number|null,label:string}>({ visible: false, x: 0, y: 0, value: null, label: '' });
+  const [tooltip, setTooltip] = useState<{visible:boolean,x:number,y:number,value:number|null,label:string,diff:number|null,trend:'up'|'down'|'same'|'nodata'}>({ visible: false, x: 0, y: 0, value: null, label: '', diff: null, trend: 'nodata' });
 
   // refs for animated paths and areas
   const lineRefs = useRef<Array<SVGPathElement | null>>([]);
@@ -185,14 +185,41 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
   }, [datosGrafico, sede, aseguradora, año]);
 
   const onEnterPoint = (evt: React.MouseEvent, p: any) => {
-    const rect = containerRef.current?.getBoundingClientRect();
-    const clientX = evt.clientX;
-    const clientY = evt.clientY;
-    const x = rect ? clientX - rect.left : evt.nativeEvent.offsetX;
-    const y = rect ? clientY - rect.top : evt.nativeEvent.offsetY;
-    setTooltip({ visible: true, x, y, value: p.y as number, label: p.xLabel });
+    // Anchor tooltip to the actual rendered circle using its bounding rect
+    const target = evt.currentTarget as Element;
+    const containerRect = containerRef.current?.getBoundingClientRect();
+    const tRect = target.getBoundingClientRect();
+    const centerX = (tRect.left + tRect.right) / 2 - (containerRect ? containerRect.left : 0);
+    const topY = tRect.top - (containerRect ? containerRect.top : 0);
+
+    // compute difference with previous month
+    const idx = p.index;
+    const prev = datosGrafico[idx - 1]?.valor ?? null;
+    const curr = p.y == null ? null : Number(p.y);
+    let diff: number | null = null;
+    let trend: 'up'|'down'|'same'|'nodata' = 'nodata';
+    if (curr == null || prev == null) {
+      diff = null;
+      trend = 'nodata';
+    } else {
+      diff = curr - Number(prev);
+      if (diff > 0) trend = 'up';
+      else if (diff < 0) trend = 'down';
+      else trend = 'same';
+    }
+
+    // position tooltip slightly above and to the right of the point, clamp inside container
+    let x = centerX + 8;
+    let y = topY - 12;
+    if (containerRect) {
+      const maxX = containerRect.width - 160; // avoid overflow (tooltip width ~160)
+      if (x > maxX) x = Math.max(8, containerRect.width - 168);
+      if (y < 8) y = topY + 12; // if too high, place below the point
+    }
+
+    setTooltip({ visible: true, x, y, value: curr, label: p.xLabel, diff, trend });
   };
-  const onLeavePoint = () => setTooltip({ visible: false, x: 0, y: 0, value: null, label: '' });
+  const onLeavePoint = () => setTooltip({ visible: false, x: 0, y: 0, value: null, label: '', diff: null, trend: 'nodata' });
 
   return (
     <div className="w-full flex flex-col gap-4" style={{height: '100%'}}>
@@ -255,11 +282,36 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
           ))}
         </svg>
 
-        {/* Tooltip básico */}
+        {/* Tooltip / tarjeta minimalista anclada al punto */}
         {tooltip.visible && (
-          <div style={{ position: 'absolute', left: tooltip.x + 8, top: tooltip.y + 8, background: 'rgba(255,255,255,0.98)', padding: 8, borderRadius: 8, boxShadow: '0 6px 18px rgba(2,6,23,0.12)', fontSize: 13 }}>
-            <div style={{ fontWeight: 700 }}>{tooltip.label}</div>
-            <div style={{ color: '#0369a1', fontWeight: 600 }}>{tooltip.value == null ? 'Sin datos' : `$ ${Number(tooltip.value).toLocaleString('es-CO')}`}</div>
+          <div style={{ position: 'absolute', left: tooltip.x, top: tooltip.y, width: 160, background: 'rgba(255,255,255,0.98)', padding: '10px 12px', borderRadius: 10, boxShadow: '0 8px 24px rgba(2,6,23,0.10)', fontSize: 13 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+              <div style={{ fontWeight: 700 }}>{tooltip.label}</div>
+              <div style={{ fontSize: 12, color: '#6b7280' }}>{/* espacio para posible etiqueta pequeña */}</div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
+              <div style={{ fontWeight: 700, color: '#0f172a' }}>{tooltip.value == null ? 'Sin datos' : `$ ${Number(tooltip.value).toLocaleString('es-CO')}`}</div>
+
+              {/* indicador de tendencia */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {tooltip.diff == null || tooltip.trend === 'nodata' ? (
+                  <div style={{ color: '#6b7280', fontSize: 12 }}>—</div>
+                ) : tooltip.trend === 'up' ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{ width: 10, height: 10, borderRadius: 3, background: '#0ea5a4', transform: 'rotate(-45deg)' }} />
+                    <div style={{ color: '#059669', fontSize: 12, fontWeight: 700 }}>{`+ $${Math.abs(tooltip.diff!).toLocaleString('es-CO')}`}</div>
+                  </div>
+                ) : tooltip.trend === 'down' ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{ width: 10, height: 10, borderRadius: 3, background: '#fb7185', transform: 'rotate(45deg)' }} />
+                    <div style={{ color: '#dc2626', fontSize: 12, fontWeight: 700 }}>{`- $${Math.abs(tooltip.diff!).toLocaleString('es-CO')}`}</div>
+                  </div>
+                ) : (
+                  <div style={{ color: '#6b7280', fontSize: 12 }}>0</div>
+                )}
+              </div>
+            </div>
           </div>
         )}
       </div>
