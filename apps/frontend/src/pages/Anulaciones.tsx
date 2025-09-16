@@ -424,6 +424,11 @@ const [eventosFull, setEventosFull] = useState<any[]>([]);
        const [showAnalisis, setShowAnalisis] = useState(false);
 	   const [analisisTipo, setAnalisisTipo] = useState<'grafico'|'sede'|'aseguradora'|'comparativa'|'general'>('grafico');
 
+	   // Debug: mostrar en consola cuando se abre/cierra el modal de análisis
+	   useEffect(() => {
+		   try { console.log('[ANULACIONES] showAnalisis changed:', showAnalisis); } catch (e) {}
+	   }, [showAnalisis]);
+
        // Obtener credenciales del usuario (simil factura)
        // Si tienes un hook de autenticación, úsalo aquí
        // Ejemplo: import { useAuth } from '../auth';
@@ -1714,11 +1719,11 @@ const handleArchivoPlano = async (file: File) => {
 							       </div>
 						       )}
 					       </button>
-					       <button
+	                       <button
 						       className="p-0 m-0 bg-transparent border-none outline-none flex items-center group ml-2"
 						       title="Análisis"
 						       style={{ boxShadow: 'none', borderRadius: '50%' }}
-						       onClick={() => setShowAnalisis(true)}
+			       onClick={() => { console.log('[ANULACIONES] click abrir analisis'); setShowAnalisis(true); }}
 					       >
 						       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 transition-all duration-200 icon-analisis" viewBox="0 0 24 24" fill="none" stroke="#002c50" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
 							       <rect x="3.5" y="15" width="3.5" height="5.5" rx="1" />
