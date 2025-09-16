@@ -361,6 +361,9 @@ const [eventosFull, setEventosFull] = useState<any[]>([]);
 	const [datosPlano, setDatosPlano] = useState<any[]>([]);
 	const [loadingPlano, setLoadingPlano] = useState(false);
 	const [mensajePlano, setMensajePlano] = useState<string|null>(null);
+	// Estado para mostrar detalle de validación por fila
+	const [detalleVisible, setDetalleVisible] = useState(false);
+	const [detalleContenido, setDetalleContenido] = useState<any|null>(null);
 	// Formatear fecha y hora para la tarjeta en formato D/M/YYYY, HH:mm:ss
 	const ultimaActualizacion = ultimaActualizacionFull
 			? (() => {
@@ -1196,6 +1199,31 @@ const handleArchivoPlano = async (file: File) => {
 									 </button>
 								 )}
 							 </div>
+
+							{/* Modal detalle de validación por fila */}
+							{detalleVisible && detalleContenido && (
+								<div className="fixed inset-0 z-60 flex items-center justify-center bg-black bg-opacity-50 p-4">
+									<div className="bg-white rounded-lg shadow-lg p-4 max-w-lg w-full">
+										<div className="flex justify-between items-center mb-2">
+											<strong>Detalle de validación</strong>
+											<button className="text-gray-500" onClick={() => { setDetalleVisible(false); setDetalleContenido(null); }}>Cerrar</button>
+										</div>
+										<div className="text-sm text-gray-700 space-y-2 max-h-64 overflow-auto">
+											<div><strong>Col1:</strong> {detalleContenido.mensajeCol1}</div>
+											<div><strong>Col2:</strong> {detalleContenido.mensajeCol2}</div>
+											<div><strong>Fecha(s) autocompletadas:</strong> {Array.isArray(detalleContenido.fechasAutocompletadas) ? detalleContenido.fechasAutocompletadas.join(', ') : detalleContenido.fechasAutocompletadas}</div>
+											<div><strong>Valor(es) autocompletados:</strong> {Array.isArray(detalleContenido.valoresAutocompletados) ? (detalleContenido.valoresAutocompletados.length>0 ? detalleContenido.valoresAutocompletados.map((v:any)=>`$${Number(v).toLocaleString('es-CO')}`).join(', ') : '') : detalleContenido.valoresAutocompletados}</div>
+											<div><strong>Col3 (mensaje):</strong> {detalleContenido.mensajeCol3}</div>
+											<div><strong>Col4 (mensaje):</strong> {detalleContenido.mensajeCol4}</div>
+											<div><strong>Col5 (motivo):</strong> {detalleContenido.mensajeCol5}</div>
+											<div><strong>Col6 (estado):</strong> {detalleContenido.mensajeCol6}</div>
+										</div>
+										<div className="mt-3 text-right">
+											<button className="px-3 py-1 rounded bg-gray-200" onClick={() => { setDetalleVisible(false); setDetalleContenido(null); }}>Cerrar</button>
+										</div>
+									</div>
+								</div>
+							)}
 							 {loadingPlano && <div className="text-center text-sm text-gray-500 mb-2">Procesando archivo...</div>}
 							 {mensajePlano && <div className="text-center text-sm text-red-500 mb-2">{mensajePlano}</div>}
 							 
@@ -1244,10 +1272,12 @@ const handleArchivoPlano = async (file: File) => {
 															 <td className="px-2 py-1 text-white font-bold text-center">Valor (Reemplazo)</td> {/* Nueva columna */}
 															 <td className="px-2 py-1 text-white font-bold text-center">{fila[2]}</td> {/* Motivo */}
 															 <td className="px-2 py-1 text-white font-bold text-center">{fila[3]}</td> {/* Estado */}
-															 {/* Encabezado para columna de validación final */}
-															 <td className="px-2 py-1 text-white font-bold text-center">Resultado</td>
-															 {/* Nueva columna para indicar si se puede guardar */}
-															 <td className="px-2 py-1 text-white font-bold text-center">Guardar</td>
+							 								{/* Encabezado para columna de validación final */}
+							 								<td className="px-2 py-1 text-white font-bold text-center">Resultado</td>
+							 								{/* Nueva columna para indicar si se puede guardar */}
+							 								<td className="px-2 py-1 text-white font-bold text-center">Guardar</td>
+							 								{/* Nueva columna Detalle (ojito) */}
+							 								<td className="px-2 py-1 text-white font-bold text-center">Detalle</td>
 														 </>
 													 ) : (
 														 // Filas de datos - construir fila con columnas en el orden correcto
@@ -1295,7 +1325,7 @@ const handleArchivoPlano = async (file: File) => {
 															 </td>
 														 </>
 													 )}
-													 {/* Columna de validación final única */}
+							 						{/* Columna de validación final única */}
 													 {i !== 0 && resultadosValidacionPlano[i-1] && (
 														 <>
 															 {/* Determinar si está aprobado basado en el resultado de validación */}
@@ -1321,6 +1351,19 @@ const handleArchivoPlano = async (file: File) => {
 																				 <span className="inline-block w-4 h-4 bg-red-500 rounded-full" title="No se actualizará - factura no encontrada o validación incorrecta">✗</span>
 																			 )}
 																		 </td>
+							 											{/* Nueva columna: Detalle (ojito) */}
+							 											<td className="px-2 py-1 text-center">
+							 												<button
+							 													className="p-1 rounded hover:bg-gray-100"
+							 													onClick={() => { setDetalleContenido(resultadosValidacionPlano[i-1]); setDetalleVisible(true); }}
+							 													title="Ver detalle de validación"
+							 												>
+							 													<svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="#002c50" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+							 														<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" />
+							 														<circle cx="12" cy="12" r="3" />
+							 													</svg>
+							 												</button>
+							 											</td>
 																	 </>
 																 );
 															 })()}
