@@ -97,14 +97,15 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
           const len = p.getTotalLength();
           p.style.strokeDasharray = `${len}`;
           p.style.strokeDashoffset = `${len}`;
-          p.style.transition = 'stroke-dashoffset 900ms cubic-bezier(.2,.8,.2,1)';
+          // más lento y ligeramente más elástico
+          p.style.transition = 'stroke-dashoffset 1600ms cubic-bezier(.2,.8,.2,1)';
         } catch (e) { /* ignore */ }
       }
     });
     areaRefs.current.forEach(a => {
       if (a) {
         a.style.opacity = '0';
-        a.style.transition = 'opacity 700ms ease';
+        a.style.transition = 'opacity 1200ms ease';
       }
     });
 
@@ -112,15 +113,15 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
     const t = setTimeout(() => {
       lineRefs.current.forEach(p => { if (p) p.style.strokeDashoffset = '0'; });
       areaRefs.current.forEach(a => { if (a) a.style.opacity = '1'; });
-      // animate dots with stagger
+      // animate dots with stagger (más lento)
       const dots = containerRef.current?.querySelectorAll('.cf-dot');
       dots?.forEach((dot, idx) => {
         const el = dot as HTMLElement;
         el.style.transform = 'scale(1)';
         el.style.opacity = '1';
-        el.style.transition = `transform 350ms cubic-bezier(.2,.8,.2,1) ${idx * 80}ms, opacity 250ms ${idx * 80}ms`;
+        el.style.transition = `transform 600ms cubic-bezier(.2,.8,.2,1) ${idx * 140}ms, opacity 450ms ${idx * 140}ms`;
       });
-    }, 80);
+    }, 120);
 
     return () => clearTimeout(t);
   }, [datosGrafico, sede, aseguradora, año]);
