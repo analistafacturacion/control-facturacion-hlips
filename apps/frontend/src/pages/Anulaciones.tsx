@@ -857,7 +857,8 @@ const handleArchivoPlano = async (file: File) => {
 								);
 								
 								if (eventoEncontrado) {
-									fechasAutoCompletadas.push(String(eventoEncontrado.fecha).trim());
+									// Formatear la fecha autocompletada a YYYY-MM-DD
+									fechasAutoCompletadas.push(formatDateShort(String(eventoEncontrado.fecha).trim()));
 									let valor = String(eventoEncontrado.valor);
 									// Eliminar .00 del final para mejor comparación
 									if (valor.endsWith('.00')) {
