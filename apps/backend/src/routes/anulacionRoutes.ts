@@ -117,7 +117,7 @@ router.post('/cargar-ultimos-dias', async (req: Request, res: Response) => {
                         sede,
                         facturador: a.Facturador,
                         totalAnulado: a.Total_Nota_Credito,
-                        motivo: 'ANULACION',
+                        motivo: null,
                         estado: null,
                         observaciones: null,
                         tipoRegistro: 'Anulación',
@@ -146,7 +146,7 @@ router.post('/cargar-ultimos-dias', async (req: Request, res: Response) => {
                         tipoRegistro: 'Nota Crédito',
                         facturaRemplazo: '-',
                         fechaRemplazo: '-',
-                        valorRemplazo: 0,
+                        valorRemplazo: (a.Total_Nota_Credito || a.Total_Anulado) == 0 ? '$0' : String(a.Total_Nota_Credito || a.Total_Anulado),
                         sedeRemplazo: '-'
                     });
                 }
