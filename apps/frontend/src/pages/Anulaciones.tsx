@@ -240,6 +240,7 @@ const [eventosFull, setEventosFull] = useState<any[]>([]);
 		return anulaciones
 			.filter(a => {
 				const filtro = filtroBusqueda.trim().toLowerCase();
+				const normalize = (s?: any) => (s === null || s === undefined) ? '' : String(s).replace(/\s+/g, ' ').trim().toLowerCase();
 				// Buscar por Factura, Documento o Paciente
 				const coincideTexto = !filtro
 					|| (a.factura && a.factura.toLowerCase().includes(filtro))
@@ -249,8 +250,12 @@ const [eventosFull, setEventosFull] = useState<any[]>([]);
 				// Filtrar por fechaNotaCredito en vez de fecha
 				const fechaFiltro = a.fechaNotaCredito || '';
 				const enRango = (!fechaFiltroInicial || fechaFiltro >= fechaFiltroInicial) && (!fechaFiltroFinal || fechaFiltro <= fechaFiltroFinal);
-				const coincideSede = !sedeFiltro || (a.sede && a.sede.nombre === sedeFiltro);
-				const coincideAseg = !aseguradoraFiltro || (a.aseguradora === aseguradoraFiltro);
+				const coincideSede = !sedeFiltro || normalize(a.sede?.nombre || a.sede) === normalize(sedeFiltro);
+				const coincideAseg = !aseguradoraFiltro || (!!a.aseguradora && (
+					normalize(a.aseguradora) === normalize(aseguradoraFiltro) ||
+					normalize(a.aseguradora).includes(normalize(aseguradoraFiltro)) ||
+					normalize(aseguradoraFiltro).includes(normalize(a.aseguradora))
+				));
 				const coincideUsuario = !usuarioFiltro || (a.usuario === usuarioFiltro);
 				
 				// Filtro de tipo de registro
@@ -286,8 +291,13 @@ const [eventosFull, setEventosFull] = useState<any[]>([]);
 	const anulacionesParaTarjetas = anulaciones.filter(a => {
 		const fechaFiltro = a.fechaNotaCredito || '';
 		const enRango = (!fechaFiltroInicial || fechaFiltro >= fechaFiltroInicial) && (!fechaFiltroFinal || fechaFiltro <= fechaFiltroFinal);
-		const coincideSede = !sedeFiltro || (a.sede && a.sede.nombre === sedeFiltro);
-		const coincideAseg = !aseguradoraFiltro || (a.aseguradora === aseguradoraFiltro);
+		const normalize = (s?: any) => (s === null || s === undefined) ? '' : String(s).replace(/\s+/g, ' ').trim().toLowerCase();
+		const coincideSede = !sedeFiltro || normalize(a.sede?.nombre || a.sede) === normalize(sedeFiltro);
+		const coincideAseg = !aseguradoraFiltro || (!!a.aseguradora && (
+			normalize(a.aseguradora) === normalize(aseguradoraFiltro) ||
+			normalize(a.aseguradora).includes(normalize(aseguradoraFiltro)) ||
+			normalize(aseguradoraFiltro).includes(normalize(a.aseguradora))
+		));
 		return enRango && coincideSede && coincideAseg;
 	});
 	
