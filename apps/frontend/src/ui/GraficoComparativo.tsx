@@ -7,6 +7,7 @@ interface Props {
   sedes: string[];
   años: number[];
   showAseguradoraFilter?: boolean;
+  showSedeFilter?: boolean;
   initialSede?: string;
   initialAseguradora?: string;
   initialAño?: number;
@@ -14,7 +15,7 @@ interface Props {
 
 const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
-export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes, años, initialSede, initialAseguradora, initialAño, showAseguradoraFilter = true }) => {
+export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes, años, initialSede, initialAseguradora, initialAño, showAseguradoraFilter = true, showSedeFilter = true }) => {
   // Por defecto mostramos "Todas" las sedes/aseguradoras para que el gráfico agregue datos
   const [sede, setSede] = useState(initialSede ?? '');
   const [aseguradora, setAseguradora] = useState(initialAseguradora ?? '');
@@ -133,9 +134,11 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
   return (
     <div className="w-full flex flex-col gap-4" style={{height: '100%'}}>
       <div className="flex gap-2 justify-center">
-        <select value={sede} onChange={e => setSede(e.target.value)} className="border rounded px-2 py-1">
-          {sedes.map(s => <option key={s} value={s}>{s}</option>)}
-        </select>
+        {showSedeFilter && (
+          <select value={sede} onChange={e => setSede(e.target.value)} className="border rounded px-2 py-1">
+            {sedes.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+        )}
         {showAseguradoraFilter && (
           <select value={aseguradora} onChange={e => setAseguradora(e.target.value)} className="border rounded px-2 py-1">
             {aseguradoras.map(a => <option key={a} value={a}>{a}</option>)}
