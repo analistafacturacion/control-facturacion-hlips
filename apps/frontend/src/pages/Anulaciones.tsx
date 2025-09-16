@@ -1525,29 +1525,7 @@ const handleArchivoPlano = async (file: File) => {
 								 </div>
 							 )}
 
-							{/* Modal de análisis (estilo y tamaño igual al de Facturacion) */}
-							{showAnalisis && (
-								<div className="fixed inset-0 z-50 flex items-center justify-center p-2" style={{ backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}>
-									<div className="bg-white rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8 w-full max-w-[98vw] sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl min-h-[520px] min-w-[700px] max-h-[80vh] max-w-[90vw] h-[520px] md:h-[600px] relative animate-fade-in overflow-hidden flex flex-col">
-										<button className="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-2xl font-bold" onClick={() => setShowAnalisis(false)} aria-label="Cerrar">×</button>
-										<div className="flex gap-2 justify-center mb-4">
-											<button className={`min-w-[160px] flex-1 px-5 py-2 rounded-xl font-semibold text-xs border border-gray-300 transition-all duration-150 focus:outline-none shadow-sm ${analisisTipo === 'grafico' ? 'text-white border-[#002c50]' : 'bg-white text-gray-900 hover:bg-gray-100'}`} style={analisisTipo === 'grafico' ? { backgroundColor: '#002c50', letterSpacing: '.01em' } : { letterSpacing: '.01em' }} onClick={() => setAnalisisTipo('grafico')}>Análisis General</button>
-											<button className={`min-w-[160px] flex-1 px-5 py-2 rounded-xl font-semibold text-xs border border-gray-300 transition-all duration-150 focus:outline-none shadow-sm ${analisisTipo === 'sede' ? 'text-white border-[#002c50]' : 'bg-white text-gray-900 hover:bg-gray-100'}`} style={analisisTipo === 'sede' ? { backgroundColor: '#002c50', letterSpacing: '.01em' } : { letterSpacing: '.01em' }} onClick={() => setAnalisisTipo('sede')}>Análisis Sede</button>
-											<button className={`min-w-[160px] flex-1 px-5 py-2 rounded-xl font-semibold text-xs border border-gray-300 transition-all duration-150 focus:outline-none shadow-sm ${analisisTipo === 'aseguradora' ? 'text-white border-[#002c50]' : 'bg-white text-gray-900 hover:bg-gray-100'}`} style={analisisTipo === 'aseguradora' ? { backgroundColor: '#002c50', letterSpacing: '.01em' } : { letterSpacing: '.01em' }} onClick={() => setAnalisisTipo('aseguradora')}>Análisis Aseguradora</button>
-											<button className={`min-w-[160px] flex-1 px-5 py-2 rounded-xl font-semibold text-xs border border-gray-300 transition-all duration-150 focus:outline-none shadow-sm ${analisisTipo === 'comparativa' ? 'text-white border-[#002c50]' : 'bg-white text-gray-900 hover:bg-gray-100'}`} style={analisisTipo === 'comparativa' ? { backgroundColor: '#002c50', letterSpacing: '.01em' } : { letterSpacing: '.01em' }} onClick={() => setAnalisisTipo('comparativa')}>Comparativo</button>
-											<button className={`min-w-[160px] flex-1 px-5 py-2 rounded-xl font-semibold text-xs border border-gray-300 transition-all duration-150 focus:outline-none shadow-sm ${analisisTipo === 'general' ? 'text-white border-[#002c50]' : 'bg-white text-gray-900 hover:bg-gray-100'}`} style={analisisTipo === 'general' ? { backgroundColor: '#002c50', letterSpacing: '.01em' } : { letterSpacing: '.01em' }} onClick={() => setAnalisisTipo('general')}>Informe General</button>
-										</div>
-										<hr className="border-t border-gray-300 mb-4 w-full" />
-										<div className="flex-1 min-h-0 overflow-auto">
-											{analisisTipo === 'grafico' && <div className="p-4">(Análisis gráfico placeholder)</div>}
-											{analisisTipo === 'sede' && <div className="p-4">(Análisis por sede placeholder)</div>}
-											{analisisTipo === 'aseguradora' && <div className="p-4">(Análisis por aseguradora placeholder)</div>}
-											{analisisTipo === 'comparativa' && <div className="p-4">(Comparativo placeholder)</div>}
-											{analisisTipo === 'general' && <div className="p-4">(Informe general placeholder)</div>}
-										</div>
-									</div>
-								</div>
-							)}
+			
 							 {archivoPlano && (
 								 <div className="flex gap-2 justify-end mt-2">
 									 <button 
@@ -1571,7 +1549,30 @@ const handleArchivoPlano = async (file: File) => {
 
        return (
 				 <section className="pt-8">
-					 {renderModalCargaPlano()}
+				{renderModalCargaPlano()}
+				{/* Modal de análisis (renderizado en root del componente para evitar stacking/overflow) */}
+				{showAnalisis && (
+					<div className="fixed inset-0 z-50 flex items-center justify-center p-2" style={{ backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}>
+						<div className="bg-white rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8 w-full max-w-[98vw] sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl min-h-[520px] min-w-[700px] max-h-[80vh] max-w-[90vw] h-[520px] md:h-[600px] relative animate-fade-in overflow-hidden flex flex-col">
+							<button className="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-2xl font-bold" onClick={() => setShowAnalisis(false)} aria-label="Cerrar">×</button>
+							<div className="flex gap-2 justify-center mb-4">
+								<button className={`min-w-[160px] flex-1 px-5 py-2 rounded-xl font-semibold text-xs border border-gray-300 transition-all duration-150 focus:outline-none shadow-sm ${analisisTipo === 'grafico' ? 'text-white border-[#002c50]' : 'bg-white text-gray-900 hover:bg-gray-100'}`} style={analisisTipo === 'grafico' ? { backgroundColor: '#002c50', letterSpacing: '.01em' } : { letterSpacing: '.01em' }} onClick={() => setAnalisisTipo('grafico')}>Análisis General</button>
+								<button className={`min-w-[160px] flex-1 px-5 py-2 rounded-xl font-semibold text-xs border border-gray-300 transition-all duration-150 focus:outline-none shadow-sm ${analisisTipo === 'sede' ? 'text-white border-[#002c50]' : 'bg-white text-gray-900 hover:bg-gray-100'}`} style={analisisTipo === 'sede' ? { backgroundColor: '#002c50', letterSpacing: '.01em' } : { letterSpacing: '.01em' }} onClick={() => setAnalisisTipo('sede')}>Análisis Sede</button>
+								<button className={`min-w-[160px] flex-1 px-5 py-2 rounded-xl font-semibold text-xs border border-gray-300 transition-all duration-150 focus:outline-none shadow-sm ${analisisTipo === 'aseguradora' ? 'text-white border-[#002c50]' : 'bg-white text-gray-900 hover:bg-gray-100'}`} style={analisisTipo === 'aseguradora' ? { backgroundColor: '#002c50', letterSpacing: '.01em' } : { letterSpacing: '.01em' }} onClick={() => setAnalisisTipo('aseguradora')}>Análisis Aseguradora</button>
+								<button className={`min-w-[160px] flex-1 px-5 py-2 rounded-xl font-semibold text-xs border border-gray-300 transition-all duration-150 focus:outline-none shadow-sm ${analisisTipo === 'comparativa' ? 'text-white border-[#002c50]' : 'bg-white text-gray-900 hover:bg-gray-100'}`} style={analisisTipo === 'comparativa' ? { backgroundColor: '#002c50', letterSpacing: '.01em' } : { letterSpacing: '.01em' }} onClick={() => setAnalisisTipo('comparativa')}>Comparativo</button>
+								<button className={`min-w-[160px] flex-1 px-5 py-2 rounded-xl font-semibold text-xs border border-gray-300 transition-all duration-150 focus:outline-none shadow-sm ${analisisTipo === 'general' ? 'text-white border-[#002c50]' : 'bg-white text-gray-900 hover:bg-gray-100'}`} style={analisisTipo === 'general' ? { backgroundColor: '#002c50', letterSpacing: '.01em' } : { letterSpacing: '.01em' }} onClick={() => setAnalisisTipo('general')}>Informe General</button>
+							</div>
+							<hr className="border-t border-gray-300 mb-4 w-full" />
+							<div className="flex-1 min-h-0 overflow-auto">
+								{analisisTipo === 'grafico' && <div className="p-4">(Análisis gráfico placeholder)</div>}
+								{analisisTipo === 'sede' && <div className="p-4">(Análisis por sede placeholder)</div>}
+								{analisisTipo === 'aseguradora' && <div className="p-4">(Análisis por aseguradora placeholder)</div>}
+								{analisisTipo === 'comparativa' && <div className="p-4">(Comparativo placeholder)</div>}
+								{analisisTipo === 'general' && <div className="p-4">(Informe general placeholder)</div>}
+							</div>
+						</div>
+					</div>
+				)}
 		       <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
 			       <h1 className="text-3xl font-bold mb-1 whitespace-nowrap" style={{ color: '#002c50' }}>Modulo Anulaciones</h1>
 			       <div className="flex gap-2 items-center mt-2 md:mt-0 w-full justify-end">
