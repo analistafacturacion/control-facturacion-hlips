@@ -246,7 +246,8 @@ router.post('/cargar', async (req: Request, res: Response) => {
                     clearTimeout(timeout);
                     pergamoData = await pergamoRes.json();
                     const duracion = ((Date.now() - inicioIntento) / 1000).toFixed(1);
-                    if (pergamoData.status && Array.isArray(pergamoData.data?.h3)) {
+                    // Considerar éxito si viene h2
+                    if (Array.isArray(pergamoData?.data?.h2)) {
                         exito = true;
                         console.log(`🟢 [Anulaciones] ${rango.inicial} a ${rango.final}: Pergamo OK en ${duracion}s. Intento ${intento}`);
                     } else {
@@ -261,177 +262,70 @@ router.post('/cargar', async (req: Request, res: Response) => {
                 console.log(`❌ [Anulaciones] ${rango.inicial} a ${rango.final}: Falló tras 3 intentos. Se omite este mes.`);
                 continue;
             }
-            // Obtener h2 y h3
+            // Procesar solo h2 según nueva regla: Observacion null -> Anulación, distinto -> Nota Crédito
             const h2 = Array.isArray(pergamoData.data?.h2) ? pergamoData.data.h2 : [];
-            const h3 = Array.isArray(pergamoData.data?.h3) ? pergamoData.data.h3 : [];
-            console.log('[DEBUG Pergamo] h2:', JSON.stringify(h2));
-            console.log('[DEBUG Pergamo] h3:', JSON.stringify(h3));
-            // Normalizar facturas de h2 y h3
-            const facturasH2 = new Set(h2.map((r: any) => (r.Factura || '').replace(/-/g, '').trim()));
-            const facturasH3 = new Set(h3.map((r: any) => (r.Factura || '').replace(/-/g, '').trim()));
-            console.log('[DEBUG Cruce] facturasH2:', Array.from(facturasH2));
-            console.log('[DEBUG Cruce] facturasH3:', Array.from(facturasH3));
             const existentes = await anulacionRepo.find({ select: ['numeroAnulacion'] });
-        const existentesSet = new Set(existentes.map((a: { numeroAnulacion: string }) => a.numeroAnulacion));
-            const nuevasAnulaciones = [];
+            const existentesSet = new Set(existentes.map((a: { numeroAnulacion: string }) => a.numeroAnulacion));
+            const nuevasAnulaciones: any[] = [];
             let insertadosMes = 0, yaExistentesMes = 0, ignoradosSedeMes = 0;
-            // Primero: los que están en h3 y también en h2 = Anulación
-            for (const a of h3) {
-                // Declarar variables una sola vez y usar sufijo H3
-                const numeroAnulacionH3 = (a.Factura || '').replace(/-/g, '').trim();
-                const notaCreditoH3 = a.Nota_Credito ? String(a.Nota_Credito).replace(/-/g, '').trim() : undefined;
-                const fechaH3 = a.Fecha_Facturacion ? a.Fecha_Facturacion.split(' ')[0] : undefined;
-                const fechaNotaCreditoH3 = a.Fecha_Nota_Credito ? a.Fecha_Nota_Credito.split(' ')[0] : undefined;
-                const sedeNombreH3 = (a.Sede || '').trim().toUpperCase();
-                const sedeH3 = sedes.find((s: { nombre: string }) => s.nombre.trim().toUpperCase() === sedeNombreH3);
-                if (!sedeH3) {
-                    detallesIgnorados.push({ motivo: 'Sede no encontrada', registro: a });
-                    ignoradosSede++; ignoradosSedeMes++; continue;
-                }
-                if (existentesSet.has(numeroAnulacionH3)) {
-                    detallesIgnorados.push({ motivo: 'Ya existente', registro: a });
-                    yaExistentes++; yaExistentesMes++; continue;
-                }
-                if (!fechaH3) {
-                    detallesIgnorados.push({ motivo: 'Sin fecha', registro: a });
-                    continue;
-                }
-                const tipoRegistroH3 = facturasH2.has(numeroAnulacionH3) ? 'Anulación' : 'Nota Crédito';
-                if (tipoRegistroH3 === 'Anulación') {
-                    detallesCruce.push({ registro: a });
-                } else {
-                    detallesNotasCredito.push({ registro: a });
-                }
-                nuevasAnulaciones.push({
-                    numeroAnulacion: numeroAnulacionH3,
-                    fecha: fechaH3,
-                    notaCredito: notaCreditoH3,
-                    fechaNotaCredito: fechaNotaCreditoH3,
-                    sede: sedeH3,
-                    tipoRegistro: tipoRegistroH3,
-                    tipoDocumento: a.Tipo_Documento,
-                    documento: a.Documento,
-                    paciente: a.Paciente,
-                    aseguradora: a.Aseguradora,
-                    facturador: a.Facturador,
-                    totalAnulado: a.Total_Anulado,
-                    motivo: a.motivo,
-                    estado: a.estado
-                });
-                insertados++;
-                insertadosMes++;
-            }
-            // Segundo: los que están solo en h2 y no en h3 = Nota Crédito
             for (const a of h2) {
-                // Filtro: eliminar registros con Fecha_Factura antes de 2025-01-01
-                if (a.Fecha_Factura) {
-                    const fechaFacturaISO = a.Fecha_Factura.split(' ')[0];
-                    if (fechaFacturaISO < '2025-01-01') {
-                        // Usar directamente los valores de a.Factura y a.Sede
-                        console.log(`[LOG] Registro descartado por fecha anterior a 2025-01-01:`, { sede: a.Sede, numero: a.Factura, fecha: fechaFacturaISO });
-                        detallesIgnorados.push({ motivo: 'Fecha_Factura < 2025-01-01', registro: a });
-                        continue;
-                    }
-                }
-                const numeroAnulacionH2 = (a.Factura || '').replace(/-/g, '').trim();
-                const notaCreditoH2 = a.Nota_Credito ? String(a.Nota_Credito).replace(/-/g, '').trim() : undefined;
-                const fechaH2 = a.Fecha_Facturacion ? a.Fecha_Facturacion.split(' ')[0] : undefined;
-                const fechaNotaCreditoH2 = a.Fecha_Nota_Credito ? a.Fecha_Nota_Credito.split(' ')[0] : undefined;
-                const sedeNombreH2 = (a.Sede || '').trim().toUpperCase();
-                const sedeH2 = sedes.find((s: { nombre: string }) => s.nombre.trim().toUpperCase() === sedeNombreH2);
-                if (!sedeH2) {
-                    console.log(`[LOG] Sede no encontrada para registro h2:`, { sede: sedeNombreH2, numero: numeroAnulacionH2 });
-                    detallesIgnorados.push({ motivo: 'Sede no encontrada', registro: a });
-                    ignoradosSede++; ignoradosSedeMes++; continue;
-                }
-                if (existentesSet.has(numeroAnulacionH2)) {
-                    console.log(`[LOG] Registro ya existente en base:`, { sede: sedeNombreH2, numero: numeroAnulacionH2 });
-                    detallesIgnorados.push({ motivo: 'Ya existente', registro: a });
-                    yaExistentes++; yaExistentesMes++; continue;
-                }
-                let fechaFinalH2 = fechaH2;
-                // Si no hay fecha principal, intentar buscar en otros campos alternativos
-                if (!fechaFinalH2) {
-                    // Buscar en Fecha_Nota_Credito
-                    if (a.Fecha_Nota_Credito) {
-                        fechaFinalH2 = a.Fecha_Nota_Credito.split(' ')[0];
-                    }
-                    // Buscar en algún otro campo si existe (ejemplo: fechaR, fechaPlano, etc)
-                    if (!fechaFinalH2 && a.fechaR) {
-                        fechaFinalH2 = a.fechaR.split(' ')[0];
-                    }
-                    if (!fechaFinalH2 && a.fechaPlano) {
-                        fechaFinalH2 = a.fechaPlano.split(' ')[0];
-                    }
-                }
-                if (!fechaFinalH2) {
-                    console.log(`[LOG] Registro descartado por falta de fecha:`, { sede: sedeNombreH2, numero: numeroAnulacionH2 });
-                    detallesIgnorados.push({ motivo: 'Sin fecha', registro: a });
-                    continue;
-                }
-                detallesNotasCredito.push({ registro: a });
                 const numeroAnulacion = (a.Factura || '').replace(/-/g, '').trim();
-                if (facturasH3.has(numeroAnulacion)) {
-                    console.log(`[LOG] Registro ignorado por estar en h3 (ya procesado como Anulación):`, { sede: sedeNombreH2, numero: numeroAnulacion });
-                    continue;
-                }
                 const notaCredito = a.Nota_Credito ? String(a.Nota_Credito).replace(/-/g, '').trim() : undefined;
-                // Usar Fecha_Factura como fecha principal y Fecha_Nota_Credito como fecha de anulación
-                // Mapeo estricto: fecha = Fecha_Factura, fechaNotaCredito = Fecha_Nota_Credito
                 const fecha = a.Fecha_Factura ? a.Fecha_Factura.split(' ')[0] : undefined;
                 const fechaNotaCredito = a.Fecha_Nota_Credito ? a.Fecha_Nota_Credito.split(' ')[0] : undefined;
                 const sedeNombre = (a.Sede || '').trim().toUpperCase();
                 const sede = sedes.find((s: { nombre: string }) => s.nombre.trim().toUpperCase() === sedeNombre);
-                if (!sede) {
-                    console.log(`[LOG] Sede no encontrada al guardar registro:`, { sede: sedeNombre, numero: numeroAnulacion });
-                    ignoradosSede++; ignoradosSedeMes++; continue;
+                if (!sede) { ignoradosSede++; ignoradosSedeMes++; continue; }
+                if (existentesSet.has(numeroAnulacion)) { yaExistentes++; yaExistentesMes++; continue; }
+                if (a.Observacion === null) {
+                    nuevasAnulaciones.push({
+                        numeroAnulacion,
+                        fecha,
+                        notaCredito,
+                        fechaNotaCredito,
+                        tipoDocumento: a.Tipo_Documento,
+                        documento: a.Documento,
+                        paciente: a.Paciente,
+                        aseguradora: a.Aseguradora,
+                        sede,
+                        facturador: a.Facturador,
+                        totalAnulado: a.Total_Nota_Credito || a.Total_Anulado,
+                        motivo: 'ANULACION',
+                        estado: 'NO FACTURADO',
+                        tipoRegistro: 'Anulación',
+                        facturaRemplazo: undefined,
+                        fechaRemplazo: undefined,
+                        valorRemplazo: undefined,
+                        sedeRemplazo: undefined
+                    });
+                    detallesCruce.push({ registro: a });
+                } else {
+                    nuevasAnulaciones.push({
+                        numeroAnulacion,
+                        fecha,
+                        notaCredito,
+                        fechaNotaCredito,
+                        tipoDocumento: a.Tipo_Documento,
+                        documento: a.Documento,
+                        paciente: a.Paciente,
+                        aseguradora: a.Aseguradora,
+                        sede,
+                        facturador: a.Facturador,
+                        totalAnulado: a.Total_Nota_Credito || a.Total_Anulado,
+                        motivo: 'ACEPTACIÓN DE GLOSA',
+                        estado: 'NO FACTURADO',
+                        tipoRegistro: 'Nota Crédito',
+                        facturaRemplazo: '-',
+                        fechaRemplazo: '-',
+                        valorRemplazo: 0,
+                        sedeRemplazo: '-'
+                    });
+                    detallesNotasCredito.push({ registro: a });
                 }
-                if (existentesSet.has(numeroAnulacion)) {
-                    console.log(`[LOG] Registro ya existente al guardar registro:`, { sede: sedeNombre, numero: numeroAnulacion });
-                    yaExistentes++; yaExistentesMes++; continue;
-                }
-                if (!fecha) {
-                    console.log(`[LOG] Registro descartado por falta de fecha al guardar registro:`, { sede: sedeNombre, numero: numeroAnulacion });
-                    continue;
-                }
-                nuevasAnulaciones.push({
-                    numeroAnulacion,
-                    fecha,
-                    notaCredito,
-                    fechaNotaCredito,
-                    tipoDocumento: a.Tipo_Documento,
-                    documento: a.Documento,
-                    paciente: a.Paciente,
-                    aseguradora: a.Aseguradora,
-                    sede,
-                    facturador: a.Facturador,
-                    totalAnulado: a.Total_Nota_Credito || a.Total_Anulado,
-                    motivo: a.motivo,
-                    estado: a.estado,
-                    observaciones: a.Observaciones || null,
-                    tipoRegistro: 'Nota Crédito'
-                });
-                console.log(`[LOG] Registro guardado como Nota Crédito:`, { sede: sedeNombre, numero: numeroAnulacion });
                 insertados++; insertadosMes++;
             }
             if (nuevasAnulaciones.length > 0) {
                 await anulacionRepo.save(nuevasAnulaciones);
-                    // Sincronizar cambios en FacturacionEvento
-                    const facturacionRepo = require('typeorm').getRepository(require('../entity/FacturacionEvento').FacturacionEvento);
-                    for (const anulacion of nuevasAnulaciones) {
-                        const factura = await facturacionRepo.findOne({ where: { numeroFactura: anulacion.numeroAnulacion } });
-                        if (factura) {
-                            if (anulacion.tipoRegistro === 'Anulación') {
-                                factura.valor = 0;
-                                factura.periodo = 'ANULADA';
-                            } else if (anulacion.tipoRegistro === 'Nota Crédito' && anulacion.totalAnulado) {
-                                // Restar el valor de la nota crédito al total
-                                factura.valor = Math.max(0, (factura.valor || 0) - Number(anulacion.totalAnulado));
-                                // Mantener periodo original (CORRIENTE o REMANENTE)
-                            }
-                            await facturacionRepo.save(factura);
-                        }
-                    }
             }
             console.log(`✅ [Anulaciones] ${rango.inicial} a ${rango.final}: Insertados: ${insertadosMes}, Existentes: ${yaExistentesMes}, Ignorados por sede: ${ignoradosSedeMes}`);
         }
