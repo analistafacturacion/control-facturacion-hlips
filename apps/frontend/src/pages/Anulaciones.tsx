@@ -251,10 +251,11 @@ const [eventosFull, setEventosFull] = useState<any[]>([]);
 				const fechaFiltro = a.fechaNotaCredito || '';
 				const enRango = (!fechaFiltroInicial || fechaFiltro >= fechaFiltroInicial) && (!fechaFiltroFinal || fechaFiltro <= fechaFiltroFinal);
 				const coincideSede = !sedeFiltro || normalize(a.sede?.nombre || a.sede) === normalize(sedeFiltro);
-				const coincideAseg = !aseguradoraFiltro || (!!a.aseguradora && (
-					normalize(a.aseguradora) === normalize(aseguradoraFiltro) ||
-					normalize(a.aseguradora).includes(normalize(aseguradoraFiltro)) ||
-					normalize(aseguradoraFiltro).includes(normalize(a.aseguradora))
+				const aseguradoraDisplay = getAseguradoraDisplay(a);
+				const coincideAseg = !aseguradoraFiltro || (!!aseguradoraDisplay && (
+					normalize(aseguradoraDisplay) === normalize(aseguradoraFiltro) ||
+					normalize(aseguradoraDisplay).includes(normalize(aseguradoraFiltro)) ||
+					normalize(aseguradoraFiltro).includes(normalize(aseguradoraDisplay))
 				));
 				const coincideUsuario = !usuarioFiltro || (a.usuario === usuarioFiltro);
 				
@@ -293,10 +294,11 @@ const [eventosFull, setEventosFull] = useState<any[]>([]);
 		const enRango = (!fechaFiltroInicial || fechaFiltro >= fechaFiltroInicial) && (!fechaFiltroFinal || fechaFiltro <= fechaFiltroFinal);
 		const normalize = (s?: any) => (s === null || s === undefined) ? '' : String(s).replace(/\s+/g, ' ').trim().toLowerCase();
 		const coincideSede = !sedeFiltro || normalize(a.sede?.nombre || a.sede) === normalize(sedeFiltro);
-		const coincideAseg = !aseguradoraFiltro || (!!a.aseguradora && (
-			normalize(a.aseguradora) === normalize(aseguradoraFiltro) ||
-			normalize(a.aseguradora).includes(normalize(aseguradoraFiltro)) ||
-			normalize(aseguradoraFiltro).includes(normalize(a.aseguradora))
+		const aseguradoraDisplay = getAseguradoraDisplay(a);
+		const coincideAseg = !aseguradoraFiltro || (!!aseguradoraDisplay && (
+			normalize(aseguradoraDisplay) === normalize(aseguradoraFiltro) ||
+			normalize(aseguradoraDisplay).includes(normalize(aseguradoraFiltro)) ||
+			normalize(aseguradoraFiltro).includes(normalize(aseguradoraDisplay))
 		));
 		return enRango && coincideSede && coincideAseg;
 	});
@@ -309,7 +311,6 @@ const [eventosFull, setEventosFull] = useState<any[]>([]);
 	// Tarjetas informativas (según filtros activos EN LA TABLA - solo para mostrar info de tabla filtrada)
 	const totalAnulaciones = anulacionesFiltradas.length;
 
-	// Listas dinámicas para selects: solo las sedes/aseguradoras presentes en los registros (respecto al rango de fecha)
 	const availableSedes = useMemo(() => {
 		const s = new Set<string>();
 		const normalizeName = (n?: any) => (n === null || n === undefined) ? '' : String(n).replace(/\s+/g, ' ').trim();
@@ -326,15 +327,31 @@ const [eventosFull, setEventosFull] = useState<any[]>([]);
 	const availableAseguradoras = useMemo(() => {
 		const s = new Set<string>();
 		const normalizeName = (n?: any) => (n === null || n === undefined) ? '' : String(n).replace(/\s+/g, ' ').trim();
+		// Helper: si tenemos coincidencia con `aseguradoras` (API), preferimos mostrar su `nombre` (DB)
+		const mapAseguradoraDisplay = (raw?: string) => {
+			if (!raw) return '';
+			const r = normalizeName(raw).toLowerCase();
+			const found = aseguradoras.find(x => (String(x.nombrePergamo || '').replace(/\s+/g, ' ').trim().toLowerCase() === r) || (String(x.nombre || '').replace(/\s+/g, ' ').trim().toLowerCase() === r));
+			return found ? (String(found.nombre).replace(/\s+/g, ' ').trim()) : normalizeName(raw);
+		};
 		anulaciones.forEach(a => {
 			const fechaFiltroVal = a.fechaNotaCredito || '';
 			const enRango = (!fechaFiltroInicial || fechaFiltroVal >= fechaFiltroInicial) && (!fechaFiltroFinal || fechaFiltroVal <= fechaFiltroFinal);
 			if (!enRango) return;
-			const nombre = normalizeName(a.aseguradora);
-			if (nombre) s.add(nombre);
+			const display = mapAseguradoraDisplay(a.aseguradora);
+			if (display) s.add(display);
 		});
 		return Array.from(s).sort((x, y) => x.localeCompare(y));
 	}, [anulaciones, fechaFiltroInicial, fechaFiltroFinal]);
+
+	// Función utilitaria para obtener el nombre 'mostrado' de la aseguradora de un registro
+	const getAseguradoraDisplay = (a: Anulacion) => {
+		const normalizeName = (n?: any) => (n === null || n === undefined) ? '' : String(n).replace(/\s+/g, ' ').trim();
+		const raw = a.aseguradora || '';
+		const r = normalizeName(raw).toLowerCase();
+		const found = aseguradoras.find(x => (String(x.nombrePergamo || '').replace(/\s+/g, ' ').trim().toLowerCase() === r) || (String(x.nombre || '').replace(/\s+/g, ' ').trim().toLowerCase() === r));
+		return found ? (String(found.nombre).replace(/\s+/g, ' ').trim()) : normalizeName(raw);
+	};
 
 	// Estado y lógica para modal de carga/validación de archivo plano
 	const [showCargaPlano, setShowCargaPlano] = useState(false);
@@ -1585,17 +1602,7 @@ const handleArchivoPlano = async (file: File) => {
 										 <td className="px-0.5 py-1 text-center whitespace-nowrap overflow-hidden text-ellipsis w-12">{a.tipoDocumento || ''}</td>
 										<td className="px-0.5 py-1 text-center whitespace-nowrap overflow-hidden text-ellipsis w-16">{a.documento || ''}</td>
 										<td className="px-0.5 py-1 text-center whitespace-nowrap overflow-hidden text-ellipsis w-28">{a.sede?.nombre || ''}</td>
-										<td className="px-0.5 py-1 text-center whitespace-nowrap overflow-hidden text-ellipsis w-28">{
-											(() => {
-												if (!a.aseguradora) return '';
-												const normalizar = (str: string) => (str || '').replace(/\s+/g, '').toLowerCase();
-												const aseg = aseguradoras.find(x =>
-													normalizar(x.nombrePergamo) === normalizar(a.aseguradora || '') ||
-													normalizar(x.nombre) === normalizar(a.aseguradora || '')
-												);
-												return aseg ? aseg.nombre : (a.aseguradora || '');
-											})()
-										}</td>
+										<td className="px-0.5 py-1 text-center whitespace-nowrap overflow-hidden text-ellipsis w-28">{getAseguradoraDisplay(a)}</td>
 										<td className="px-0.5 py-1 text-center whitespace-nowrap overflow-hidden text-ellipsis w-20">{formatearValor(Number(a.totalAnulado))}</td>
 										<td className="px-0.5 py-1 text-center whitespace-nowrap overflow-hidden text-ellipsis w-20">{a.facturaRemplazo || ''}</td>
 										<td className="px-0.5 py-1 text-center whitespace-nowrap overflow-hidden text-ellipsis w-16">{procesarFechaRemplazo(a.fechaRemplazo)}</td>
