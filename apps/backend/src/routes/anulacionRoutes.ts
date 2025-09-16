@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import fetch from 'node-fetch';
 import { getRepository } from 'typeorm';
 import { Anulacion } from '../entity/Anulacion';
@@ -7,7 +7,7 @@ import { Sede } from '../entity/Sede';
 const router = Router();
 
 // Endpoint para cargar anulaciones de los últimos dos días
-router.post('/cargar-ultimos-dias', async (req, res) => {
+router.post('/cargar-ultimos-dias', async (req: Request, res: Response) => {
     try {
         const { token, userId } = req.body;
     const hoy = new Date();
@@ -50,7 +50,7 @@ router.post('/cargar-ultimos-dias', async (req, res) => {
         const monthlyRanges = getMonthlyRanges(fechaInicial, fechaFinal);
         let insertados = 0, yaExistentes = 0, ignoradosSede = 0;
         const existentes = await anulacionRepo.find({ select: ['numeroAnulacion'] });
-        const existentesSet = new Set(existentes.map(a => a.numeroAnulacion));
+    const existentesSet = new Set(existentes.map((a: { numeroAnulacion: string }) => a.numeroAnulacion));
     const procesarMes = async (rango: { inicial: string; final: string }) => {
             let intento = 0;
             let pergamoData = null;
@@ -90,19 +90,21 @@ router.post('/cargar-ultimos-dias', async (req, res) => {
                 return { insertados: 0, yaExistentes: 0, ignoradosSede: 0 };
             }
             const anulaciones = pergamoData.data.h3;
+            // Procesar solo h2 y clasificar por Observacion
+            const anulacionesH2 = pergamoData.data.h2;
             const nuevasAnulaciones = [];
             let insertadosMes = 0, yaExistentesMes = 0, ignoradosSedeMes = 0;
-            for (const a of anulaciones) {
+            for (const a of anulacionesH2) {
                 const numeroAnulacion = (a.Factura || '').replace(/-/g, '').trim();
                 const notaCredito = a.Nota_Credito ? String(a.Nota_Credito).replace(/-/g, '').trim() : undefined;
-                const fecha = a.Fecha_Facturacion ? a.Fecha_Facturacion.split(' ')[0] : undefined;
+                const fecha = a.Fecha_Factura ? a.Fecha_Factura.split(' ')[0] : undefined;
                 const fechaNotaCredito = a.Fecha_Nota_Credito ? a.Fecha_Nota_Credito.split(' ')[0] : undefined;
                 const sedeNombre = (a.Sede || '').trim().toUpperCase();
-                const sede = sedes.find(s => s.nombre.trim().toUpperCase() === sedeNombre);
+                const sede = sedes.find((s: { nombre: string }) => s.nombre.trim().toUpperCase() === sedeNombre);
                 if (!sede) { ignoradosSedeMes++; continue; }
                 if (existentesSet.has(numeroAnulacion)) { yaExistentesMes++; continue; }
-                    // Determinar tipoRegistro: si tiene notaCredito, es Nota Crédito; si no, es Anulación
-                    const tipoRegistro = notaCredito ? 'Nota Crédito' : 'Anulación';
+                // Si Observacion es null, es ANULACION
+                if (a.Observacion === null) {
                     nuevasAnulaciones.push({
                         numeroAnulacion,
                         fecha,
@@ -114,11 +116,38 @@ router.post('/cargar-ultimos-dias', async (req, res) => {
                         aseguradora: a.Aseguradora,
                         sede,
                         facturador: a.Facturador,
-                        totalAnulado: a.Total_Anulado,
-                        motivo: a.motivo,
-                        estado: a.estado,
-                        tipoRegistro
+                        totalAnulado: a.Total_Nota_Credito,
+                        motivo: 'ANULACION',
+                        estado: 'NO FACTURADO',
+                        tipoRegistro: 'Anulación',
+                        facturaRemplazo: undefined,
+                        fechaRemplazo: undefined,
+                        valorRemplazo: undefined,
+                        sedeRemplazo: undefined
                     });
+                } else {
+                    // Si Observacion tiene valor, es NOTA CREDITO
+                    nuevasAnulaciones.push({
+                        numeroAnulacion,
+                        fecha,
+                        notaCredito,
+                        fechaNotaCredito,
+                        tipoDocumento: a.Tipo_Documento,
+                        documento: a.Documento,
+                        paciente: a.Paciente,
+                        aseguradora: a.Aseguradora,
+                        sede,
+                        facturador: a.Facturador,
+                        totalAnulado: a.Total_Nota_Credito,
+                        motivo: 'ACEPTACIÓN DE GLOSA',
+                        estado: 'NO FACTURADO',
+                        tipoRegistro: 'Nota Crédito',
+                        facturaRemplazo: '-',
+                        fechaRemplazo: '-',
+                        valorRemplazo: 0,
+                        sedeRemplazo: '-'
+                    });
+                }
                 insertadosMes++;
             }
             if (nuevasAnulaciones.length > 0) {
@@ -144,7 +173,7 @@ router.post('/cargar-ultimos-dias', async (req, res) => {
 });
 
 // Endpoint para obtener todas las anulaciones
-router.get('/', async (req, res) => {
+router.get('/', async (req: Request, res: Response) => {
     try {
         const anulacionRepo = getRepository(Anulacion);
         const anulaciones = await anulacionRepo.find({ relations: ['sede'] });
@@ -155,7 +184,7 @@ router.get('/', async (req, res) => {
 });
 
 // Endpoint para cargar anulaciones desde Pergamo (rango personalizado)
-router.post('/cargar', async (req, res) => {
+router.post('/cargar', async (req: Request, res: Response) => {
     try {
         const { fechaInicial, fechaFinal, token, userId } = req.body;
         if (!fechaInicial || !fechaFinal || !token || !userId) {
@@ -243,7 +272,7 @@ router.post('/cargar', async (req, res) => {
             console.log('[DEBUG Cruce] facturasH2:', Array.from(facturasH2));
             console.log('[DEBUG Cruce] facturasH3:', Array.from(facturasH3));
             const existentes = await anulacionRepo.find({ select: ['numeroAnulacion'] });
-            const existentesSet = new Set(existentes.map(a => a.numeroAnulacion));
+        const existentesSet = new Set(existentes.map((a: { numeroAnulacion: string }) => a.numeroAnulacion));
             const nuevasAnulaciones = [];
             let insertadosMes = 0, yaExistentesMes = 0, ignoradosSedeMes = 0;
             // Primero: los que están en h3 y también en h2 = Anulación
@@ -254,7 +283,7 @@ router.post('/cargar', async (req, res) => {
                 const fechaH3 = a.Fecha_Facturacion ? a.Fecha_Facturacion.split(' ')[0] : undefined;
                 const fechaNotaCreditoH3 = a.Fecha_Nota_Credito ? a.Fecha_Nota_Credito.split(' ')[0] : undefined;
                 const sedeNombreH3 = (a.Sede || '').trim().toUpperCase();
-                const sedeH3 = sedes.find(s => s.nombre.trim().toUpperCase() === sedeNombreH3);
+                const sedeH3 = sedes.find((s: { nombre: string }) => s.nombre.trim().toUpperCase() === sedeNombreH3);
                 if (!sedeH3) {
                     detallesIgnorados.push({ motivo: 'Sede no encontrada', registro: a });
                     ignoradosSede++; ignoradosSedeMes++; continue;
@@ -309,7 +338,7 @@ router.post('/cargar', async (req, res) => {
                 const fechaH2 = a.Fecha_Facturacion ? a.Fecha_Facturacion.split(' ')[0] : undefined;
                 const fechaNotaCreditoH2 = a.Fecha_Nota_Credito ? a.Fecha_Nota_Credito.split(' ')[0] : undefined;
                 const sedeNombreH2 = (a.Sede || '').trim().toUpperCase();
-                const sedeH2 = sedes.find(s => s.nombre.trim().toUpperCase() === sedeNombreH2);
+                const sedeH2 = sedes.find((s: { nombre: string }) => s.nombre.trim().toUpperCase() === sedeNombreH2);
                 if (!sedeH2) {
                     console.log(`[LOG] Sede no encontrada para registro h2:`, { sede: sedeNombreH2, numero: numeroAnulacionH2 });
                     detallesIgnorados.push({ motivo: 'Sede no encontrada', registro: a });
@@ -352,7 +381,7 @@ router.post('/cargar', async (req, res) => {
                 const fecha = a.Fecha_Factura ? a.Fecha_Factura.split(' ')[0] : undefined;
                 const fechaNotaCredito = a.Fecha_Nota_Credito ? a.Fecha_Nota_Credito.split(' ')[0] : undefined;
                 const sedeNombre = (a.Sede || '').trim().toUpperCase();
-                const sede = sedes.find(s => s.nombre.trim().toUpperCase() === sedeNombre);
+                const sede = sedes.find((s: { nombre: string }) => s.nombre.trim().toUpperCase() === sedeNombre);
                 if (!sede) {
                     console.log(`[LOG] Sede no encontrada al guardar registro:`, { sede: sedeNombre, numero: numeroAnulacion });
                     ignoradosSede++; ignoradosSedeMes++; continue;
@@ -423,7 +452,7 @@ router.post('/cargar', async (req, res) => {
 });
 
 // Endpoint para cargar plano de anulaciones con autocompletado
-router.post('/cargar-plano', async (req, res) => {
+router.post('/cargar-plano', async (req: Request, res: Response) => {
     try {
         const { datos } = req.body;
         
@@ -436,7 +465,7 @@ router.post('/cargar-plano', async (req, res) => {
 
         // Obtener todas las sedes para mapear por nombre
         const sedes = await sedeRepo.find();
-        const sedesMap = new Map(sedes.map(sede => [sede.nombre.trim().toUpperCase(), sede]));
+    const sedesMap = new Map(sedes.map((sede: { nombre: string }) => [sede.nombre.trim().toUpperCase(), sede]));
 
         const anulacionesActualizadas = [];
         const errores = [];
