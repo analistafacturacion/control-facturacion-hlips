@@ -309,6 +309,33 @@ const [eventosFull, setEventosFull] = useState<any[]>([]);
 	// Tarjetas informativas (según filtros activos EN LA TABLA - solo para mostrar info de tabla filtrada)
 	const totalAnulaciones = anulacionesFiltradas.length;
 
+	// Listas dinámicas para selects: solo las sedes/aseguradoras presentes en los registros (respecto al rango de fecha)
+	const availableSedes = useMemo(() => {
+		const s = new Set<string>();
+		const normalizeName = (n?: any) => (n === null || n === undefined) ? '' : String(n).replace(/\s+/g, ' ').trim();
+		anulaciones.forEach(a => {
+			const fechaFiltroVal = a.fechaNotaCredito || '';
+			const enRango = (!fechaFiltroInicial || fechaFiltroVal >= fechaFiltroInicial) && (!fechaFiltroFinal || fechaFiltroVal <= fechaFiltroFinal);
+			if (!enRango) return;
+			const nombre = normalizeName(a.sede?.nombre || a.sede);
+			if (nombre) s.add(nombre);
+		});
+		return Array.from(s).sort((x, y) => x.localeCompare(y));
+	}, [anulaciones, fechaFiltroInicial, fechaFiltroFinal]);
+
+	const availableAseguradoras = useMemo(() => {
+		const s = new Set<string>();
+		const normalizeName = (n?: any) => (n === null || n === undefined) ? '' : String(n).replace(/\s+/g, ' ').trim();
+		anulaciones.forEach(a => {
+			const fechaFiltroVal = a.fechaNotaCredito || '';
+			const enRango = (!fechaFiltroInicial || fechaFiltroVal >= fechaFiltroInicial) && (!fechaFiltroFinal || fechaFiltroVal <= fechaFiltroFinal);
+			if (!enRango) return;
+			const nombre = normalizeName(a.aseguradora);
+			if (nombre) s.add(nombre);
+		});
+		return Array.from(s).sort((x, y) => x.localeCompare(y));
+	}, [anulaciones, fechaFiltroInicial, fechaFiltroFinal]);
+
 	// Estado y lógica para modal de carga/validación de archivo plano
 	const [showCargaPlano, setShowCargaPlano] = useState(false);
 	const [archivoPlano, setArchivoPlano] = useState<File|null>(null);
@@ -1507,11 +1534,11 @@ const handleArchivoPlano = async (file: File) => {
 				<input className="border px-2 py-1 w-full text-xs" type="date" value={fechaFiltroFinal} min={fechaFiltroInicial} onChange={e => setFechaFiltroFinal(e.target.value)} />
 				<select className="border px-2 py-1 w-full text-xs" value={sedeFiltro} onChange={e => setSedeFiltro(e.target.value)}>
 					<option value="">Todas las sedes</option>
-					{sedes.map(s => (<option key={s.id} value={s.nombre}>{s.nombre}</option>))}
+					{availableSedes.map(s => (<option key={s} value={s}>{s}</option>))}
 				</select>
 				<select className="border px-2 py-1 w-full text-xs" value={aseguradoraFiltro} onChange={e => setAseguradoraFiltro(e.target.value)}>
 					<option value="">Todas las aseguradoras</option>
-					{aseguradoras.map(a => (<option key={a.nombre} value={a.nombre}>{a.nombre}</option>))}
+					{availableAseguradoras.map(a => (<option key={a} value={a}>{a}</option>))}
 				</select>
 				<select className="border px-2 py-1 w-full text-xs" value={tipoRegistroFiltro} onChange={e => setTipoRegistroFiltro(e.target.value)}>
 					<option value="Todos">Todos los registros</option>
