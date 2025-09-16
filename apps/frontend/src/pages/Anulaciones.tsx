@@ -782,6 +782,47 @@ const handleArchivoPlano = async (file: File) => {
 						 };
 					 });
 
+					 // Antes de enviar: si hay rechazados, generar y descargar un archivo log con detalles
+					 try {
+						 const totalRegistros = datosPlano.length - 1; // Restar el header
+						 const aprobadosCount = registrosAprobados.length;
+						 const rechazados = [] as Array<{ filaIndex: number, numero: string, motivo: string }>;
+						 for (let i = 0; i < datosPlano.slice(1).length; i++) {
+							 const resultado = resultadosValidacionPlano[i];
+							 if (!resultado) continue;
+							 if (resultado.resultadoCol6 !== 'CORRECTO') {
+								 const fila = datosPlano.slice(1)[i];
+								 const numero = Array.isArray(fila) ? String(fila[0] || '').trim() : String(Object.values(fila)[0] || '').trim();
+								 // Priorizar mensajeCol6 como motivo final, sino concatenar mensajes relevantes
+								 const motivo = resultado.mensajeCol6 || resultado.mensajeCol1 || resultado.mensajeCol2 || resultado.mensajeCol3 || resultado.mensajeCol4 || resultado.mensajeCol5 || 'Rechazado sin motivo específico';
+								 rechazados.push({ filaIndex: i + 1, numero, motivo });
+							 }
+						 }
+
+						 if (rechazados.length > 0) {
+							 const now = new Date();
+							 const fechaStr = now.toISOString().slice(0,19).replace('T','_').replace(/:/g,'-');
+							 const header = [`Resumen de validación - ${now.toISOString()}`];
+							 header.push(`Total filas procesadas: ${totalRegistros}`);
+							 header.push(`Aprobados: ${aprobadosCount}`);
+							 header.push(`Rechazados: ${rechazados.length}`);
+							 header.push('');
+							 header.push('Listado de rechazados (solo número y motivo):');
+							 const lines = header.concat(rechazados.map(r => `${r.numero}	${r.motivo}`));
+							 const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+							 const url = URL.createObjectURL(blob);
+							 const a = document.createElement('a');
+							 a.href = url;
+							 a.download = `anulaciones_rechazadas_${fechaStr}.txt`;
+							 document.body.appendChild(a);
+							 a.click();
+							 document.body.removeChild(a);
+							 URL.revokeObjectURL(url);
+						 }
+					 } catch (e) {
+						 console.warn('Error generando log de rechazados:', e);
+					 }
+
 					 // Enviar datos enriquecidos al backend
 					 const res = await fetch(`${API_CONFIG.BASE_URL}/anulaciones/cargar-plano`, {
 						 method: 'POST',
