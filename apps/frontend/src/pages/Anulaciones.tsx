@@ -1362,12 +1362,12 @@ const handleArchivoPlano = async (file: File) => {
 					       )}
 					       <span className="h-8 w-px bg-gray-300 mx-2 self-center" />
 					       {/* Botón flecha para mostrar/ocultar filtros avanzados */}
-					       <button
-						       className={`p-0 m-0 bg-transparent border-none outline-none flex items-center transition-colors duration-200 ${loadingUltimosDias ? 'animate-spin' : ''} group`}
-						       title={mostrarFiltros ? 'Ocultar filtros avanzados' : 'Mostrar filtros avanzados'}
-						       onClick={() => setMostrarFiltros(f => !f)}
-						       style={{ boxShadow: 'none', borderRadius: 0, minWidth: 32 }}
-					       >
+						   <button
+							   className={`p-0 m-0 bg-transparent border-none outline-none flex items-center transition-colors duration-200 group`}
+							   title={mostrarFiltros ? 'Ocultar filtros avanzados' : 'Mostrar filtros avanzados'}
+							   onClick={() => setMostrarFiltros(f => !f)}
+							   style={{ boxShadow: 'none', borderRadius: 0, minWidth: 32 }}
+						   >
 						       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 transition-all duration-200" viewBox="0 0 32 32" fill="none" stroke="#002c50" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
 							       <defs>
 								       <linearGradient id="arrow-gradient" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
