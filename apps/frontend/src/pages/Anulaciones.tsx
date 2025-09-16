@@ -823,7 +823,8 @@ const handleArchivoPlano = async (file: File) => {
 							// AUTO-COMPLETADO: Siempre buscar fechas y valores para validación interna
 							for (const facturaCol2 of facturasCol2) {
 								const eventoEncontrado = eventosFull.find(ev => 
-									String(ev.numeroFactura).trim() === facturaCol2
+									// Usar la misma normalización que en otras comparaciones
+									normalizar(String(ev.numeroFactura)) === normalizar(facturaCol2)
 								);
 								
 								if (eventoEncontrado) {
