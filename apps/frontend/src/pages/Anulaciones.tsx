@@ -76,7 +76,8 @@ const procesarValorRemplazo = (valorRemplazo?: string): number => {
 };
 
 const formatearValorContabilidad = (valor: number): string => {
-	if (valor === 0) return '';
+	// Mostrar explícitamente $ 0 cuando el valor es cero (antes devolvía cadena vacía)
+	if (valor === 0) return `$ ${Math.round(valor).toLocaleString('es-CO')}`;
 	return new Intl.NumberFormat('es-CO', {
 		style: 'currency',
 		currency: 'COP',
