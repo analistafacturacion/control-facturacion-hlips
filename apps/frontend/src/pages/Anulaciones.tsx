@@ -419,6 +419,8 @@ const [eventosFull, setEventosFull] = useState<any[]>([]);
 
        // Estado para mostrar/ocultar filtros avanzados
        const [mostrarFiltros, setMostrarFiltros] = useState(false);
+			// Estado para progreso de validación (batch + filas)
+			const [validacionProgress, setValidacionProgress] = useState<{ inProgress: boolean; stage: string; completed: number; total: number }>({ inProgress: false, stage: '', completed: 0, total: 0 });
        // Estado para menú de reportes y análisis
        const [menuReportesOpen, setMenuReportesOpen] = useState(false);
        const [showAnalisis, setShowAnalisis] = useState(false);
@@ -923,6 +925,47 @@ const handleArchivoPlano = async (file: File) => {
 					console.log('[VALIDACION] FacturasEvento:', facturasEvento.map((f, idx) => ({ original: f, normalizado: facturasEventoNorm[idx] })));
 					// Crear una copia de datosPlano para permitir modificaciones
 					const datosPlanoModificados = [...datosPlano];
+
+					// --- BATCH PREFETCH: recolectar todas las facturas de la columna 2 y resolver en un solo llamado ---
+					const todasFacturasCol2Set = new Set<string>();
+					for (const fila of datosPlano.slice(1)) {
+						const valorCol2Local = Array.isArray(fila) ? fila[1] : Object.values(fila)[1];
+						if (!valorCol2Local) continue;
+						const partes = String(valorCol2Local).includes('/') ?
+							String(valorCol2Local).split('/').map((f: string) => f.trim()) :
+							String(valorCol2Local).includes(',') ?
+							String(valorCol2Local).split(',').map((f: string) => f.trim()) :
+							[String(valorCol2Local).trim()];
+						for (const p of partes) { if (p) todasFacturasCol2Set.add(p); }
+					}
+
+					const todasFacturasCol2 = Array.from(todasFacturasCol2Set);
+					const batchLookup: Record<string, any> = {};
+					if (todasFacturasCol2.length > 0) {
+						try {
+							// Enviar en chunks de 200 para evitar URL muy largas
+							const chunkSize = 200;
+							setValidacionProgress({ inProgress: true, stage: 'Batch lookup', completed: 0, total: todasFacturasCol2.length });
+							for (let i = 0; i < todasFacturasCol2.length; i += chunkSize) {
+								const chunk = todasFacturasCol2.slice(i, i + chunkSize);
+								const params = new URLSearchParams({ numeros: chunk.join(',') });
+								const resBatch = await fetch(`${API_CONFIG.BASE_URL}/facturacion/eventos/batch?${params.toString()}`);
+								const jb = await resBatch.json();
+								if (resBatch.ok && jb && Array.isArray(jb.eventos)) {
+									for (const ev of jb.eventos) {
+										try { batchLookup[normalizar(String(ev.numeroFactura))] = ev; } catch(e) {}
+									}
+								}
+								// actualizar progreso por chunk (sumar tamaño del chunk)
+								const done = Math.min(i + chunk.length, todasFacturasCol2.length);
+								setValidacionProgress(prev => ({ ...prev, completed: done }));
+							}
+							console.log('[VALIDACION] Batch lookup completado. Eventos encontrados:', Object.keys(batchLookup).length);
+							setValidacionProgress(prev => ({ ...prev, stage: 'Validando filas', completed: 0, total: datosPlano.slice(1).length }));
+						} catch (e) {
+							console.warn('[VALIDACION] Error en batch lookup:', e);
+						}
+					}
 					
 					// Asegurar que el header tenga al menos las columnas básicas
 					if (datosPlanoModificados[0] && datosPlanoModificados[0].length < 4) {
@@ -969,7 +1012,14 @@ const handleArchivoPlano = async (file: File) => {
 							// AUTO-COMPLETADO: Buscar fechas y valores en eventosFull o por fallback a la API
 							for (const facturaCol2 of facturasCol2) {
 								let eventoEncontrado = eventosFull.find(ev => normalizar(String(ev.numeroFactura)) === normalizar(facturaCol2));
-								// Si no está en eventosFull, intentar buscar puntualmente en el backend con un search reducido
+								// Si no está en eventosFull, verificar el batchLookup prefetechado
+								if (!eventoEncontrado) {
+									eventoEncontrado = batchLookup[normalizar(facturaCol2)];
+									if (eventoEncontrado) {
+										console.log(`[VALIDACION][Fila ${idx+1}] Col2: factura='${facturaCol2}' -> encontrada via batchLookup`);
+									}
+								}
+								// Si aún no está, hacer fallback puntual (último recurso)
 								if (!eventoEncontrado) {
 									try {
 										const fechaHoy = new Date().toISOString().slice(0, 10);
@@ -1110,6 +1160,9 @@ const handleArchivoPlano = async (file: File) => {
 						}
 
 						console.log(`[VALIDACION][Fila ${idx+1}] Col2: Facturas '${facturasCol2.join(', ')}' | Válidas: ${facturasCol2Validas.length}/${facturasCol2.length}`);
+
+						// Actualizar progreso por fila
+						setValidacionProgress(prev => ({ ...prev, completed: prev.completed + 1 }));
 
 						// Validación de fechas y valores (columnas 3 y 4) - soporte para múltiples
 						let resultadoCol3 = 'NO VALIDADO';
@@ -1329,8 +1382,11 @@ const handleArchivoPlano = async (file: File) => {
 				} catch (e) {
 					setMensajePlano('Error en la validación.');
 					setResultadosValidacionPlano([]);
+					setValidacionProgress({ inProgress: false, stage: '', completed: 0, total: 0 });
 				}
 				setLoadingPlano(false);
+				// Finalizar progreso si quedó activo
+				setValidacionProgress(prev => ({ ...prev, inProgress: false }));
 };
 
 			 // Modal de carga y validación de archivo plano
@@ -1402,6 +1458,15 @@ const handleArchivoPlano = async (file: File) => {
 								</div>
 							)}
 							 {loadingPlano && <div className="text-center text-sm text-gray-500 mb-2">Procesando archivo...</div>}
+							 {/* Barra de progreso para validación batch */}
+							 {validacionProgress.inProgress && (
+								<div className="w-full p-2 mb-2">
+									<div className="text-xs text-gray-700 mb-1">{validacionProgress.stage} — {validacionProgress.completed}/{validacionProgress.total}</div>
+									<div className="w-full bg-gray-200 rounded h-3 overflow-hidden">
+										<div className="bg-[#002c50] h-3 rounded" style={{ width: `${Math.min(100, Math.round((validacionProgress.completed / Math.max(1, validacionProgress.total)) * 100))}%` }} />
+									</div>
+								</div>
+							 )}
 							 {mensajePlano && <div className="text-center text-sm text-red-500 mb-2">{mensajePlano}</div>}
 							 
 							 {/* Mostrar resumen de validación si hay resultados */}
