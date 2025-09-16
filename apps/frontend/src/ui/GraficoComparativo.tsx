@@ -154,12 +154,8 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
               </defs>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
               <XAxis dataKey="mes" axisLine={false} tickLine={false} />
-              <YAxis axisLine={false} tickLine={false} tickFormatter={v => {
-                if (v == null) return '';
-                if (Math.abs(v) >= 1000000) return `${Math.round(v/1000000)}M`;
-                if (Math.abs(v) >= 1000) return `${Math.round(v/1000)}K`;
-                return (v as number).toLocaleString('es-CO');
-              }} />
+              {/* Ocultar labels/ticks del eje Y izquierdo: dejamos el eje por si se necesita la rejilla, pero sin números */}
+              <YAxis axisLine={false} tickLine={false} tick={false} label={undefined} />
               <Tooltip content={<CustomTooltip />} />
               {/* Área sutil debajo de la línea para dar profundidad */}
               {/* Area visible y más definida entre la línea y la base */}
