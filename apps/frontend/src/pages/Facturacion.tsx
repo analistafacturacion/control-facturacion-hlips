@@ -62,16 +62,29 @@ const ComparativaTabla: React.FC<ComparativaTablaProps> = React.memo(({ eventos 
   }
 
   // Obtener totales por sede y aseguradora para cada filtro
+    // Helper local: parsear valores numéricos que pueden venir como string con símbolos/miles
+    const parseValueLocal = (v: any) => {
+      if (v == null) return 0;
+      if (typeof v === 'number') return isNaN(v) ? 0 : v;
+      const s = String(v).replace(/[^0-9.,-]/g, '');
+      // Simplificación: eliminar separadores de miles (comas) y convertir
+      const normalized = s.replace(/,/g, '');
+      const n = Number(normalized);
+      return isNaN(n) ? 0 : n;
+    };
+
     function obtenerTotalesPorSede(eventos: any[]) {
       const resultado: Record<string, number> = {};
       eventos.forEach(ev => {
-        if (ev.periodo === 'ANULADA') return; // Ignorar facturas anuladas
+        if ((ev.periodo || '').trim().toUpperCase() === 'ANULADA') return; // Ignorar facturas anuladas
         const sede = ev.sede?.nombre || 'Sin sede';
+        // Usar total, si no existe usar valor o copago
+        const valor = parseValueLocal(ev.total) || parseValueLocal(ev.valor) || parseValueLocal(ev.copago);
         // Si es nota crédito, restar el valor
-        if (ev.tipoRegistro === 'Nota Crédito') {
-          resultado[sede] = (resultado[sede] || 0) - (Number(ev.total) || 0);
+        if ((ev.tipoRegistro || '').trim() === 'Nota Crédito') {
+          resultado[sede] = (resultado[sede] || 0) - valor;
         } else {
-          resultado[sede] = (resultado[sede] || 0) + (Number(ev.total) || 0);
+          resultado[sede] = (resultado[sede] || 0) + valor;
         }
       });
       return resultado;
