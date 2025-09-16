@@ -1301,8 +1301,8 @@ const handleArchivoPlano = async (file: File) => {
 
 			 // Modal de carga y validación de archivo plano
 			 const renderModalCargaPlano = () => (
-				 showCargaPlano && (
-					 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-2">
+							showCargaPlano && (
+								<div className="fixed inset-0 z-50 flex items-center justify-center p-2" style={{ backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}>
 						 <div className="bg-white rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8 w-full max-w-6xl min-h-[480px] max-h-[700px] relative animate-fade-in overflow-hidden flex flex-col">
 							 <button
 								 className="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-2xl font-bold"
