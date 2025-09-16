@@ -6,6 +6,7 @@ interface Props {
   aseguradoras: string[];
   sedes: string[];
   años: number[];
+  showAseguradoraFilter?: boolean;
   initialSede?: string;
   initialAseguradora?: string;
   initialAño?: number;
@@ -13,7 +14,7 @@ interface Props {
 
 const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
-export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes, años, initialSede, initialAseguradora, initialAño }) => {
+export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes, años, initialSede, initialAseguradora, initialAño, showAseguradoraFilter = true }) => {
   // Por defecto mostramos "Todas" las sedes/aseguradoras para que el gráfico agregue datos
   const [sede, setSede] = useState(initialSede ?? '');
   const [aseguradora, setAseguradora] = useState(initialAseguradora ?? '');
@@ -135,9 +136,11 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
         <select value={sede} onChange={e => setSede(e.target.value)} className="border rounded px-2 py-1">
           {sedes.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
-        <select value={aseguradora} onChange={e => setAseguradora(e.target.value)} className="border rounded px-2 py-1">
-          {aseguradoras.map(a => <option key={a} value={a}>{a}</option>)}
-        </select>
+        {showAseguradoraFilter && (
+          <select value={aseguradora} onChange={e => setAseguradora(e.target.value)} className="border rounded px-2 py-1">
+            {aseguradoras.map(a => <option key={a} value={a}>{a}</option>)}
+          </select>
+        )}
         <select value={año} onChange={e => setAño(Number(e.target.value))} className="border rounded px-2 py-1">
           {años.map(a => <option key={a} value={a}>{a}</option>)}
         </select>

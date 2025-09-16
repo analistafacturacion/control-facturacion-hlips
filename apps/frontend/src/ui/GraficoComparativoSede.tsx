@@ -19,6 +19,7 @@ export const GraficoComparativoSede: React.FC<any> = (props) => {
       initialSede={props.initialSede}
       initialAseguradora={props.initialAseguradora}
       initialAño={props.initialAño}
+      showAseguradoraFilter={false}
     />
   );
 };
