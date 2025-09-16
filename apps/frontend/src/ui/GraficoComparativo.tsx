@@ -21,6 +21,17 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
   const [aseguradora, setAseguradora] = useState(initialAseguradora ?? '');
   const [año, setAño] = useState<number>(initialAño ?? (años[años.length-1] || new Date().getFullYear()));
 
+  // Sincronizar si los props iniciales cambian (por ejemplo al abrir el modal con filtros activos)
+  React.useEffect(() => {
+    if (initialSede !== undefined) setSede(initialSede ?? '');
+  }, [initialSede]);
+  React.useEffect(() => {
+    if (initialAseguradora !== undefined) setAseguradora(initialAseguradora ?? '');
+  }, [initialAseguradora]);
+  React.useEffect(() => {
+    if (initialAño !== undefined) setAño(initialAño ?? (años[años.length-1] || new Date().getFullYear()));
+  }, [initialAño, años]);
+
   // fecha actual para determinar meses futuros
   const currentDate = new Date();
   const currentMonth = currentDate.getMonth() + 1;
@@ -136,11 +147,15 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
       <div className="flex gap-2 justify-center">
         {showSedeFilter && (
           <select value={sede} onChange={e => setSede(e.target.value)} className="border rounded px-2 py-1">
+            {/* Opción para seleccionar todas las sedes */}
+            <option value="">Todas las sedes</option>
             {sedes.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
         )}
         {showAseguradoraFilter && (
           <select value={aseguradora} onChange={e => setAseguradora(e.target.value)} className="border rounded px-2 py-1">
+            {/* Opción para seleccionar todas las aseguradoras */}
+            <option value="">Todas las aseguradoras</option>
             {aseguradoras.map(a => <option key={a} value={a}>{a}</option>)}
           </select>
         )}
