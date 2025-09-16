@@ -1,15 +1,31 @@
 import * as XLSX from 'xlsx';
 
 // Funciones utilitarias para procesar fechas y valores de reemplazo
+// Helper para formatear ISO datetime a YYYY-MM-DD
+const formatDateShort = (isoOrPlain?: string): string => {
+	if (!isoOrPlain) return '';
+	const plain = isoOrPlain.trim();
+	const simpleDateMatch = /^\d{4}-\d{2}-\d{2}$/;
+	if (simpleDateMatch.test(plain)) return plain;
+	try {
+		const d = new Date(plain);
+		if (isNaN(d.getTime())) return plain;
+		const y = d.getFullYear();
+		const m = String(d.getMonth() + 1).padStart(2, '0');
+		const day = String(d.getDate()).padStart(2, '0');
+		return `${y}-${m}-${day}`;
+	} catch (e) {
+		return plain;
+	}
+};
+
 const procesarFechaRemplazo = (fechaRemplazo?: string): string => {
 	if (!fechaRemplazo) return '';
-	
 	const fechas = fechaRemplazo.split(',').map(f => f.trim()).filter(f => f);
 	if (fechas.length === 0) return '';
-	
-	// Si todas las fechas son iguales, devolver solo una
-	const fechasUnicas = [...new Set(fechas)];
-	return fechasUnicas.length === 1 ? fechasUnicas[0] : fechas[0];
+	const formateadas = fechas.map(f => formatDateShort(f));
+	const fechasUnicas = [...new Set(formateadas)];
+	return fechasUnicas.length === 1 ? fechasUnicas[0] : formateadas[0];
 };
 
 const procesarValorRemplazo = (valorRemplazo?: string): number => {

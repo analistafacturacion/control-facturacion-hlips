@@ -53,15 +53,37 @@ type Anulacion = {
 };
 
 // Funciones utilitarias para procesar fechas y valores de reemplazo
+// Formatea una fecha ISO (ej. 2025-09-03T00:00:00.000Z) a YYYY-MM-DD
+const formatDateShort = (isoOrPlain?: string): string => {
+	if (!isoOrPlain) return '';
+	// Si ya está en formato YYYY-MM-DD simple, devolver tal cual
+	const plain = isoOrPlain.trim();
+	const simpleDateMatch = /^\d{4}-\d{2}-\d{2}$/;
+	if (simpleDateMatch.test(plain)) return plain;
+	// Intentar crear Date y devolver YYYY-MM-DD
+	try {
+		const d = new Date(plain);
+		if (isNaN(d.getTime())) return plain; // si no es fecha válida, devolver original
+		const y = d.getFullYear();
+		const m = String(d.getMonth() + 1).padStart(2, '0');
+		const day = String(d.getDate()).padStart(2, '0');
+		return `${y}-${m}-${day}`;
+	} catch (e) {
+		return plain;
+	}
+};
+
 const procesarFechaRemplazo = (fechaRemplazo?: string): string => {
 	if (!fechaRemplazo) return '';
-	
+
 	const fechas = fechaRemplazo.split(',').map(f => f.trim()).filter(f => f);
 	if (fechas.length === 0) return '';
-	
+
+	// Normalizar y formatear cada fecha
+	const formateadas = fechas.map(f => formatDateShort(f));
 	// Si todas las fechas son iguales, devolver solo una
-	const fechasUnicas = [...new Set(fechas)];
-	return fechasUnicas.length === 1 ? fechasUnicas[0] : fechas[0];
+	const fechasUnicas = [...new Set(formateadas)];
+	return fechasUnicas.length === 1 ? fechasUnicas[0] : formateadas[0];
 };
 
 const procesarValorRemplazo = (valorRemplazo?: string): number => {
@@ -1653,7 +1675,7 @@ const handleArchivoPlano = async (file: File) => {
 									<tr key={a.id} className={`border-b hover:bg-blue-50 ${estaFilaBloqueada(a.id || 0) ? 'bg-red-50 opacity-75' : ''}`}>
 										 <td className="px-0.5 py-1 text-center whitespace-nowrap overflow-hidden text-ellipsis w-20" style={{ color: '#000000' }}>{(a.tipoRegistro || '').toUpperCase()}</td>
 										 <td className="px-0.5 py-1 text-center whitespace-nowrap overflow-hidden text-ellipsis w-20" style={{ backgroundColor: 'transparent' }}>{a.numeroAnulacion || ''}</td>
-										 <td className="px-0.5 py-1 text-center whitespace-nowrap overflow-hidden text-ellipsis w-16">{a.fechaNotaCredito || ''}</td>
+										<td className="px-0.5 py-1 text-center whitespace-nowrap overflow-hidden text-ellipsis w-16">{formatDateShort(a.fechaNotaCredito)}</td>
 										 <td className="px-0.5 py-1 text-center whitespace-nowrap overflow-hidden text-ellipsis w-12">{a.tipoDocumento || ''}</td>
 										<td className="px-0.5 py-1 text-center whitespace-nowrap overflow-hidden text-ellipsis w-16">{a.documento || ''}</td>
 										<td className="px-0.5 py-1 text-center whitespace-nowrap overflow-hidden text-ellipsis w-28">{a.sede?.nombre || ''}</td>
