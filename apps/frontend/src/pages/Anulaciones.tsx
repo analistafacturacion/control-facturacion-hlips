@@ -905,15 +905,17 @@ const handleArchivoPlano = async (file: File) => {
 						// Mantener el orden exacto de facturasCol2
 						for (let i = 0; i < facturasCol2.length; i++) {
 							const factura = facturasCol2[i];
-							const eventoFactura = eventosFull.find(ev => String(ev.numeroFactura).trim() === factura);
+							const eventoFactura = eventosFull.find(ev => normalizar(String(ev.numeroFactura)) === normalizar(factura));
 							if (eventoFactura) {
 								facturasCol2Validas.push(factura);
 								eventosEncontrados.push(eventoFactura);
 								existeCol2 = true;
+								console.log(`[VALIDACION][Fila ${idx+1}] Col2: factura='${factura}' normalizada='${normalizar(factura)}' -> ENCONTRADA`);
 							} else {
 								facturasCol2Invalidas.push(factura);
 								// Agregar null para mantener posición en eventosEncontrados
 								eventosEncontrados.push(null);
+								console.log(`[VALIDACION][Fila ${idx+1}] Col2: factura='${factura}' normalizada='${normalizar(factura)}' -> NO_ENCONTRADA`);
 							}
 						}
 
