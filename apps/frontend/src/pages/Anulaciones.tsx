@@ -1026,7 +1026,9 @@ const handleArchivoPlano = async (file: File) => {
 											continue;
 										}
 
-										const fechaEvento = eventoFactura.fecha ? String(eventoFactura.fecha).trim() : '';
+										// Formatear la fecha del evento a YYYY-MM-DD para comparar de forma consistente
+										const fechaEventoRaw = eventoFactura.fecha ? String(eventoFactura.fecha).trim() : '';
+										const fechaEvento = formatDateShort(fechaEventoRaw);
 										const valorEvento = eventoFactura.valor ? Number(eventoFactura.valor) : 0;
 
 										// Convertir fecha del plano (manejar formato Excel)
@@ -1079,7 +1081,8 @@ const handleArchivoPlano = async (file: File) => {
 							} else {
 								// Validación normal para una sola factura
 								const eventoFactura = eventosEncontrados[0];
-								const fechaEvento = eventoFactura.fecha ? String(eventoFactura.fecha).trim() : '';
+								// Formatear la fecha del evento a YYYY-MM-DD para comparar con la fecha del plano
+								const fechaEvento = eventoFactura && eventoFactura.fecha ? formatDateShort(String(eventoFactura.fecha).trim()) : '';
 								let fechaPlano = String(fechasCol3Internal[0]).trim();
 								
 								if (/^\d{5}$/.test(fechaPlano)) {
