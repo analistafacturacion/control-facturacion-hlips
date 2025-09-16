@@ -1591,12 +1591,67 @@ const handleArchivoPlano = async (file: File) => {
 						)}
 					</tbody>
 				</table>
-				{/* Paginación */}
-				<div className="flex justify-between items-center mt-2">
-					<button className="px-2 py-1 bg-gray-200 rounded disabled:opacity-50" onClick={() => setPaginaActual(p => Math.max(1, p-1))} disabled={paginaActual === 1}>Anterior</button>
-					<span className="text-xs">Página {paginaActual} de {Math.ceil(anulacionesFiltradas.length/registrosPorPagina)}</span>
-					<button className="px-2 py-1 bg-gray-200 rounded disabled:opacity-50" onClick={() => setPaginaActual(p => Math.min(Math.ceil(anulacionesFiltradas.length/registrosPorPagina), p+1))} disabled={paginaActual === Math.ceil(anulacionesFiltradas.length/registrosPorPagina)}>Siguiente</button>
-				</div>
+								{/* Paginación (alineada con Facturación) */}
+								{/** Usamos un flag `loading` que combina los posibles estados de carga **/}
+								<div className="mt-2">
+									{
+										(() => {
+											const totalRegistros = anulacionesFiltradas.length;
+											const totalPaginas = Math.max(1, Math.ceil(totalRegistros / registrosPorPagina));
+											const loading = !!(loadingCargar || loadingUltimosDias || loadingPlano);
+											return (
+												<div className="flex justify-between items-center mt-4 bg-gray-50 p-3 rounded">
+													<div className="flex items-center gap-2">
+														<button
+															className="px-3 py-1 text-white rounded disabled:opacity-50 disabled:bg-gray-300"
+															style={{ backgroundColor: loading || paginaActual === 1 ? undefined : '#002c50' }}
+															onClick={() => setPaginaActual(1)}
+															disabled={loading || paginaActual === 1}
+														>
+															Primera
+														</button>
+														<button
+															className="px-3 py-1 text-white rounded disabled:opacity-50 disabled:bg-gray-300"
+															style={{ backgroundColor: loading || paginaActual === 1 ? undefined : '#002c50' }}
+															onClick={() => setPaginaActual(p => Math.max(1, p-1))}
+															disabled={loading || paginaActual === 1}
+														>
+															Anterior
+														</button>
+													</div>
+
+													<div className="text-center">
+														<div className="text-sm text-gray-600">
+															Página <strong>{paginaActual}</strong> de <strong>{totalPaginas}</strong>
+														</div>
+														<div className="text-xs text-gray-500">
+															{totalRegistros.toLocaleString()} registros total • Mostrando {registrosPorPagina} por página
+														</div>
+													</div>
+
+													<div className="flex items-center gap-2">
+														<button
+															className="px-3 py-1 text-white rounded disabled:opacity-50 disabled:bg-gray-300"
+															style={{ backgroundColor: loading || paginaActual === totalPaginas ? undefined : '#002c50' }}
+															onClick={() => setPaginaActual(p => Math.min(totalPaginas, p+1))}
+															disabled={loading || paginaActual === totalPaginas}
+														>
+															Siguiente
+														</button>
+														<button
+															className="px-3 py-1 text-white rounded disabled:opacity-50 disabled:bg-gray-300"
+															style={{ backgroundColor: loading || paginaActual === totalPaginas ? undefined : '#002c50' }}
+															onClick={() => setPaginaActual(totalPaginas)}
+															disabled={loading || paginaActual === totalPaginas}
+														>
+															Última
+														</button>
+													</div>
+												</div>
+											);
+										})()
+									}
+								</div>
 			</div>
 			{/* Mensajes de estado */}
 			{showOpu && mensaje && (
