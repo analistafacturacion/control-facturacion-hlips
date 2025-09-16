@@ -769,7 +769,40 @@ const handleArchivoPlano = async (file: File) => {
 								if (resultado.resultadoCol6 !== 'CORRECTO') {
 									const fila = datosPlano.slice(1)[i];
 									const numero = Array.isArray(fila) ? String(fila[0] || '').trim() : String(Object.values(fila)[0] || '').trim();
-									const motivo = resultado.mensajeCol6 || resultado.mensajeCol1 || resultado.mensajeCol2 || resultado.mensajeCol3 || resultado.mensajeCol4 || resultado.mensajeCol5 || 'Rechazado sin motivo específico';
+									// Construir motivo más amigable y legible para el usuario
+									const razones: string[] = [];
+									try {
+										// Col1: existencia de la factura anulada
+										if (resultado.resultadoCol1 && resultado.resultadoCol1 !== 'CORRECTO') {
+											razones.push('Factura anulada no encontrada');
+										}
+										// Col2: facturas de reemplazo / eventos
+										if (resultado.resultadoCol2 && resultado.resultadoCol2 !== 'CORRECTO') {
+											razones.push('Factura(s) de reemplazo no encontradas o inválidas');
+										}
+										// Col3: fechas
+										if (resultado.resultadoCol3 && resultado.resultadoCol3 !== 'CORRECTO') {
+											// Usar mensaje original para detalles (formato/esperado/plano)
+											razones.push(`Fecha: ${resultado.mensajeCol3 || 'no coincide o formato inválido'}`);
+										}
+										// Col4: valores
+										if (resultado.resultadoCol4 && resultado.resultadoCol4 !== 'CORRECTO') {
+											razones.push(`Valor: ${resultado.mensajeCol4 || 'no coincide'}`);
+										}
+										// Col5: motivo de anulación
+										if (resultado.resultadoCol5 && resultado.resultadoCol5 !== 'CORRECTO') {
+											razones.push('Motivo de anulación ausente o inválido');
+										}
+										// Col6: estado
+										if (resultado.resultadoCol6 && resultado.resultadoCol6 !== 'CORRECTO') {
+											razones.push(`Estado: ${resultado.mensajeCol6 || 'invalido'}`);
+										}
+									} catch (e) {
+										// Si algo falla, fallback al mensaje bruto
+									}
+
+									let motivo = razones.length > 0 ? razones.join('; ') : (resultado.mensajeCol6 || resultado.mensajeCol1 || resultado.mensajeCol2 || resultado.mensajeCol3 || resultado.mensajeCol4 || resultado.mensajeCol5 || 'Rechazado sin motivo específico');
+									// Añadir el número de fila y el contenido básico del plano para facilitar el diagnóstico
 									rechazados.push({ filaIndex: i + 1, numero, motivo });
 								}
 							}
