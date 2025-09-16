@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 
 interface Props {
   data: any[];
@@ -69,14 +69,18 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
   };
 
   // Build per-pair segments so we can animate segment-by-segment from left to right
-  const contiguousPoints: Array<{x:number,y:number,index:number}> = [];
-  visiblePoints.forEach(p => {
-    if (p.y != null) contiguousPoints.push({ x: xForIndex(p.index), y: yForValue(Number(p.y)), index: p.index });
-  });
+  const contiguousPoints: Array<{x:number,y:number,index:number}> = useMemo(() => {
+    const arr: Array<{x:number,y:number,index:number}> = [];
+    visiblePoints.forEach(p => {
+      if (p.y != null) arr.push({ x: xForIndex(p.index), y: yForValue(Number(p.y)), index: p.index });
+    });
+    return arr;
+  }, [visiblePoints]);
 
   type PairSegment = { p0: {x:number,y:number}, p1:{x:number,y:number}, p2:{x:number,y:number}, p3:{x:number,y:number}, topPath:string, areaD:string };
-  const pairSegments: PairSegment[] = [];
-  for (let i = 0; i < contiguousPoints.length - 1; i++) {
+  const pairSegments: PairSegment[] = useMemo(() => {
+    const segs: PairSegment[] = [];
+    for (let i = 0; i < contiguousPoints.length - 1; i++) {
     const p1 = contiguousPoints[i];
     const p2 = contiguousPoints[i + 1];
     const p0 = contiguousPoints[i - 1] || p1;
@@ -91,8 +95,10 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
     const topPath = `M ${p1.x} ${p1.y} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
     const baseline = yForValue(0);
     const areaD = `M ${p1.x} ${baseline} L ${topPath.replace(/^M /, '')} L ${p2.x} ${baseline} Z`;
-    pairSegments.push({ p0, p1, p2, p3, topPath, areaD });
-  }
+      segs.push({ p0, p1, p2, p3, topPath, areaD });
+    }
+    return segs;
+  }, [contiguousPoints]);
 
   const yTicks = [0, Math.round(maxVal / 2), Math.round(maxVal)];
 
@@ -103,16 +109,26 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
   const lineRefs = useRef<Array<SVGPathElement | null>>([]);
   const areaRefs = useRef<Array<SVGPathElement | null>>([]);
   const timersRef = useRef<number[]>([]);
+  const lastAnimatedKey = useRef<string>('');
 
-  // run progressive segment animation on data change
+  // run progressive segment animation when filters or data change
   useEffect(() => {
+    // compute a key representing the inputs that should trigger animation
+    const key = `${sede}__${aseguradora}__${año}__${JSON.stringify(datosGrafico.map(d => d.valor))}`;
+    if (lastAnimatedKey.current === key) {
+      // nothing changed that should re-run the animation
+      return;
+    }
+    lastAnimatedKey.current = key;
+
     // clear previous timers
     timersRef.current.forEach(t => clearTimeout(t));
     timersRef.current = [];
 
-    const segmentStagger = 260; // ms between segments
-    const strokeDuration = 900; // per-segment draw duration
-    const areaFade = 800;
+    // slightly faster animation per user's request
+    const segmentStagger = 200; // ms between segments
+    const strokeDuration = 700; // per-segment draw duration
+    const areaFade = 600;
 
     // prepare each path
     lineRefs.current.forEach((p, idx) => {
