@@ -271,12 +271,28 @@ router.post('/cargar', async (req: Request, res: Response) => {
             for (const a of h2) {
                 const numeroAnulacion = (a.Factura || '').replace(/-/g, '').trim();
                 const notaCredito = a.Nota_Credito ? String(a.Nota_Credito).replace(/-/g, '').trim() : undefined;
-                const fecha = a.Fecha_Factura ? a.Fecha_Factura.split(' ')[0] : undefined;
+                // Intentar múltiples fuentes de fecha antes de omitir
+                let fecha: string | undefined = undefined;
+                const posibles = [
+                    a.Fecha_Factura,
+                    a.Fecha_Facturacion,
+                    a.Fecha_Nota_Credito,
+                    a.Fecha,
+                    a.fechaR,
+                    a.fechaPlano
+                ];
+                for (const p of posibles) {
+                    if (p) {
+                        const s = String(p).split(' ')[0];
+                        if (s && s !== '0000-00-00') { fecha = s; break; }
+                    }
+                }
                 const fechaNotaCredito = a.Fecha_Nota_Credito ? a.Fecha_Nota_Credito.split(' ')[0] : undefined;
                 const sedeNombre = (a.Sede || '').trim().toUpperCase();
                 const sede = sedes.find((s: { nombre: string }) => s.nombre.trim().toUpperCase() === sedeNombre);
-                if (!sede) { ignoradosSede++; ignoradosSedeMes++; continue; }
-                if (existentesSet.has(numeroAnulacion)) { yaExistentes++; yaExistentesMes++; continue; }
+                if (!sede) { ignoradosSede++; ignoradosSedeMes++; detallesIgnorados.push({ motivo: 'Sede no encontrada', registro: a }); continue; }
+                if (existentesSet.has(numeroAnulacion)) { yaExistentes++; yaExistentesMes++; detallesIgnorados.push({ motivo: 'Ya existente', registro: a }); continue; }
+                if (!fecha) { detallesIgnorados.push({ motivo: 'Sin fecha', registro: a }); continue; }
                 if (a.Observacion === null) {
                     nuevasAnulaciones.push({
                         numeroAnulacion,
