@@ -324,6 +324,15 @@ const [eventosFull, setEventosFull] = useState<any[]>([]);
 		return Array.from(s).sort((x, y) => x.localeCompare(y));
 	}, [anulaciones, fechaFiltroInicial, fechaFiltroFinal]);
 
+	// Función utilitaria para obtener el nombre 'mostrado' de la aseguradora de un registro
+	function getAseguradoraDisplay(a: Anulacion) {
+		const normalizeName = (n?: any) => (n === null || n === undefined) ? '' : String(n).replace(/\s+/g, ' ').trim();
+		const raw = a.aseguradora || '';
+		const r = normalizeName(raw).toLowerCase();
+		const found = aseguradoras.find(x => (String(x.nombrePergamo || '').replace(/\s+/g, ' ').trim().toLowerCase() === r) || (String(x.nombre || '').replace(/\s+/g, ' ').trim().toLowerCase() === r));
+		return found ? (String(found.nombre).replace(/\s+/g, ' ').trim()) : normalizeName(raw);
+	}
+
 	const availableAseguradoras = useMemo(() => {
 		const s = new Set<string>();
 		const normalizeName = (n?: any) => (n === null || n === undefined) ? '' : String(n).replace(/\s+/g, ' ').trim();
@@ -344,14 +353,7 @@ const [eventosFull, setEventosFull] = useState<any[]>([]);
 		return Array.from(s).sort((x, y) => x.localeCompare(y));
 	}, [anulaciones, fechaFiltroInicial, fechaFiltroFinal]);
 
-	// Función utilitaria para obtener el nombre 'mostrado' de la aseguradora de un registro
-	const getAseguradoraDisplay = (a: Anulacion) => {
-		const normalizeName = (n?: any) => (n === null || n === undefined) ? '' : String(n).replace(/\s+/g, ' ').trim();
-		const raw = a.aseguradora || '';
-		const r = normalizeName(raw).toLowerCase();
-		const found = aseguradoras.find(x => (String(x.nombrePergamo || '').replace(/\s+/g, ' ').trim().toLowerCase() === r) || (String(x.nombre || '').replace(/\s+/g, ' ').trim().toLowerCase() === r));
-		return found ? (String(found.nombre).replace(/\s+/g, ' ').trim()) : normalizeName(raw);
-	};
+	// Nota: getAseguradoraDisplay está definida más arriba como función hoisted para evitar TDZ en el bundle.
 
 	// Estado y lógica para modal de carga/validación de archivo plano
 	const [showCargaPlano, setShowCargaPlano] = useState(false);
