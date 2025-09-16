@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
 interface Props {
   data: any[];
@@ -84,6 +84,47 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
   // tooltip
   const [tooltip, setTooltip] = useState<{visible:boolean,x:number,y:number,value:number|null,label:string}>({ visible: false, x: 0, y: 0, value: null, label: '' });
 
+  // refs for animated paths and areas
+  const lineRefs = useRef<Array<SVGPathElement | null>>([]);
+  const areaRefs = useRef<Array<SVGPathElement | null>>([]);
+
+  // run animation on data change
+  useEffect(() => {
+    // reset styles
+    lineRefs.current.forEach(p => {
+      if (p) {
+        try {
+          const len = p.getTotalLength();
+          p.style.strokeDasharray = `${len}`;
+          p.style.strokeDashoffset = `${len}`;
+          p.style.transition = 'stroke-dashoffset 900ms cubic-bezier(.2,.8,.2,1)';
+        } catch (e) { /* ignore */ }
+      }
+    });
+    areaRefs.current.forEach(a => {
+      if (a) {
+        a.style.opacity = '0';
+        a.style.transition = 'opacity 700ms ease';
+      }
+    });
+
+    // trigger animation slightly after paint
+    const t = setTimeout(() => {
+      lineRefs.current.forEach(p => { if (p) p.style.strokeDashoffset = '0'; });
+      areaRefs.current.forEach(a => { if (a) a.style.opacity = '1'; });
+      // animate dots with stagger
+      const dots = containerRef.current?.querySelectorAll('.cf-dot');
+      dots?.forEach((dot, idx) => {
+        const el = dot as HTMLElement;
+        el.style.transform = 'scale(1)';
+        el.style.opacity = '1';
+        el.style.transition = `transform 350ms cubic-bezier(.2,.8,.2,1) ${idx * 80}ms, opacity 250ms ${idx * 80}ms`;
+      });
+    }, 80);
+
+    return () => clearTimeout(t);
+  }, [datosGrafico, sede, aseguradora, año]);
+
   const onEnterPoint = (evt: React.MouseEvent, p: any) => {
     const rect = containerRef.current?.getBoundingClientRect();
     const clientX = evt.clientX;
@@ -139,8 +180,8 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
             const areaD = `M ${firstX} ${baseline} L ${topPath.replace(/^M /, '')} L ${lastX} ${baseline} Z`;
             return (
               <g key={i}>
-                <path d={areaD} fill="url(#gradArea)" stroke="none" filter="url(#softShadow)" />
-                <path d={topPath} fill="none" stroke="#0369a1" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                <path ref={el => areaRefs.current[i] = el} d={areaD} fill="url(#gradArea)" stroke="none" filter="url(#softShadow)" style={{ opacity: 0 }} />
+                <path ref={el => lineRefs.current[i] = el} d={topPath} fill="none" stroke="#0369a1" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
               </g>
             );
           })}
@@ -151,8 +192,9 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
             const cx = xForIndex(i);
             const cy = yForValue(Number(p.y));
             return (
-              <circle key={i} cx={cx} cy={cy} r={4} fill="#1F497D" stroke="#fff" strokeWidth={1}
-                onMouseEnter={(e) => onEnterPoint(e, p)} onMouseLeave={onLeavePoint} />
+              <circle key={i} className="cf-dot" cx={cx} cy={cy} r={4} fill="#1F497D" stroke="#fff" strokeWidth={1}
+                onMouseEnter={(e) => onEnterPoint(e, p)} onMouseLeave={onLeavePoint}
+                style={{ transform: 'scale(0.6)', transformOrigin: 'center', opacity: 0 }} />
             );
           })}
 
