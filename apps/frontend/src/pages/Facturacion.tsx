@@ -1396,7 +1396,8 @@ export default function Facturacion() {
 
       {/* Modal de análisis */}
       {showAnalisis && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-2">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2"
+             style={{ backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}>
           <div className="bg-white rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8 w-full max-w-[98vw] sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl min-h-[520px] min-w-[700px] max-h-[80vh] max-w-[90vw] h-[520px] md:h-[600px] relative animate-fade-in overflow-hidden flex flex-col">
             <button
               className="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-2xl font-bold"
