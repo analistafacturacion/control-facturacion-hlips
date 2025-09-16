@@ -1227,3 +1227,52 @@ router.get('/eventos/debug/periodo-count', async (req: RequestWithIO, res: Respo
     return res.status(500).json({ error: 'Error en debug periodo', details: _err });
   }
 });
+
+// Endpoint para buscar múltiples facturas por lista (batch) - usa WHERE LOWER(numeroFactura) = ANY($1)
+router.get('/eventos/batch', async (req: RequestWithIO, res: Response) => {
+  try {
+    const facturacionRepo = getRepository(FacturacionEvento);
+    const { numeros } = req.query;
+    if (!numeros) return res.status(400).json({ ok: false, error: 'Parametro numeros es requerido' });
+    const lista = String(numeros).split(',').map(s => s.trim()).filter(s => s.length > 0);
+    if (lista.length === 0) return res.json({ ok: true, eventos: [], total: 0 });
+
+    // Normalizar a minúsculas para comparación
+    const listaLower = lista.map(s => s.toLowerCase());
+
+    const sql = `
+      SELECT 
+        e.id, e."numeroFactura" as numero_factura, e.fecha, e.valor,
+        e.aseguradora, e.paciente, e.documento, e.periodo, e.ambito,
+        e."tipoDocumento" as tipo_documento,
+        e."fechaInicial" as fecha_inicial, e."fechaFinal" as fecha_final,
+        s.nombre as sede_nombre, s.id as sede_id
+      FROM facturacion_evento e
+      LEFT JOIN sede s ON e.sede_id = s.id
+      WHERE LOWER(e."numeroFactura") = ANY($1::text[])
+    `;
+
+    const resultado = await facturacionRepo.query(sql, [listaLower]);
+
+    const eventos = resultado.map((row: any) => ({
+      id: row.id,
+      numeroFactura: row.numero_factura,
+      fecha: row.fecha,
+      valor: parseFloat(row.valor) || 0,
+      aseguradora: row.aseguradora || '',
+      paciente: row.paciente || '',
+      documento: row.documento || '',
+      periodo: row.periodo || '',
+      ambito: row.ambito || '',
+      tipoDocumento: row.tipo_documento || '',
+      fechaInicial: row.fecha_inicial || null,
+      fechaFinal: row.fecha_final || null,
+      sede: row.sede_nombre ? { id: row.sede_id, nombre: row.sede_nombre } : null
+    }));
+
+    res.json({ ok: true, eventos, total: eventos.length });
+  } catch (err) {
+    console.error('[EVENTOS BATCH] Error:', err);
+    res.status(500).json({ ok: false, error: 'Error al obtener eventos batch', details: err instanceof Error ? err.message : String(err) });
+  }
+});
