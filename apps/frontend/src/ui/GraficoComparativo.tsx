@@ -103,7 +103,8 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
   const yTicks = [0, Math.round(maxVal / 2), Math.round(maxVal)];
 
   // tooltip
-  const [tooltip, setTooltip] = useState<{visible:boolean,x:number,y:number,value:number|null,label:string,diff:number|null,trend:'up'|'down'|'same'|'nodata'}>({ visible: false, x: 0, y: 0, value: null, label: '', diff: null, trend: 'nodata' });
+  const [tooltip, setTooltip] = useState<{visible:boolean,x:number,y:number,value:number|null,label:string,diff:number|null,diffPercent:number|null,trend:'up'|'down'|'same'|'nodata'}>({ visible: false, x: 0, y: 0, value: null, label: '', diff: null, diffPercent: null, trend: 'nodata' });
+  const [cardAnimate, setCardAnimate] = useState(false);
 
   // refs for animated paths and areas
   const lineRefs = useRef<Array<SVGPathElement | null>>([]);
@@ -190,36 +191,57 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
     const containerRect = containerRef.current?.getBoundingClientRect();
     const tRect = target.getBoundingClientRect();
     const centerX = (tRect.left + tRect.right) / 2 - (containerRect ? containerRect.left : 0);
-    const topY = tRect.top - (containerRect ? containerRect.top : 0);
+    const centerY = (tRect.top + tRect.bottom) / 2 - (containerRect ? containerRect.top : 0);
 
-    // compute difference with previous month
+    // compute difference with previous month and percent
     const idx = p.index;
     const prev = datosGrafico[idx - 1]?.valor ?? null;
     const curr = p.y == null ? null : Number(p.y);
     let diff: number | null = null;
+    let diffPercent: number | null = null;
     let trend: 'up'|'down'|'same'|'nodata' = 'nodata';
     if (curr == null || prev == null) {
       diff = null;
+      diffPercent = null;
       trend = 'nodata';
     } else {
       diff = curr - Number(prev);
+      if (Number(prev) !== 0) diffPercent = (diff / Number(prev)) * 100;
+      else diffPercent = null; // cannot compute percent reliably when prev is 0
       if (diff > 0) trend = 'up';
       else if (diff < 0) trend = 'down';
       else trend = 'same';
     }
 
-    // position tooltip slightly above and to the right of the point, clamp inside container
-    let x = centerX + 8;
-    let y = topY - 12;
+    // position tooltip to the right of the point by default, clamp inside container
+    const cardW = 150;
+    const cardH = 74;
+    const offset = 10;
+    let x = centerX + offset;
+    // if overflowing to the right, place to the left
+    if (containerRect && x + cardW > containerRect.width - 8) {
+      x = centerX - cardW - offset;
+    }
+    if (x < 8) x = 8;
+
+    // vertically center the card around the point
+    let y = centerY - cardH / 2;
     if (containerRect) {
-      const maxX = containerRect.width - 160; // avoid overflow (tooltip width ~160)
-      if (x > maxX) x = Math.max(8, containerRect.width - 168);
-      if (y < 8) y = topY + 12; // if too high, place below the point
+      if (y < 8) y = 8;
+      if (y + cardH > containerRect.height - 8) y = Math.max(8, containerRect.height - cardH - 8);
     }
 
-    setTooltip({ visible: true, x, y, value: curr, label: p.xLabel, diff, trend });
+    setTooltip({ visible: true, x, y, value: curr, label: p.xLabel, diff, diffPercent, trend });
+    // trigger animation state in next frame
+    setCardAnimate(false);
+    window.requestAnimationFrame(() => setCardAnimate(true));
   };
-  const onLeavePoint = () => setTooltip({ visible: false, x: 0, y: 0, value: null, label: '', diff: null, trend: 'nodata' });
+  const onLeavePoint = () => {
+    // play hide animation then clear tooltip
+    setCardAnimate(false);
+    const hideDelay = 260;
+    window.setTimeout(() => setTooltip({ visible: false, x: 0, y: 0, value: null, label: '', diff: null, diffPercent: null, trend: 'nodata' }), hideDelay);
+  };
 
   return (
     <div className="w-full flex flex-col gap-4" style={{height: '100%'}}>
@@ -284,28 +306,39 @@ export const GraficoComparativo: React.FC<Props> = ({ data, aseguradoras, sedes,
 
         {/* Tooltip / tarjeta minimalista anclada al punto */}
         {tooltip.visible && (
-          <div style={{ position: 'absolute', left: tooltip.x, top: tooltip.y, width: 160, background: 'rgba(255,255,255,0.98)', padding: '10px 12px', borderRadius: 10, boxShadow: '0 8px 24px rgba(2,6,23,0.10)', fontSize: 13 }}>
+          <div style={{ position: 'absolute', left: tooltip.x, top: tooltip.y, width: 150, background: 'rgba(255,255,255,0.98)', padding: '10px 12px', borderRadius: 10, boxShadow: '0 10px 30px rgba(2,6,23,0.10)', fontSize: 13, transform: `translateY(${cardAnimate ? 0 : 6}px)`, opacity: cardAnimate ? 1 : 0, transition: 'transform 260ms cubic-bezier(.2,.8,.2,1), opacity 220ms' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
               <div style={{ fontWeight: 700 }}>{tooltip.label}</div>
-              <div style={{ fontSize: 12, color: '#6b7280' }}>{/* espacio para posible etiqueta pequeña */}</div>
+              <div style={{ fontSize: 12, color: '#6b7280' }}></div>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
-              <div style={{ fontWeight: 700, color: '#0f172a' }}>{tooltip.value == null ? 'Sin datos' : `$ ${Number(tooltip.value).toLocaleString('es-CO')}`}</div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <div style={{ fontWeight: 700, color: '#0f172a' }}>{tooltip.value == null ? 'Sin datos' : `$ ${Number(tooltip.value).toLocaleString('es-CO')}`}</div>
+                {tooltip.diffPercent != null && (
+                  <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>{`${tooltip.diffPercent!.toFixed(1)}% vs mes anterior`}</div>
+                )}
+              </div>
 
-              {/* indicador de tendencia */}
+              {/* indicador SVG */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 {tooltip.diff == null || tooltip.trend === 'nodata' ? (
                   <div style={{ color: '#6b7280', fontSize: 12 }}>—</div>
                 ) : tooltip.trend === 'up' ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <div style={{ width: 10, height: 10, borderRadius: 3, background: '#0ea5a4', transform: 'rotate(-45deg)' }} />
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 19V6" stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M5 12l7-7 7 7" stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
                     <div style={{ color: '#059669', fontSize: 12, fontWeight: 700 }}>{`+ $${Math.abs(tooltip.diff!).toLocaleString('es-CO')}`}</div>
                   </div>
                 ) : tooltip.trend === 'down' ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <div style={{ width: 10, height: 10, borderRadius: 3, background: '#fb7185', transform: 'rotate(45deg)' }} />
-                    <div style={{ color: '#dc2626', fontSize: 12, fontWeight: 700 }}>{`- $${Math.abs(tooltip.diff!).toLocaleString('es-CO')}`}</div>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 5v13" stroke="#b91c1c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M19 12l-7 7-7-7" stroke="#b91c1c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <div style={{ color: '#b91c1c', fontSize: 12, fontWeight: 700 }}>{`- $${Math.abs(tooltip.diff!).toLocaleString('es-CO')}`}</div>
                   </div>
                 ) : (
                   <div style={{ color: '#6b7280', fontSize: 12 }}>0</div>
