@@ -37,6 +37,18 @@ export default function ConfigurarCups() {
     setLoading(false);
   };
 
+  // Format 'valor' for display: use locale 'es-CO', remove trailing decimal '.00' when integer
+  const formatValor = (raw: string | number | null | undefined) => {
+    if (raw === null || raw === undefined || raw === '') return '';
+    // try to parse as float
+    const n = typeof raw === 'number' ? raw : parseFloat(String(raw).replace(/,/g, '').trim());
+    if (Number.isNaN(n)) return String(raw);
+    // Format with grouping using es-CO locale
+    const formatted = n.toLocaleString('es-CO');
+    // If decimals are exactly ',00' (es-CO uses comma decimal), remove the trailing ',00'
+    return formatted.replace(/,00$/, '');
+  };
+
   useEffect(() => {
     fetchCups();
   }, []);
@@ -252,7 +264,9 @@ export default function ConfigurarCups() {
             <div>
               <h3 className="font-medium mb-2 text-black dark:text-white">CUPS Registrados ({cups.length})</h3>
               <div className="overflow-x-auto">
-                <table className="min-w-full text-sm text-center" style={{borderCollapse:'collapse'}}>
+                {/* limit vertical height and allow scrolling when there are many rows */}
+                <div style={{ maxHeight: 420, overflowY: 'auto' }}>
+                  <table className="min-w-full text-xs text-center" style={{borderCollapse:'collapse'}}>
                   <thead>
                     <tr className="bg-black">
                       <th className="px-2 py-2 text-center text-white font-semibold">Aseguradora</th>
@@ -274,7 +288,7 @@ export default function ConfigurarCups() {
                         <td className="px-2 py-1 text-center" style={{borderBottom:'1px solid #e5e7eb'}}>{c.cuint}</td>
                         <td className="px-2 py-1 text-center" style={{borderBottom:'1px solid #e5e7eb'}}>{c.servicioFacturado}</td>
                         <td className="px-2 py-1 text-center" style={{borderBottom:'1px solid #e5e7eb'}}>{c.servicioNormalizado}</td>
-                        <td className="px-2 py-1 text-center" style={{borderBottom:'1px solid #e5e7eb'}}>{c.valor}</td>
+                        <td className="px-2 py-1 text-center" style={{borderBottom:'1px solid #e5e7eb'}}>{formatValor(c.valor)}</td>
                         <td className="px-2 py-1 text-center" style={{borderBottom:'1px solid #e5e7eb'}}>
                           <button className="p-0 m-0 bg-transparent border-none focus:outline-none" type="button" title="Editar" onClick={() => handleEdit(c)}>
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24">
@@ -293,6 +307,7 @@ export default function ConfigurarCups() {
                     ))}
                   </tbody>
                 </table>
+                </div>
               </div>
             </div>
           </>
