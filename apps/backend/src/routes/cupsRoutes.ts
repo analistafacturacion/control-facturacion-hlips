@@ -33,12 +33,19 @@ router.post('/', async (req: Request, res: Response) => {
   try {
     const repo = getRepository(require('../entity/Cup').Cup);
     const data = req.body;
+    // basic validation
+    if (!data || !data.cups || !data.servicioFacturado) {
+      return res.status(400).json({ error: 'cups y servicioFacturado son obligatorios' });
+    }
     const item = repo.create(data);
     await repo.save(item);
     res.status(201).json(item);
-  } catch (err) {
+  } catch (err: any) {
     console.error('Error creating cup', err);
-    res.status(500).json({ error: 'Error creating cup' });
+    const payload: any = { error: 'Error creating cup' };
+      const debugMode = process.env.NODE_ENV !== 'production' || (req && (req.query as any)?.debug === '1');
+      if (debugMode) payload.details = (err as any)?.message || String(err);
+    res.status(500).json(payload);
   }
 });
 
@@ -49,12 +56,19 @@ router.put('/:id', async (req: Request, res: Response) => {
     const id = Number(req.params.id);
     let item = await repo.findOne({ where: { id } });
     if (!item) return res.status(404).json({ error: 'Not found' });
-    repo.merge(item, req.body);
+    const data = req.body;
+    if (!data || !data.cups || !data.servicioFacturado) {
+      return res.status(400).json({ error: 'cups y servicioFacturado son obligatorios' });
+    }
+    repo.merge(item, data);
     await repo.save(item);
     res.json(item);
   } catch (err) {
     console.error('Error updating cup', err);
-    res.status(500).json({ error: 'Error updating cup' });
+    const payload: any = { error: 'Error updating cup' };
+      const debugMode = process.env.NODE_ENV !== 'production' || (req && (req.query as any)?.debug === '1');
+      if (debugMode) payload.details = (err as any)?.message || String(err);
+    res.status(500).json(payload);
   }
 });
 
