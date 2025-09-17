@@ -20,7 +20,7 @@ export default function PrismaLogo({ className, variant = 'B', imgSrc }: { class
       // eslint-disable-next-line jsx-a11y/alt-text
       <img
         src={src}
-        alt="Prisma Analytics"
+  alt="Innova360"
         className={className + ' object-contain'}
         onError={() => setImgError(true)}
       />

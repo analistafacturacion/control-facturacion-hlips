@@ -64,7 +64,7 @@ export default function TopBar() {
               {/* logo replaced by PrismaLogo component */}
               <div className="flex items-center gap-3">
               <PrismaLogo className="w-7 h-7" />
-              <span className="text-xl font-bold tracking-tight text-white select-none">Prisma Analytics</span>
+              <span className="text-xl font-bold tracking-tight text-white select-none brand-title">Innova360</span>
             </div>
           </div>
         </div>
