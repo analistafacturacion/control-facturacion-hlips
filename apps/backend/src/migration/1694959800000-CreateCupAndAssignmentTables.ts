@@ -1,6 +1,7 @@
-// Migration minimal compatible: evita tipos específicos para no romper la compilación
-const CreateCupAndAssignmentTables1694959800000 = {
-    name: 'CreateCupAndAssignmentTables1694959800000',
+// Exportamos una clase para que TypeORM pueda instanciar la migración en runtime
+class CreateCupAndAssignmentTables1694959800000 {
+    name = 'CreateCupAndAssignmentTables1694959800000';
+
     async up(queryRunner: any): Promise<void> {
         await queryRunner.query(`
             CREATE TABLE IF NOT EXISTS "cup" (
@@ -25,7 +26,8 @@ const CreateCupAndAssignmentTables1694959800000 = {
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS idx_cup_cups ON "cup"(cups);`);
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS idx_cup_aseguradora ON "cup"(aseguradora);`);
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS idx_cup_assignment_cup_id ON "cup_assignment"("cupId");`);
-    },
+    }
+
     async down(queryRunner: any): Promise<void> {
         await queryRunner.query(`DROP INDEX IF EXISTS idx_cup_assignment_cup_id;`);
         await queryRunner.query(`DROP INDEX IF EXISTS idx_cup_aseguradora;`);
@@ -33,6 +35,6 @@ const CreateCupAndAssignmentTables1694959800000 = {
         await queryRunner.query(`DROP TABLE IF EXISTS "cup_assignment";`);
         await queryRunner.query(`DROP TABLE IF EXISTS "cup";`);
     }
-};
+}
 
 module.exports = CreateCupAndAssignmentTables1694959800000;
