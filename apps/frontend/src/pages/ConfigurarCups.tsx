@@ -171,10 +171,10 @@ export default function ConfigurarCups() {
     if (filtered.length === 0) return [<tr key="no-cups"><td colSpan={8} className="text-center p-2 text-gray-400 border-b">Sin CUPS</td></tr>];
     return filtered.map(c => (
       <tr key={c.id} style={{borderBottom:'1px solid #e5e7eb'}}>
-        <td className="px-2 py-1 text-center" style={{borderBottom:'1px solid #e5e7eb'}}>{c.aseguradora}</td>
-        <td className="px-2 py-1 text-center" style={{borderBottom:'1px solid #e5e7eb'}}>{c.cups}</td>
-        <td className="px-2 py-1 text-center" style={{borderBottom:'1px solid #e5e7eb'}}>{c.cuint}</td>
-        <td className="px-2 py-1 text-left" style={{borderBottom:'1px solid #e5e7eb'}}>{c.servicioFacturado}</td>
+        <td className="px-2 py-1 text-center" style={{borderBottom:'1px solid #e5e7eb', minWidth: 140}}>{c.aseguradora}</td>
+        <td className="px-2 py-1 text-center" style={{borderBottom:'1px solid #e5e7eb', minWidth: 120}}>{c.cups}</td>
+        <td className="px-2 py-1 text-center" style={{borderBottom:'1px solid #e5e7eb', minWidth: 160}}>{c.cuint}</td>
+        <td className="px-2 py-1 text-left" style={{borderBottom:'1px solid #e5e7eb', minWidth: 220}}>{c.servicioFacturado}</td>
         <td className="px-2 py-1 text-left" style={{borderBottom:'1px solid #e5e7eb'}}>{c.servicioNormalizado}</td>
         <td className="px-2 py-1 text-center" style={{borderBottom:'1px solid #e5e7eb'}}>{`$${formatValor(c.valor)}`}</td>
         <td className="px-2 py-1 text-center" style={{borderBottom:'1px solid #e5e7eb'}}>
@@ -317,11 +317,11 @@ export default function ConfigurarCups() {
                   <label className="text-xs">CUPS</label>
                   <input name="cups" value={filter.cups} onChange={handleFilterChange} className="border px-2 py-1 w-full" placeholder="CUPS" />
                 </div>
-                <div className="min-w-[100px]">
+                <div className="min-w-[140px]">
                   <label className="text-xs">CUINT</label>
                   <input name="cuint" value={filter.cuint} onChange={handleFilterChange} className="border px-2 py-1 w-full" placeholder="CUINT" />
                 </div>
-                <div className="min-w-[200px]">
+                <div className="min-w-[160px]">
                   <label className="text-xs">Servicio Facturado</label>
                   <input name="servicioFacturado" value={filter.servicioFacturado} onChange={handleFilterChange} className="border px-2 py-1 w-full" placeholder="Servicio Facturado" />
                 </div>
