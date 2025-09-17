@@ -29,3 +29,11 @@ Instrucciones para agregar la nueva tabla `cup_assignment` y probar los endpoint
 Notas:
 - El modelo guarda solo ids (cupId, aseguradoraId, sedeId) como enteros. Si deseas relaciones TypeORM completas (FOREIGN KEYs y joins automáticos), puedo actualizar la entidad para tener relaciones con Aseguradora, Sede y Cup.
 - Si tu despliegue usa migraciones TypeORM en lugar de ejecutar SQL manualmente, puedo generar una migración TypeORM en `src/migration`.
+
+Adicional: la tabla `cup` debe existir antes de insertar o consultar CUPS. Si al probar ves errores como `relation "cup" does not exist`, ejecuta primero:
+
+  \i ops/sql/create_cup_table.sql
+
+y luego ejecuta `ops/sql/create_cup_assignment_table.sql` si aún no existe.
+
+Después reinicia el backend y vuelve a probar.
