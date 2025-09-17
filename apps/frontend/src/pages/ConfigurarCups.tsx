@@ -143,25 +143,28 @@ export default function ConfigurarCups() {
                   <label className="text-sm mb-1">Aseguradora</label>
                   <input className="border px-2 py-1 w-full bg-white text-black" name="aseguradora" value={form.aseguradora} onChange={handleChange} placeholder="Aseguradora" required />
                 </div>
-                <div className="flex-[0.9] flex flex-col">
-                  <label className="text-sm mb-1">CUPS</label>
-                  <input className="border px-2 py-1 w-40 bg-white text-black" name="cups" value={form.cups} onChange={handleChange} placeholder="CUPS" required />
-                </div>
-                <div className="flex-[0.6] flex flex-col">
-                  <label className="text-sm mb-1">CUINT</label>
-                  <input className="border px-2 py-1 w-28 bg-white text-black" name="cuint" value={form.cuint} onChange={handleChange} placeholder="CUINT" />
-                </div>
-                <div className="flex-2 flex flex-col">
-                  <label className="text-sm mb-1">Servicio Facturado</label>
-                  <input className="border px-2 py-1 w-full bg-white text-black text-lg" name="servicioFacturado" value={form.servicioFacturado} onChange={handleChange} placeholder="Servicio Facturado" />
-                </div>
-                <div className="flex-2 flex flex-col">
-                  <label className="text-sm mb-1">Servicio Normalizado</label>
-                  <input className="border px-2 py-1 w-full bg-white text-black text-lg" name="servicioNormalizado" value={form.servicioNormalizado} onChange={handleChange} placeholder="Servicio Normalizado" />
-                </div>
-                <div className="flex-[0.8] flex flex-col min-w-[100px]">
-                  <label className="text-sm mb-1">Valor</label>
-                  <input className="border px-2 py-1 w-28 bg-white text-black text-sm text-right" name="valor" value={form.valor} onChange={handleChange} placeholder="Valor" />
+                {/* Force single-row layout: fixed widths so fields align and occupy the full row with priority widths */}
+                <div className="flex flex-row items-start gap-3 w-full overflow-x-auto">
+                  <div className="flex-none w-[10%] min-w-[90px] flex flex-col">
+                    <label className="text-sm mb-1">CUPS</label>
+                    <input className="border px-2 py-1 w-full bg-white text-black" name="cups" value={form.cups} onChange={handleChange} placeholder="CUPS" required />
+                  </div>
+                  <div className="flex-none w-[8%] min-w-[70px] flex flex-col">
+                    <label className="text-sm mb-1">CUINT</label>
+                    <input className="border px-2 py-1 w-full bg-white text-black" name="cuint" value={form.cuint} onChange={handleChange} placeholder="CUINT" />
+                  </div>
+                  <div className="flex-none w-[30%] min-w-[260px] flex flex-col">
+                    <label className="text-sm mb-1">Servicio Facturado</label>
+                    <input className="border px-2 py-1 w-full bg-white text-black" name="servicioFacturado" value={form.servicioFacturado} onChange={handleChange} placeholder="Servicio Facturado" />
+                  </div>
+                  <div className="flex-none w-[30%] min-w-[260px] flex flex-col">
+                    <label className="text-sm mb-1">Servicio Normalizado</label>
+                    <input className="border px-2 py-1 w-full bg-white text-black" name="servicioNormalizado" value={form.servicioNormalizado} onChange={handleChange} placeholder="Servicio Normalizado" />
+                  </div>
+                  <div className="flex-none w-[12%] min-w-[100px] flex flex-col">
+                    <label className="text-sm mb-1">Valor</label>
+                    <input className="border px-2 py-1 w-full bg-white text-black text-right" name="valor" value={form.valor} onChange={handleChange} placeholder="Valor" />
+                  </div>
                 </div>
                 <button
                   type="submit"
