@@ -9,6 +9,7 @@ import { ReporteRips } from "./entity/ReporteRips";
 import { RipsFactura } from "./entity/RipsFactura";
 import { UltimaActualizacion } from "./entity/UltimaActualizacion";
 import { Cup } from './entity/Cup';
+import { CupAssignment } from './entity/CupAssignment';
 
 let connection: any;
 
@@ -36,6 +37,7 @@ export const AppDataSource = {
                 Aseguradora,
                 Sede,
                 Cup,
+                CupAssignment,
                 ReporteRips,
                 RipsFactura
                 ,UltimaActualizacion

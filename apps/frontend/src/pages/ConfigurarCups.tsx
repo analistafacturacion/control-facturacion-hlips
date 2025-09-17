@@ -71,8 +71,41 @@ export default function ConfigurarCups() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error('Error al guardar');
-  setForm({ aseguradora: '', cups: '', cuint: '', servicioFacturado: '', servicioNormalizado: '', valor: '' });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error || 'Error al guardar');
+      }
+      const savedCup = await res.json();
+
+      // create or update assignment linked to this cup
+      try {
+        const assRes = await fetch(`${API_CONFIG.BASE_URL}/cup-assignments`);
+        const allAssignments = await assRes.json().catch(() => []);
+        const existing = Array.isArray(allAssignments) ? allAssignments.find((a: any) => a.cupId === savedCup.id) : undefined;
+        const assignmentPayload = {
+          cupId: savedCup.id,
+          aseguradoraId: null,
+          sedeId: null,
+          notas: form.aseguradora || ''
+        };
+        if (existing) {
+          await fetch(`${API_CONFIG.BASE_URL}/cup-assignments/${existing.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(assignmentPayload),
+          });
+        } else {
+          await fetch(`${API_CONFIG.BASE_URL}/cup-assignments`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(assignmentPayload),
+          });
+        }
+      } catch (e) {
+        console.error('No se pudo crear/actualizar cup-assignment', e);
+      }
+
+      setForm({ aseguradora: '', cups: '', cuint: '', servicioFacturado: '', servicioNormalizado: '', valor: '' });
       setEditId(null);
       fetchCups();
     } catch {
@@ -90,9 +123,23 @@ export default function ConfigurarCups() {
   const handleDelete = async (id: number) => {
     if (!window.confirm('¿Eliminar este CUPS?')) return;
     setLoading(true);
-    await fetch(`${API_CONFIG.BASE_URL}/cups/${id}`, { method: 'DELETE' });
-    fetchCups();
-    setLoading(false);
+    try {
+      await fetch(`${API_CONFIG.BASE_URL}/cups/${id}`, { method: 'DELETE' });
+      // try to delete related assignments
+      try {
+        const assRes = await fetch(`${API_CONFIG.BASE_URL}/cup-assignments`);
+        const allAssignments = await assRes.json().catch(() => []);
+        if (Array.isArray(allAssignments)) {
+          const related = allAssignments.filter((a: any) => a.cupId === id);
+          await Promise.all(related.map((r: any) => fetch(`${API_CONFIG.BASE_URL}/cup-assignments/${r.id}`, { method: 'DELETE' })));
+        }
+      } catch (e) {
+        console.error('No se pudieron eliminar las assignments relacionadas', e);
+      }
+    } finally {
+      fetchCups();
+      setLoading(false);
+    }
   };
 
   return (

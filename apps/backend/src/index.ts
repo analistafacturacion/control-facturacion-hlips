@@ -102,6 +102,10 @@ AppDataSource.initialize().then(() => {
   const cupsRoutes = require('./routes/cupsRoutes').default;
   app.use('/api/cups', cupsRoutes);
 
+  // Rutas de cup assignments (relación de cups con sedes/aseguradoras)
+  const cupAssignmentsRoutes = require('./routes/cupAssignmentsRoutes').default;
+  app.use('/api/cup-assignments', cupAssignmentsRoutes);
+
   // Rutas de migración
   const migrationRoutes = require('./routes/migrationRoutes').default;
   app.use('/api/migration', migrationRoutes);
