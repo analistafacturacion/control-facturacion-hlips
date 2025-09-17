@@ -18,6 +18,8 @@ export default function ConfigurarCups() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
+  // Filter state
+  const [filter, setFilter] = useState({ aseguradora: '', cups: '', cuint: '', servicioFacturado: '', servicioNormalizado: '' });
 
   const fetchCups = async () => {
     setLoading(true);
@@ -57,6 +59,11 @@ export default function ConfigurarCups() {
     const target = e.target as HTMLInputElement;
     const { name, value, type, checked } = target;
     setForm(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value } as any));
+  };
+
+  const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const t = e.target as HTMLInputElement;
+    setFilter(prev => ({ ...prev, [t.name]: t.value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -153,6 +160,39 @@ export default function ConfigurarCups() {
       setLoading(false);
     }
   };
+
+  // prepare filtered rows for render
+  const rows = (() => {
+    const filtered = [...cups].filter(row => {
+      const m = (s: any, f: string) => !f || (s || '').toString().toLowerCase().includes(f.toLowerCase());
+      return m(row.aseguradora, filter.aseguradora) && m(row.cups, filter.cups) && m(row.cuint, filter.cuint) && m(row.servicioFacturado, filter.servicioFacturado) && m(row.servicioNormalizado, filter.servicioNormalizado);
+    }).sort((a,b) => a.id - b.id);
+    if (filtered.length === 0) return [<tr key="no-cups"><td colSpan={8} className="text-center p-2 text-gray-400 border-b">Sin CUPS</td></tr>];
+    return filtered.map(c => (
+      <tr key={c.id} style={{borderBottom:'1px solid #e5e7eb'}}>
+        <td className="px-2 py-1 text-center" style={{borderBottom:'1px solid #e5e7eb'}}>{c.aseguradora}</td>
+        <td className="px-2 py-1 text-center" style={{borderBottom:'1px solid #e5e7eb'}}>{c.cups}</td>
+        <td className="px-2 py-1 text-center" style={{borderBottom:'1px solid #e5e7eb'}}>{c.cuint}</td>
+        <td className="px-2 py-1 text-left" style={{borderBottom:'1px solid #e5e7eb'}}>{c.servicioFacturado}</td>
+        <td className="px-2 py-1 text-left" style={{borderBottom:'1px solid #e5e7eb'}}>{c.servicioNormalizado}</td>
+        <td className="px-2 py-1 text-center" style={{borderBottom:'1px solid #e5e7eb'}}>{`$${formatValor(c.valor)}`}</td>
+        <td className="px-2 py-1 text-center" style={{borderBottom:'1px solid #e5e7eb'}}>
+          <button className="p-0 m-0 bg-transparent border-none focus:outline-none" type="button" title="Editar" onClick={() => handleEdit(c)}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24">
+              <linearGradient id="lapizColorCups" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+                <stop stopColor="#FFD600" />
+                <stop offset="1" stopColor="#FF9800" />
+              </linearGradient>
+              <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5Z" stroke="url(#lapizColorCups)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+            </svg>
+          </button>
+          <button className="text-red-500 hover:text-red-700 p-0 m-0 bg-transparent border-none focus:outline-none ml-2" type="button" title="Eliminar" onClick={() => handleDelete(c.id)}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </td>
+      </tr>
+    ));
+  })();
 
   return (
     <div className="border p-4">
@@ -261,12 +301,40 @@ export default function ConfigurarCups() {
               {error && <div className="text-red-600 text-sm mt-1">{error}</div>}
             </form>
             <hr className="border-t border-black my-6 w-full" />
+            <div className="mb-4">
+              {/* Filters row */}
+              <div className="flex flex-wrap gap-2 items-end">
+                <div className="flex-1 min-w-[160px]">
+                  <label className="text-xs">Aseguradora</label>
+                  <input name="aseguradora" value={filter.aseguradora} onChange={handleFilterChange} className="border px-2 py-1 w-full" placeholder="Aseguradora" />
+                </div>
+                <div className="min-w-[120px]">
+                  <label className="text-xs">CUPS</label>
+                  <input name="cups" value={filter.cups} onChange={handleFilterChange} className="border px-2 py-1 w-full" placeholder="CUPS" />
+                </div>
+                <div className="min-w-[100px]">
+                  <label className="text-xs">CUINT</label>
+                  <input name="cuint" value={filter.cuint} onChange={handleFilterChange} className="border px-2 py-1 w-full" placeholder="CUINT" />
+                </div>
+                <div className="min-w-[200px]">
+                  <label className="text-xs">Servicio Facturado</label>
+                  <input name="servicioFacturado" value={filter.servicioFacturado} onChange={handleFilterChange} className="border px-2 py-1 w-full" placeholder="Servicio Facturado" />
+                </div>
+                <div className="min-w-[200px]">
+                  <label className="text-xs">Servicio Normalizado</label>
+                  <input name="servicioNormalizado" value={filter.servicioNormalizado} onChange={handleFilterChange} className="border px-2 py-1 w-full" placeholder="Servicio Normalizado" />
+                </div>
+                <div className="w-fit">
+                  <button type="button" className="h-8 px-3 bg-gray-200 border" onClick={() => setFilter({aseguradora:'',cups:'',cuint:'',servicioFacturado:'',servicioNormalizado:''})}>Limpiar</button>
+                </div>
+              </div>
+            </div>
             <div>
               <h3 className="font-medium mb-2 text-black dark:text-white">CUPS Registrados ({cups.length})</h3>
               <div className="overflow-x-auto">
                 {/* limit vertical height and allow scrolling when there are many rows */}
                 <div style={{ maxHeight: 420, overflowY: 'auto' }}>
-                  <table className="min-w-full text-xs text-center" style={{borderCollapse:'collapse'}}>
+                  <table className="min-w-full text-xs" style={{borderCollapse:'collapse'}}>
                   <thead>
                     <tr className="bg-black">
                       <th className="px-2 py-2 text-center text-white font-semibold">Aseguradora</th>
@@ -279,32 +347,7 @@ export default function ConfigurarCups() {
                     </tr>
                   </thead>
                   <tbody>
-                    {cups.length === 0 ? (
-                      <tr><td colSpan={8} className="text-center p-2 text-gray-400 border-b">Sin CUPS</td></tr>
-                    ) : [...cups].sort((a,b) => a.id - b.id).map(c => (
-                      <tr key={c.id} style={{borderBottom:'1px solid #e5e7eb'}}>
-                        <td className="px-2 py-1 text-center" style={{borderBottom:'1px solid #e5e7eb'}}>{c.aseguradora}</td>
-                        <td className="px-2 py-1 text-center" style={{borderBottom:'1px solid #e5e7eb'}}>{c.cups}</td>
-                        <td className="px-2 py-1 text-center" style={{borderBottom:'1px solid #e5e7eb'}}>{c.cuint}</td>
-                        <td className="px-2 py-1 text-center" style={{borderBottom:'1px solid #e5e7eb'}}>{c.servicioFacturado}</td>
-                        <td className="px-2 py-1 text-center" style={{borderBottom:'1px solid #e5e7eb'}}>{c.servicioNormalizado}</td>
-                        <td className="px-2 py-1 text-center" style={{borderBottom:'1px solid #e5e7eb'}}>{formatValor(c.valor)}</td>
-                        <td className="px-2 py-1 text-center" style={{borderBottom:'1px solid #e5e7eb'}}>
-                          <button className="p-0 m-0 bg-transparent border-none focus:outline-none" type="button" title="Editar" onClick={() => handleEdit(c)}>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24">
-                              <linearGradient id="lapizColorCups" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
-                                <stop stopColor="#FFD600" />
-                                <stop offset="1" stopColor="#FF9800" />
-                              </linearGradient>
-                              <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5Z" stroke="url(#lapizColorCups)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-                            </svg>
-                          </button>
-                          <button className="text-red-500 hover:text-red-700 p-0 m-0 bg-transparent border-none focus:outline-none ml-2" type="button" title="Eliminar" onClick={() => handleDelete(c.id)}>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                    {rows}
                   </tbody>
                 </table>
                 </div>
