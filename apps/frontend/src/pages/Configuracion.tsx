@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Aseguradora } from '../types/aseguradora'
 import ConfigurarSede from './ConfigurarSede'
+import ConfigurarCups from './ConfigurarCups'
 import API_CONFIG from '../config/api'
 
 export default function Configuracion() {
@@ -236,8 +237,10 @@ export default function Configuracion() {
             )}
           </div>
         </div>
-        {/* Módulo de sedes */}
-        <ConfigurarSede />
+  {/* Módulo de sedes */}
+  <ConfigurarSede />
+  {/* Módulo nuevo: Configurar CUPS */}
+  <ConfigurarCups />
       </div>
     </section>
   )
