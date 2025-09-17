@@ -98,6 +98,10 @@ AppDataSource.initialize().then(() => {
   const sedeRoutes = require('./routes/sedeRoutes').default;
   app.use('/api/sedes', sedeRoutes);
 
+  // Rutas de cups (configuración)
+  const cupsRoutes = require('./routes/cupsRoutes').default;
+  app.use('/api/cups', cupsRoutes);
+
   // Rutas de migración
   const migrationRoutes = require('./routes/migrationRoutes').default;
   app.use('/api/migration', migrationRoutes);
