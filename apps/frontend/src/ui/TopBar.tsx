@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth';
 import { useNavigate } from 'react-router-dom';
-import PrismaLogo from './PrismaLogo';
 
 const navLinks = [
   { to: '/facturacion', label: 'Facturación' },
@@ -58,19 +57,15 @@ export default function TopBar() {
   return (
     <header className="fixed top-0 inset-x-0 h-20 shadow-lg z-50 border-b" style={{ backgroundColor: '#002c50', borderColor: '#001a2e' }}>
       <div className="relative h-full">
-  {/* Left: Title */}
-  <div className="absolute left-8 top-0 bottom-0 flex items-center pl-3 md:pl-4 lg:pl-6">
-              <div className="flex items-center gap-3">
-              {/* logo replaced by PrismaLogo component */}
-              <div className="flex items-center gap-3">
-              <PrismaLogo className="w-7 h-7" />
-              <span className="text-xl font-bold tracking-tight text-white select-none brand-title">Innova360</span>
-            </div>
+        {/* Left: Title */}
+        <div className="absolute left-8 top-0 bottom-0 flex items-center pl-3 md:pl-4 lg:pl-6">
+          <div className="flex items-center gap-3">
+            <span className="text-xl font-bold tracking-tight text-white select-none brand-title">Innova360</span>
           </div>
         </div>
 
-  {/* Right group: nav + separator + user */}
-  <div className="absolute right-8 top-0 bottom-0 flex items-center pr-3 md:pr-4 lg:pr-6" ref={menuRef}>
+        {/* Right group: nav + separator + user */}
+        <div className="absolute right-8 top-0 bottom-0 flex items-center pr-3 md:pr-4 lg:pr-6" ref={menuRef}>
           {/* Mobile: hamburger that contains all nav links */}
           <div className="flex md:hidden items-center gap-3 mr-3">
             <div className="relative" ref={mobileRef}>
