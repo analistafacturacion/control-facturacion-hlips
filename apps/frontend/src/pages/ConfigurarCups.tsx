@@ -3,15 +3,18 @@ import API_CONFIG from '../config/api';
 
 interface Cup {
   id: number;
-  codigo: string;
-  descripcion: string;
-  tipo: string;
+  aseguradora: string;
+  cups: string;
+  cuint: string;
+  servicioFacturado: string;
+  servicioNormalizado: string;
+  valor: string;
   activo: boolean;
 }
 
 export default function ConfigurarCups() {
   const [cups, setCups] = useState<Cup[]>([]);
-  const [form, setForm] = useState<Omit<Cup, 'id'>>({ codigo: '', descripcion: '', tipo: '', activo: true });
+  const [form, setForm] = useState<Omit<Cup, 'id'>>({ aseguradora: '', cups: '', cuint: '', servicioFacturado: '', servicioNormalizado: '', valor: '', activo: true });
   const [editId, setEditId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -34,15 +37,16 @@ export default function ConfigurarCups() {
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value, type, checked } = e.target as HTMLInputElement;
+    const target = e.target as HTMLInputElement;
+    const { name, value, type, checked } = target;
     setForm(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value } as any));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!form.codigo.trim() || !form.descripcion.trim()) {
-      setError('Código y descripción son obligatorios');
+    if (!form.cups.trim() || !form.servicioFacturado.trim()) {
+      setError('CUPS y Servicio Facturado son obligatorios');
       return;
     }
     setLoading(true);
@@ -53,7 +57,7 @@ export default function ConfigurarCups() {
         body: JSON.stringify(form),
       });
       if (!res.ok) throw new Error('Error al guardar');
-      setForm({ codigo: '', descripcion: '', tipo: '', activo: true });
+  setForm({ aseguradora: '', cups: '', cuint: '', servicioFacturado: '', servicioNormalizado: '', valor: '', activo: true });
       setEditId(null);
       fetchCups();
     } catch {
@@ -63,7 +67,7 @@ export default function ConfigurarCups() {
   };
 
   const handleEdit = (c: Cup) => {
-    setForm({ codigo: c.codigo, descripcion: c.descripcion, tipo: c.tipo, activo: c.activo });
+    setForm({ aseguradora: c.aseguradora, cups: c.cups, cuint: c.cuint, servicioFacturado: c.servicioFacturado, servicioNormalizado: c.servicioNormalizado, valor: c.valor, activo: c.activo });
     setEditId(c.id);
     if (!showForm) setShowForm(true);
   };
@@ -136,21 +140,28 @@ export default function ConfigurarCups() {
             <form id="form-cups" className="mt-2" onSubmit={handleSubmit}>
               <div className="flex flex-col md:flex-row gap-2 w-full items-end">
                 <div className="flex-1 flex flex-col">
-                  <label className="text-sm mb-1">Código CUPS</label>
-                  <input className="border px-2 py-1 w-full bg-white text-black" name="codigo" value={form.codigo} onChange={handleChange} placeholder="Código CUPS" required />
-                </div>
-                <div className="flex-2 flex flex-col">
-                  <label className="text-sm mb-1">Descripción</label>
-                  <input className="border px-2 py-1 w-full bg-white text-black" name="descripcion" value={form.descripcion} onChange={handleChange} placeholder="Descripción" required />
+                  <label className="text-sm mb-1">Aseguradora</label>
+                  <input className="border px-2 py-1 w-full bg-white text-black" name="aseguradora" value={form.aseguradora} onChange={handleChange} placeholder="Aseguradora" required />
                 </div>
                 <div className="flex-1 flex flex-col">
-                  <label className="text-sm mb-1">Tipo</label>
-                  <select className="border px-2 py-1 w-full bg-white text-black" name="tipo" value={form.tipo} onChange={handleChange}>
-                    <option value="">-- Seleccione --</option>
-                    <option value="procedimiento">Procedimiento</option>
-                    <option value="material">Material</option>
-                    <option value="insumo">Insumo</option>
-                  </select>
+                  <label className="text-sm mb-1">CUPS</label>
+                  <input className="border px-2 py-1 w-full bg-white text-black" name="cups" value={form.cups} onChange={handleChange} placeholder="Código CUPS" required />
+                </div>
+                <div className="flex-1 flex flex-col">
+                  <label className="text-sm mb-1">CUINT</label>
+                  <input className="border px-2 py-1 w-full bg-white text-black" name="cuint" value={form.cuint} onChange={handleChange} placeholder="CUINT" />
+                </div>
+                <div className="flex-1 flex flex-col">
+                  <label className="text-sm mb-1">Servicio Facturado</label>
+                  <input className="border px-2 py-1 w-full bg-white text-black" name="servicioFacturado" value={form.servicioFacturado} onChange={handleChange} placeholder="Servicio Facturado" />
+                </div>
+                <div className="flex-1 flex flex-col">
+                  <label className="text-sm mb-1">Servicio Normalizado</label>
+                  <input className="border px-2 py-1 w-full bg-white text-black" name="servicioNormalizado" value={form.servicioNormalizado} onChange={handleChange} placeholder="Servicio Normalizado" />
+                </div>
+                <div className="flex-1 flex flex-col min-w-[120px]">
+                  <label className="text-sm mb-1">Valor</label>
+                  <input className="border px-2 py-1 w-full bg-white text-black" name="valor" value={form.valor} onChange={handleChange} placeholder="Valor" />
                 </div>
                 <div className="flex items-center gap-2">
                   <label className="text-sm">Activo</label>
@@ -167,7 +178,7 @@ export default function ConfigurarCups() {
                 {editId && (
                   <button
                     type="button"
-                    onClick={() => { setEditId(null); setForm({ codigo: '', descripcion: '', tipo: '', activo: true }); }}
+                    onClick={() => { setEditId(null); setForm({ aseguradora: '', cups: '', cuint: '', servicioFacturado: '', servicioNormalizado: '', valor: '', activo: true }); }}
                     className="h-8 px-4 w-fit ml-2 mb-0 border border-gray-400 text-gray-400 bg-white focus:outline-none cursor-pointer"
                     style={{ boxShadow: 'none' }}
                   >
@@ -184,21 +195,27 @@ export default function ConfigurarCups() {
                 <table className="min-w-full text-sm text-center" style={{borderCollapse:'collapse'}}>
                   <thead>
                     <tr className="bg-black">
-                      <th className="px-2 py-2 text-center text-white font-semibold">Código</th>
-                      <th className="px-2 py-2 text-center text-white font-semibold">Descripción</th>
-                      <th className="px-2 py-2 text-center text-white font-semibold">Tipo</th>
+                      <th className="px-2 py-2 text-center text-white font-semibold">Aseguradora</th>
+                      <th className="px-2 py-2 text-center text-white font-semibold">CUPS</th>
+                      <th className="px-2 py-2 text-center text-white font-semibold">CUINT</th>
+                      <th className="px-2 py-2 text-center text-white font-semibold">Servicio Facturado</th>
+                      <th className="px-2 py-2 text-center text-white font-semibold">Servicio Normalizado</th>
+                      <th className="px-2 py-2 text-center text-white font-semibold">Valor</th>
                       <th className="px-2 py-2 text-center text-white font-semibold">Activo</th>
                       <th className="px-2 py-2 text-center text-white font-semibold">Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
                     {cups.length === 0 ? (
-                      <tr><td colSpan={6} className="text-center p-2 text-gray-400 border-b">Sin CUPS</td></tr>
+                      <tr><td colSpan={8} className="text-center p-2 text-gray-400 border-b">Sin CUPS</td></tr>
                     ) : [...cups].sort((a,b) => a.id - b.id).map(c => (
                       <tr key={c.id} style={{borderBottom:'1px solid #e5e7eb'}}>
-                        <td className="px-2 py-1 text-center" style={{borderBottom:'1px solid #e5e7eb'}}>{c.codigo}</td>
-                        <td className="px-2 py-1 text-center" style={{borderBottom:'1px solid #e5e7eb'}}>{c.descripcion}</td>
-                        <td className="px-2 py-1 text-center" style={{borderBottom:'1px solid #e5e7eb'}}>{c.tipo}</td>
+                        <td className="px-2 py-1 text-center" style={{borderBottom:'1px solid #e5e7eb'}}>{c.aseguradora}</td>
+                        <td className="px-2 py-1 text-center" style={{borderBottom:'1px solid #e5e7eb'}}>{c.cups}</td>
+                        <td className="px-2 py-1 text-center" style={{borderBottom:'1px solid #e5e7eb'}}>{c.cuint}</td>
+                        <td className="px-2 py-1 text-center" style={{borderBottom:'1px solid #e5e7eb'}}>{c.servicioFacturado}</td>
+                        <td className="px-2 py-1 text-center" style={{borderBottom:'1px solid #e5e7eb'}}>{c.servicioNormalizado}</td>
+                        <td className="px-2 py-1 text-center" style={{borderBottom:'1px solid #e5e7eb'}}>{c.valor}</td>
                         <td className="px-2 py-1 text-center" style={{borderBottom:'1px solid #e5e7eb'}}>{c.activo ? 'Sí' : 'No'}</td>
                         <td className="px-2 py-1 text-center" style={{borderBottom:'1px solid #e5e7eb'}}>
                           <button className="p-0 m-0 bg-transparent border-none focus:outline-none" type="button" title="Editar" onClick={() => handleEdit(c)}>
