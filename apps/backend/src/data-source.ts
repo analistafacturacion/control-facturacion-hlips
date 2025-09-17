@@ -21,6 +21,27 @@ export const AppDataSource = {
             return connection;
         }
         
+        // prepare entities array and log their runtime shape to help debug constructor issues in production
+        const entitiesArray = [
+            User,
+            FacturacionEvento,
+            Anulacion,
+            Aseguradora,
+            Sede,
+            Cup,
+            CupAssignment,
+            ReporteRips,
+            RipsFactura,
+            UltimaActualizacion
+        ];
+
+        try {
+            console.log('TypeORM entities to be registered:');
+            console.log(entitiesArray.map((e: any) => ({ name: e && e.name, type: typeof e })));
+        } catch (logErr) {
+            console.error('Error logging entities for TypeORM', logErr);
+        }
+
         connection = await createConnection({
             type: "postgres",
             url: process.env.DATABASE_URL,
@@ -32,18 +53,7 @@ export const AppDataSource = {
             synchronize: process.env.NODE_ENV === "production" ? false : true,
             logging: process.env.NODE_ENV === "development",
             ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
-            entities: [
-                User,
-                FacturacionEvento,
-                Anulacion,
-                Aseguradora,
-                Sede,
-                Cup,
-                CupAssignment,
-                ReporteRips,
-                RipsFactura
-                ,UltimaActualizacion
-            ],
+            entities: entitiesArray,
             migrations: process.env.NODE_ENV === "production"
                 ? ["dist/migration/**/*.js"] 
                 : ["src/migration/**/*.ts"],
