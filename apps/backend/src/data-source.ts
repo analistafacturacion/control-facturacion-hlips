@@ -1,15 +1,17 @@
 import "reflect-metadata";
 import { createConnection } from "typeorm";
-import { User } from "./entity/User";
-import { FacturacionEvento } from "./entity/FacturacionEvento";
-import { Anulacion } from "./entity/Anulacion";
-import { Aseguradora } from "./entity/Aseguradora";
-import { Sede } from "./entity/Sede";
-import { ReporteRips } from "./entity/ReporteRips";
-import { RipsFactura } from "./entity/RipsFactura";
-import { UltimaActualizacion } from "./entity/UltimaActualizacion";
-import { Cup } from './entity/Cup';
-import { CupAssignment } from './entity/CupAssignment';
+// load entities with require to avoid ESM/CJS constructor issues at runtime
+const User = require('./entity/User').User;
+const FacturacionEvento = require('./entity/FacturacionEvento').FacturacionEvento;
+const Anulacion = require('./entity/Anulacion').Anulacion;
+const Aseguradora = require('./entity/Aseguradora').Aseguradora;
+const Sede = require('./entity/Sede').Sede;
+const ReporteRips = require('./entity/ReporteRips').ReporteRips;
+const RipsFactura = require('./entity/RipsFactura').RipsFactura;
+const UltimaActualizacion = require('./entity/UltimaActualizacion').UltimaActualizacion;
+// Import entities using require at runtime to avoid ESM/CommonJS interop issues in production
+const Cup = require('./entity/Cup').Cup;
+const CupAssignment = require('./entity/CupAssignment').CupAssignment;
 
 let connection: any;
 
