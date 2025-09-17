@@ -25,7 +25,13 @@ export default function ConfigurarCups() {
     try {
       const res = await fetch(`${API_CONFIG.BASE_URL}/cups`);
       const data = await res.json();
-      setCups(data);
+      // Ensure backend returned an array before setting state
+      if (Array.isArray(data)) {
+        setCups(data);
+      } else {
+        console.error('Expected array from /cups but got:', data);
+        setError('No se pudieron cargar los CUPS');
+      }
     } catch {
       setError('No se pudieron cargar los CUPS');
     }
@@ -199,7 +205,6 @@ export default function ConfigurarCups() {
                       <th className="px-2 py-2 text-center text-white font-semibold">Servicio Facturado</th>
                       <th className="px-2 py-2 text-center text-white font-semibold">Servicio Normalizado</th>
                       <th className="px-2 py-2 text-center text-white font-semibold">Valor</th>
-                      <th className="px-2 py-2 text-center text-white font-semibold">Activo</th>
                       <th className="px-2 py-2 text-center text-white font-semibold">Acciones</th>
                     </tr>
                   </thead>
@@ -214,7 +219,6 @@ export default function ConfigurarCups() {
                         <td className="px-2 py-1 text-center" style={{borderBottom:'1px solid #e5e7eb'}}>{c.servicioFacturado}</td>
                         <td className="px-2 py-1 text-center" style={{borderBottom:'1px solid #e5e7eb'}}>{c.servicioNormalizado}</td>
                         <td className="px-2 py-1 text-center" style={{borderBottom:'1px solid #e5e7eb'}}>{c.valor}</td>
-                        <td className="px-2 py-1 text-center" style={{borderBottom:'1px solid #e5e7eb'}}>{c.activo ? 'Sí' : 'No'}</td>
                         <td className="px-2 py-1 text-center" style={{borderBottom:'1px solid #e5e7eb'}}>
                           <button className="p-0 m-0 bg-transparent border-none focus:outline-none" type="button" title="Editar" onClick={() => handleEdit(c)}>
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24">
