@@ -139,12 +139,12 @@ export default function ConfigurarCups() {
           <>
             <form id="form-cups" className="mt-2" onSubmit={handleSubmit}>
               <div className="flex flex-col md:flex-row gap-2 w-full items-end">
-                <div className="flex-1 flex flex-col">
+                <div className="flex-none w-[45%] min-w-[260px] flex flex-col">
                   <label className="text-sm mb-1">Aseguradora</label>
                   <input className="border px-2 py-1 w-full bg-white text-black" name="aseguradora" value={form.aseguradora} onChange={handleChange} placeholder="Aseguradora" required />
                 </div>
                 {/* Force single-row layout: fixed widths so fields align and occupy the full row with priority widths */}
-                <div className="flex flex-row items-start gap-3 w-full overflow-x-auto">
+                <div className="flex-none w-[50%] flex flex-row items-start gap-3 overflow-x-auto">
                   <div className="flex-none w-[10%] min-w-[90px] flex flex-col">
                     <label className="text-sm mb-1">CUPS</label>
                     <input className="border px-2 py-1 w-full bg-white text-black" name="cups" value={form.cups} onChange={handleChange} placeholder="CUPS" required />
@@ -168,7 +168,7 @@ export default function ConfigurarCups() {
                 </div>
                 <button
                   type="submit"
-                  className="h-8 px-4 bg-black text-white w-fit ml-2 mb-0 transition-colors duration-200 focus:outline-none"
+                  className="h-8 px-4 bg-black text-white w-fit mb-0 transition-colors duration-200 focus:outline-none"
                   style={{marginTop:0}}
                   disabled={loading}
                 >
