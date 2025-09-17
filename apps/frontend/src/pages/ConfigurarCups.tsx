@@ -143,29 +143,25 @@ export default function ConfigurarCups() {
                   <label className="text-sm mb-1">Aseguradora</label>
                   <input className="border px-2 py-1 w-full bg-white text-black" name="aseguradora" value={form.aseguradora} onChange={handleChange} placeholder="Aseguradora" required />
                 </div>
-                <div className="flex-1 flex flex-col">
+                <div className="flex-[0.9] flex flex-col">
                   <label className="text-sm mb-1">CUPS</label>
-                  <input className="border px-2 py-1 w-full bg-white text-black" name="cups" value={form.cups} onChange={handleChange} placeholder="Código CUPS" required />
+                  <input className="border px-2 py-1 w-40 bg-white text-black" name="cups" value={form.cups} onChange={handleChange} placeholder="CUPS" required />
                 </div>
-                <div className="flex-1 flex flex-col">
+                <div className="flex-[0.6] flex flex-col">
                   <label className="text-sm mb-1">CUINT</label>
-                  <input className="border px-2 py-1 w-full bg-white text-black" name="cuint" value={form.cuint} onChange={handleChange} placeholder="CUINT" />
+                  <input className="border px-2 py-1 w-28 bg-white text-black" name="cuint" value={form.cuint} onChange={handleChange} placeholder="CUINT" />
                 </div>
-                <div className="flex-1 flex flex-col">
+                <div className="flex-2 flex flex-col">
                   <label className="text-sm mb-1">Servicio Facturado</label>
-                  <input className="border px-2 py-1 w-full bg-white text-black" name="servicioFacturado" value={form.servicioFacturado} onChange={handleChange} placeholder="Servicio Facturado" />
+                  <input className="border px-2 py-1 w-full bg-white text-black text-lg" name="servicioFacturado" value={form.servicioFacturado} onChange={handleChange} placeholder="Servicio Facturado" />
                 </div>
-                <div className="flex-1 flex flex-col">
+                <div className="flex-2 flex flex-col">
                   <label className="text-sm mb-1">Servicio Normalizado</label>
-                  <input className="border px-2 py-1 w-full bg-white text-black" name="servicioNormalizado" value={form.servicioNormalizado} onChange={handleChange} placeholder="Servicio Normalizado" />
+                  <input className="border px-2 py-1 w-full bg-white text-black text-lg" name="servicioNormalizado" value={form.servicioNormalizado} onChange={handleChange} placeholder="Servicio Normalizado" />
                 </div>
-                <div className="flex-1 flex flex-col min-w-[120px]">
+                <div className="flex-[0.8] flex flex-col min-w-[100px]">
                   <label className="text-sm mb-1">Valor</label>
-                  <input className="border px-2 py-1 w-full bg-white text-black" name="valor" value={form.valor} onChange={handleChange} placeholder="Valor" />
-                </div>
-                <div className="flex items-center gap-2">
-                  <label className="text-sm">Activo</label>
-                  <input type="checkbox" name="activo" checked={form.activo} onChange={handleChange} />
+                  <input className="border px-2 py-1 w-28 bg-white text-black text-sm text-right" name="valor" value={form.valor} onChange={handleChange} placeholder="Valor" />
                 </div>
                 <button
                   type="submit"
