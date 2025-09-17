@@ -38,6 +38,21 @@ export const AppDataSource = {
         try {
             console.log('TypeORM entities to be registered:');
             console.log(entitiesArray.map((e: any) => ({ name: e && e.name, type: typeof e })));
+            // Try to instantiate each entity to detect non-constructible values
+            for (const e of entitiesArray) {
+                try {
+                    if (typeof e !== 'function') {
+                        console.warn(`Entity ${e && e.name ? e.name : String(e)} is not a function; typeof=${typeof e}`);
+                        continue;
+                    }
+                    // try to instantiate (most entities have no required constructor args)
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                    const inst = new (e as any)();
+                    console.log(`Entity ${e.name} instantiated OK`);
+                } catch (instErr: any) {
+                    console.error(`Error instantiating entity ${e && e.name ? e.name : String(e)}:`, instErr && instErr.message ? instErr.message : String(instErr));
+                }
+            }
         } catch (logErr) {
             console.error('Error logging entities for TypeORM', logErr);
         }
