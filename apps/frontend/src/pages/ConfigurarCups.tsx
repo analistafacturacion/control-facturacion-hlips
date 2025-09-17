@@ -20,6 +20,7 @@ export default function ConfigurarCups() {
   const [showForm, setShowForm] = useState(false);
   // Filter state
   const [filter, setFilter] = useState({ aseguradora: '', cups: '', cuint: '', servicioFacturado: '', servicioNormalizado: '' });
+  const [showFilters, setShowFilters] = useState(false);
 
   const fetchCups = async () => {
     setLoading(true);
@@ -287,6 +288,9 @@ export default function ConfigurarCups() {
                 >
                   Guardar
                 </button>
+                <button type="button" title="Buscar (filtros)" onClick={() => setShowFilters(s => !s)} className="h-8 w-8 ml-2 flex items-center justify-center border border-gray-300 bg-white">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"/></svg>
+                </button>
                 {editId && (
                   <button
                     type="button"
@@ -301,9 +305,10 @@ export default function ConfigurarCups() {
               {error && <div className="text-red-600 text-sm mt-1">{error}</div>}
             </form>
             <hr className="border-t border-black my-6 w-full" />
-            <div className="mb-4">
-              {/* Filters row */}
-              <div className="flex flex-wrap gap-2 items-end">
+            {showFilters && (
+              <div className="mb-4">
+                {/* Filters row */}
+                <div className="flex flex-wrap gap-2 items-end">
                 <div className="flex-1 min-w-[160px]">
                   <label className="text-xs">Aseguradora</label>
                   <input name="aseguradora" value={filter.aseguradora} onChange={handleFilterChange} className="border px-2 py-1 w-full" placeholder="Aseguradora" />
@@ -327,8 +332,9 @@ export default function ConfigurarCups() {
                 <div className="w-fit">
                   <button type="button" className="h-8 px-3 bg-gray-200 border" onClick={() => setFilter({aseguradora:'',cups:'',cuint:'',servicioFacturado:'',servicioNormalizado:''})}>Limpiar</button>
                 </div>
+                </div>
               </div>
-            </div>
+            )}
             <div>
               <h3 className="font-medium mb-2 text-black dark:text-white">CUPS Registrados ({cups.length})</h3>
               <div className="overflow-x-auto">
