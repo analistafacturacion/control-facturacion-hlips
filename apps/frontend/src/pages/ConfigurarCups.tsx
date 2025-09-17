@@ -139,36 +139,35 @@ export default function ConfigurarCups() {
           <>
             <form id="form-cups" className="mt-2" onSubmit={handleSubmit}>
               <div className="flex flex-col md:flex-row gap-2 w-full items-end">
-                <div className="flex-none w-[45%] min-w-[260px] flex flex-col">
-                  <label className="text-sm mb-1">Aseguradora</label>
-                  <input className="border px-2 py-1 w-full bg-white text-black" name="aseguradora" value={form.aseguradora} onChange={handleChange} placeholder="Aseguradora" required />
-                </div>
-                {/* Force single-row layout: fixed widths so fields align and occupy the full row with priority widths */}
-                <div className="flex-none w-[50%] flex flex-row items-start gap-3 overflow-x-auto">
-                  <div className="flex-none w-[10%] min-w-[90px] flex flex-col">
+                <div className="flex-1 w-full flex flex-row items-end gap-3 overflow-x-auto">
+                  <div className="flex-1 min-w-[120px] flex flex-col">
+                    <label className="text-sm mb-1">Aseguradora</label>
+                    <input className="border px-2 py-1 w-full bg-white text-black" name="aseguradora" value={form.aseguradora} onChange={handleChange} placeholder="Aseguradora" required />
+                  </div>
+                  <div className="flex-1 min-w-[90px] flex flex-col">
                     <label className="text-sm mb-1">CUPS</label>
                     <input className="border px-2 py-1 w-full bg-white text-black" name="cups" value={form.cups} onChange={handleChange} placeholder="CUPS" required />
                   </div>
-                  <div className="flex-none w-[8%] min-w-[70px] flex flex-col">
+                  <div className="flex-1 min-w-[80px] flex flex-col">
                     <label className="text-sm mb-1">CUINT</label>
                     <input className="border px-2 py-1 w-full bg-white text-black" name="cuint" value={form.cuint} onChange={handleChange} placeholder="CUINT" />
                   </div>
-                  <div className="flex-none w-[30%] min-w-[260px] flex flex-col">
+                  <div className="flex-1 min-w-[160px] flex flex-col">
                     <label className="text-sm mb-1">Servicio Facturado</label>
                     <input className="border px-2 py-1 w-full bg-white text-black" name="servicioFacturado" value={form.servicioFacturado} onChange={handleChange} placeholder="Servicio Facturado" />
                   </div>
-                  <div className="flex-none w-[30%] min-w-[260px] flex flex-col">
+                  <div className="flex-1 min-w-[160px] flex flex-col">
                     <label className="text-sm mb-1">Servicio Normalizado</label>
                     <input className="border px-2 py-1 w-full bg-white text-black" name="servicioNormalizado" value={form.servicioNormalizado} onChange={handleChange} placeholder="Servicio Normalizado" />
                   </div>
-                  <div className="flex-none w-[12%] min-w-[100px] flex flex-col">
+                  <div className="flex-1 min-w-[100px] flex flex-col">
                     <label className="text-sm mb-1">Valor</label>
                     <input className="border px-2 py-1 w-full bg-white text-black text-right" name="valor" value={form.valor} onChange={handleChange} placeholder="Valor" />
                   </div>
                 </div>
                 <button
                   type="submit"
-                  className="h-8 px-4 bg-black text-white w-fit mb-0 transition-colors duration-200 focus:outline-none"
+                  className="h-8 px-4 bg-black text-white w-fit ml-2 mb-0 transition-colors duration-200 focus:outline-none"
                   style={{marginTop:0}}
                   disabled={loading}
                 >
