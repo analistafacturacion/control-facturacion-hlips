@@ -9,12 +9,11 @@ interface Cup {
   servicioFacturado: string;
   servicioNormalizado: string;
   valor: string;
-  activo: boolean;
 }
 
 export default function ConfigurarCups() {
   const [cups, setCups] = useState<Cup[]>([]);
-  const [form, setForm] = useState<Omit<Cup, 'id'>>({ aseguradora: '', cups: '', cuint: '', servicioFacturado: '', servicioNormalizado: '', valor: '', activo: true });
+  const [form, setForm] = useState<Omit<Cup, 'id'>>({ aseguradora: '', cups: '', cuint: '', servicioFacturado: '', servicioNormalizado: '', valor: '' });
   const [editId, setEditId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -57,13 +56,23 @@ export default function ConfigurarCups() {
     }
     setLoading(true);
     try {
+      // send only the allowed fields (avoid sending 'activo' or other extras)
+      const payload = {
+        aseguradora: form.aseguradora,
+        cups: form.cups,
+        cuint: form.cuint,
+        servicioFacturado: form.servicioFacturado,
+        servicioNormalizado: form.servicioNormalizado,
+        valor: form.valor,
+      } as any;
+
       const res = await fetch(`${API_CONFIG.BASE_URL}/cups${editId ? '/' + editId : ''}`, {
         method: editId ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error('Error al guardar');
-  setForm({ aseguradora: '', cups: '', cuint: '', servicioFacturado: '', servicioNormalizado: '', valor: '', activo: true });
+  setForm({ aseguradora: '', cups: '', cuint: '', servicioFacturado: '', servicioNormalizado: '', valor: '' });
       setEditId(null);
       fetchCups();
     } catch {
@@ -73,7 +82,7 @@ export default function ConfigurarCups() {
   };
 
   const handleEdit = (c: Cup) => {
-    setForm({ aseguradora: c.aseguradora, cups: c.cups, cuint: c.cuint, servicioFacturado: c.servicioFacturado, servicioNormalizado: c.servicioNormalizado, valor: c.valor, activo: c.activo });
+    setForm({ aseguradora: c.aseguradora, cups: c.cups, cuint: c.cuint, servicioFacturado: c.servicioFacturado, servicioNormalizado: c.servicioNormalizado, valor: c.valor });
     setEditId(c.id);
     if (!showForm) setShowForm(true);
   };
@@ -182,7 +191,7 @@ export default function ConfigurarCups() {
                 {editId && (
                   <button
                     type="button"
-                    onClick={() => { setEditId(null); setForm({ aseguradora: '', cups: '', cuint: '', servicioFacturado: '', servicioNormalizado: '', valor: '', activo: true }); }}
+                    onClick={() => { setEditId(null); setForm({ aseguradora: '', cups: '', cuint: '', servicioFacturado: '', servicioNormalizado: '', valor: '' }); }}
                     className="h-8 px-4 w-fit ml-2 mb-0 border border-gray-400 text-gray-400 bg-white focus:outline-none cursor-pointer"
                     style={{ boxShadow: 'none' }}
                   >
