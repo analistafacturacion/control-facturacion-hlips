@@ -27,6 +27,8 @@ export default function TopBar() {
   const mobileRef = useRef<HTMLDivElement>(null);
   const { logout, user } = useAuth();
   const navigate = useNavigate();
+  // resolve public assets with Vite base URL so the app works on subpaths (GitHub Pages, etc.)
+  const logoSrc = `${(import.meta as any).env?.BASE_URL || '/'}logo.png`;
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -60,7 +62,7 @@ export default function TopBar() {
         {/* Left: Title */}
         <div className="absolute left-8 top-0 bottom-0 flex items-center pl-3 md:pl-4 lg:pl-6">
           <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="Innova360" className="h-8 w-auto" />
+            <img src={logoSrc} alt="Innova360" className="h-8 w-auto" />
             <span className="text-xl font-bold tracking-tight text-white select-none brand-title">Innova360</span>
           </div>
         </div>
