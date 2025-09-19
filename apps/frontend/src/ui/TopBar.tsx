@@ -60,6 +60,7 @@ export default function TopBar() {
         {/* Left: Title */}
         <div className="absolute left-8 top-0 bottom-0 flex items-center pl-3 md:pl-4 lg:pl-6">
           <div className="flex items-center gap-3">
+            <img src="/logo.png" alt="Innova360" className="h-8 w-auto" />
             <span className="text-xl font-bold tracking-tight text-white select-none brand-title">Innova360</span>
           </div>
         </div>
